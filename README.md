@@ -1,7 +1,7 @@
-# chessterm
+# enoch
 A Rust-powered 🦀 chess engine in a terminal
 
-![chessterm-kitty.gif](screenshots/chessterm-kitty.gif)
+![enoch-kitty.gif](screenshots/enoch-kitty.gif)
 
 ## 🚀 Why I Built This
 As I was preparing for a chess competition, I wanted to become **more proficient 
@@ -23,7 +23,7 @@ This project also served as an opportunity to:
   be simple, but handling castling, pins, en passant, and stalemate detection 
   turned out to be incredibly complex
 - **Enforce strict [PGN](https://en.wikipedia.org/wiki/Portable_Game_Notation)
-  notation** – chessterm only allows moves via PGN input, forcing me to get
+  notation** – enoch only allows moves via PGN input, forcing me to get
   better at writing notation
 - **Understand move generation & validation** – Building a chess engine required 
   dealing with bitboard-based move generation, attack masks, and legal move 
@@ -35,7 +35,7 @@ an incredibly rewarding experience, and I gained a much deeper understanding
 of how chess engines work
 
 ## 🎮 Human vs Human Only
-chessterm is **strictly designed for 2-player, human-vs-human chess**
+enoch is **strictly designed for 2-player, human-vs-human chess**
 - **❌ No AI Opponent** – moves must be manually entered using **PGN notation**
 - **✅ Ideal for Chess Study** – Useful for **notation practice, replaying games, and move visualization**
 - **🚫 No Plans for AI Integration** – The goal of this project was to 
@@ -43,12 +43,12 @@ chessterm is **strictly designed for 2-player, human-vs-human chess**
   create a competitive AI**
 
 ## 🚫 Known Limitations
-chessterm enforces **all standard chess rules**, but **does not implement** 
+enoch enforces **all standard chess rules**, but **does not implement** 
 the following draw conditions:
 - **Threefold Repetition Rule** – The game does not check if a position has repeated three times
 - **50-Move Rule** – The engine does not track move count for automatic draws
 
-There are **no plans to implement these**, as the primary goal of chessterm is 
+There are **no plans to implement these**, as the primary goal of enoch is 
 **notation practice, not full rule enforcement**
 
 ## ⚠️Compatibility Notice
@@ -59,37 +59,37 @@ There are **no plans to implement these**, as the primary goal of chessterm is
   - <details>
     <summary>Flickering in iTerm2</summary>
 
-    ![](screenshots/chessterm-iterm2.gif)
+    ![](screenshots/enoch-iterm2.gif)
 
     </details>
  
   - <details>
     <summary>Use `--halfblocks` mode to reduce flickering</summary>
     
-    ![](screenshots/chessterm-iterm2-halfblocks.gif)
+    ![](screenshots/enoch-iterm2-halfblocks.gif)
     
     </details>
 - **❌ Not Supported**: **Mac’s default Terminal.app** (images do not render correctly).
 
 ## 📦 Installation
 
-You can download the [latest release](https://github.com/ronaldsuwandi/chessterm/releases)
+You can download the [latest release](https://github.com/ronaldsuwandi/enoch/releases)
 and extract the package
 
 ```
-tar -xzvf chessterm-<os>-<version>.tar.gz    
+tar -xzvf enoch-<os>-<version>.tar.gz    
 ```
 
 And run the binary either 
 
 ```
-chessterm
+enoch
 ```
 
 or 
 
 ```
-chessterm --halfblocks
+enoch --halfblocks
 ```
 
 to use halfblocks rendering (for iTerm2)
@@ -122,12 +122,12 @@ cargo build --release
 
 To run the binary
 ```
-target/release/chessterm
+target/release/enoch
 ```
 
 Optionally you can also run using halfblocks rendering
 ```
-target/release/chessterm --halfblocks
+target/release/enoch --halfblocks
 ```
 
 ## 🛠️ Key Technical Highlights
@@ -143,7 +143,7 @@ For example, this is how a **white pawn at d2 (square 11 in 0-based indexing)** 
 
 `00000000 00000000 00000000 00000000 00000000 00000000 00001000 00000000`
 
-Using **bitwise operations**, chessterm can:
+Using **bitwise operations**, enoch can:
 - Quickly **shift bits** to generate potential pawn moves 
   (`board.white_pawns << 8` for a single advance)
 - Use **AND masks** to detect if a move is blocked
@@ -269,7 +269,7 @@ double pawn resolving, en passant capture, simulate king move can't enter into
 attack mask, pawn has separate attack mask, etc
 
 ### Precomputed attack and move masks
-To avoid generating moves for every piece, chessterm does **precompute moves** 
+To avoid generating moves for every piece, enoch does **precompute moves** 
 (including attack masks) for every position and piece types which are then 
 **further trimmed into pseudolegal moves** before finally validating legality
 

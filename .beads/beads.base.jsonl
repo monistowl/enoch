@@ -1,0 +1,4 @@
+{"id":"enoch-0c6","title":"Phase 1.2: Board representation","status":"open","priority":1,"issue_type":"feature","created_at":"2025-11-19T16:31:12.514482-05:00","updated_at":"2025-11-19T16:31:12.514482-05:00"}
+{"id":"enoch-1ku","title":"Phase 1.1: Introduce multi-army + team model","status":"open","priority":1,"issue_type":"feature","created_at":"2025-11-19T16:31:09.176451-05:00","updated_at":"2025-11-19T16:31:09.176451-05:00"}
+{"id":"enoch-inp","title":"Map current engine structure","status":"closed","priority":1,"issue_type":"task","created_at":"2025-11-19T16:28:39.533726-05:00","updated_at":"2025-11-19T16:31:04.048459-05:00","closed_at":"2025-11-19T16:31:04.048459-05:00"}
+{"id":"enoch-mo4","title":"Extract a machine-readable rules spec for Enochian chess","status":"closed","priority":1,"issue_type":"task","created_at":"2025-11-19T16:28:34.389317-05:00","updated_at":"2025-11-19T16:29:59.073756-05:00","closed_at":"2025-11-19T16:29:59.073756-05:00"}

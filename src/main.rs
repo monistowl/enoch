@@ -76,36 +76,14 @@ fn run(terminal: &mut DefaultTerminal, app: &mut App) -> io::Result<bool> {
                         app.flipped = !app.flipped;
                         continue;
                     }
-                    KeyCode::Up => {
-                        if app.show_scrollbar {
-                            app.scroll_up(1);
-                        }
-                        continue;
-                    }
-                    KeyCode::Down => {
-                        if app.show_scrollbar {
-                            app.scroll_down(1);
-                        }
-                        continue;
-                    }
                     _ => {}
                 }
 
                 match app.current_screen {
                     CurrentScreen::Main => match key.code {
                         KeyCode::Esc => app.current_screen = CurrentScreen::Exiting,
-                        KeyCode::Enter => app.process_cmd(),
                         KeyCode::Char(to_insert) => app.add_char(to_insert),
                         KeyCode::Backspace => app.delete_char(),
-                        _ => {}
-                    },
-
-                    CurrentScreen::GameOver => match key.code {
-                        KeyCode::Char('y') => {
-                            app.current_screen = CurrentScreen::Main;
-                            app.new_game();
-                        }
-                        KeyCode::Char('n') | KeyCode::Esc => return Ok(true),
                         _ => {}
                     },
                     CurrentScreen::Exiting => match key.code {
@@ -115,6 +93,7 @@ fn run(terminal: &mut DefaultTerminal, app: &mut App) -> io::Result<bool> {
                         }
                         _ => {}
                     },
+                    _ => {}
                 }
             }
         }

@@ -1,0 +1,49 @@
+---
+board:
+  size: 8x8
+  throne_squares:
+    rule: "King + another piece can occupy a throne square. If captured, both are removed."
+players:
+  armies: [Blue, Black, Red, Yellow]
+  teams:
+    - [Blue, Black]
+    - [Red, Yellow]
+  turn_order: [Blue, Red, Black, Yellow] # Example, can be changed by array
+pieces:
+  - name: King
+    movement: "1 step in any direction"
+    notes: "Cannot be checkmated, only captured."
+  - name: Queen
+    movement: "Leaps exactly 2 squares (rank, file, or diagonal)"
+    notes: "Ignores intervening pieces. Cannot capture other Queens."
+  - name: Rook
+    movement: "Slides any number of squares (rank or file)"
+  - name: Bishop
+    movement: "Slides any number of squares (diagonal)"
+    notes: "Cannot capture other Bishops. Can capture Queens."
+  - name: Knight
+    movement: "L-shaped leap (2+1)"
+  - name: Pawn
+    movement: "1 step forward"
+    capture: "1 step diagonally forward"
+    notes: "No double-step, no en passant."
+special_rules:
+  - name: "King in Check"
+    description: "If a king is in check and has a legal move, it must move. If the king has no legal moves, another piece may be moved."
+  - name: "Frozen Pieces"
+    description: "When a king is captured, all pieces of that army become frozen. They cannot move, threaten, or be captured."
+  - name: "Seizing the Throne"
+    description: "If a king moves onto an ally's throne, you gain control of that army. Frozen pieces are revived."
+  - name: "Exchange of Prisoners"
+    description: "Two enemy players who have each captured a king may agree to exchange them back to their thrones."
+  - name: "Privileged Pawn"
+    description: "A pawn becomes privileged if the army is reduced to (king + queen + pawn), (king + bishop + pawn), or (king + pawn). It can then promote to any major piece."
+  - name: "Stalemate"
+    description: "If a player's unchecked king has no moves except to move into check, the player skips turns until the stalemate is lifted."
+  - name: "Divination Mode"
+    description: "(Optional) A dice roll determines which piece type must be moved."
+draw_conditions:
+  - "Both allied kings are bare."
+  - "Four bare kings."
+starting_arrays:
+  - "Eight possible starting arrays, defined by Zalewski."

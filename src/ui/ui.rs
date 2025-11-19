@@ -149,33 +149,6 @@ fn render_piece(
     }
 }
 
-fn render_board(app: &App, frame: &mut Frame, area: Rect, large_board: bool) {
-    let square_size = if large_board {
-        LARGE_SQUARE_SIZE
-    } else {
-        DEFAULT_SQUARE_SIZE
-    };
-
-    let (rank_layout, rank_label_layout, file_label_layout) = compute_board_layouts(area, square_size);
-    let pieces = app.game.board.pieces_array(false);
-    for (rank, files) in pieces.iter().enumerate().rev() {
-        let actual_rank = actual_rank(rank, app.flipped);
-        let rank_layout_idx = actual_rank; // in reverse order for rendering
-
-        let file_layout = Layout::horizontal([Constraint::Length(square_size); 8])
-            .split(rank_layout[rank_layout_idx]);
-
-        render_rank_label(frame, rank + 1, rank_label_layout[rank_layout_idx]);
-
-        // iterate files
-        for (file, piece) in files.iter().enumerate() {
-            render_square(frame, &file_layout, rank, file, app.flipped);
-            render_piece(frame, app, &file_layout, rank, file, *piece, app.flipped);
-        }
-    }
-    render_file_labels(frame, file_label_layout, app.flipped);
-}
-
 pub const MIN_WIDTH_LARGE: u16 = 164;
 pub const MIN_HEIGHT_LARGE: u16 = 62;
 
@@ -208,9 +181,6 @@ pub fn render(frame: &mut Frame, app: &mut App) {
     .split(main_layout[1]);
 
     render_title(frame, main_layout[0]);
-    render_board(app, frame, content_layout[1], large_board);
-    render_moves(frame, app, content_layout[2]);
-    render_footer(frame, main_layout[3]);
 
     match app.current_screen {
         CurrentScreen::Main => {}
@@ -264,105 +234,12 @@ fn render_title(frame: &mut Frame, area: Rect) {
         .style(Style::default());
 
     let title = Paragraph::new(Text::styled(
-        "chessterm 0.1.0",
+        "enoch 0.1.0",
         Style::default().fg(Color::Green),
     ))
     .alignment(Alignment::Center)
     .block(title_block);
     frame.render_widget(title, area);
-}
-
-fn render_moves(frame: &mut Frame, app: &mut App, area: Rect) {
-    let moves_layout = Layout::vertical([Constraint::Length(3), Constraint::Fill(1)]).split(area);
-
-    let input_block = Block::default().title("Input").borders(Borders::ALL);
-
-    let input_texts = vec![
-        Span::from(format!("{:<10}", app.input.as_str())).fg(Color::White),
-        render_error(app.error),
-    ];
-
-    let input = Paragraph::new(Line::from(input_texts)).block(input_block);
-    frame.render_widget(input, moves_layout[0]);
-
-    frame.set_cursor_position(Position::new(
-        moves_layout[0].x + app.character_index as u16 + 1,
-        moves_layout[0].y + 1,
-    ));
-
-    // let moves_list =
-    let header = ["#", "White", "Black"]
-        .into_iter()
-        .map(Cell::from)
-        .collect::<Row>()
-        .height(1);
-
-    let rows: Vec<Row> = app
-        .moves
-        .chunks(2)
-        .enumerate()
-        .map(|(i, chunk)| {
-            let white_move = chunk
-                .get(0)
-                .map(|s| s.to_string())
-                .unwrap_or_else(|| "".to_string());
-            let black_move = chunk
-                .get(1)
-                .map(|s| s.to_string())
-                .unwrap_or_else(|| "".to_string());
-            Row::new([format!("{}", i + 1), white_move, black_move])
-        })
-        .collect();
-
-    let widths = [
-        Constraint::Length(3),
-        Constraint::Percentage(50),
-        Constraint::Percentage(50),
-    ];
-
-    let moves = Block::default().borders(Borders::ALL).title("Moves");
-
-    // update scrollbar state
-    app.scrollbar_state = app
-        .scrollbar_state
-        .content_length(rows.len())
-        .position(app.scroll_offset);
-    *app.table_state.offset_mut() = app.scroll_offset;
-
-    app.visible_moves = (moves_layout[1].height as usize).saturating_sub(3);
-
-    let table = Table::new(rows, widths).header(header).block(moves);
-    frame.render_stateful_widget(table, moves_layout[1], &mut app.table_state);
-
-    let scrollbar = Scrollbar::new(ScrollbarOrientation::VerticalRight)
-        .begin_symbol(Some("▲"))
-        .end_symbol(Some("▼"));
-
-    if app.show_scrollbar {
-        frame.render_stateful_widget(
-            scrollbar,
-            moves_layout[1].inner(Margin {
-                horizontal: 0,
-                vertical: 1,
-            }),
-            &mut app.scrollbar_state,
-        );
-    }
-}
-
-fn render_footer(frame: &mut Frame, area: Rect) {
-    let footer = Paragraph::new(Line::from(vec![
-        "[.]".blue().bold(),
-        " Flip  ".into(),
-        "[▲ / ▼]".blue().bold(),
-        " Scroll moves  ".into(),
-        "[ESC]".blue().bold(),
-        " Quit".into(),
-    ]))
-    .alignment(Alignment::Center)
-    .block(Block::default());
-
-    frame.render_widget(footer, area);
 }
 
 /// helper function to create a centered rect using up certain percentage of the available rect `r`

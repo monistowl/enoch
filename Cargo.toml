@@ -1,8 +1,8 @@
 [package]
-name = "chessterm"
+name = "enoch"
 version = "0.1.0"
 edition = "2021"
-repository = "https://github.com/ronaldsuwandi/chessterm"
+repository = "https://github.com/ronaldsuwandi/enoch"
 readme = "README.md"
 license = "MIT"
 rust-version = "1.80.0"
