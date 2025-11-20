@@ -175,11 +175,95 @@ pub const TABLET_OF_EARTH_PLACEHOLDER: ArraySpec = ArraySpec {
     placements: PLACEHOLDER_PLACEMENTS,
 };
 
-pub const ALL_ARRAYS: [&ArraySpec; 4] = [
+pub const ARRAY_5_PLACEHOLDER: ArraySpec = ArraySpec {
+    name: "Array 5 (TBD)",
+    description: "Placeholder for future array configuration.",
+    turn_order: [Army::Blue, Army::Red, Army::Black, Army::Yellow], // Default
+    controller_map: [
+        PlayerId::PLAYER_ONE,
+        PlayerId::PLAYER_ONE,
+        PlayerId::PLAYER_TWO,
+        PlayerId::PLAYER_TWO,
+    ],
+    throne_squares: [
+        [square(3, 0), square(4, 0)],
+        [square(0, 3), square(0, 4)],
+        [square(3, 7), square(4, 7)],
+        [square(7, 3), square(7, 4)],
+    ],
+    promotion_zones: DEFAULT_PROMOTION_ZONES,
+    placements: PLACEHOLDER_PLACEMENTS,
+};
+
+pub const ARRAY_6_PLACEHOLDER: ArraySpec = ArraySpec {
+    name: "Array 6 (TBD)",
+    description: "Placeholder for future array configuration.",
+    turn_order: [Army::Blue, Army::Red, Army::Black, Army::Yellow], // Default
+    controller_map: [
+        PlayerId::PLAYER_ONE,
+        PlayerId::PLAYER_ONE,
+        PlayerId::PLAYER_TWO,
+        PlayerId::PLAYER_TWO,
+    ],
+    throne_squares: [
+        [square(3, 0), square(4, 0)],
+        [square(0, 3), square(0, 4)],
+        [square(3, 7), square(4, 7)],
+        [square(7, 3), square(7, 4)],
+    ],
+    promotion_zones: DEFAULT_PROMOTION_ZONES,
+    placements: PLACEHOLDER_PLACEMENTS,
+};
+
+pub const ARRAY_7_PLACEHOLDER: ArraySpec = ArraySpec {
+    name: "Array 7 (TBD)",
+    description: "Placeholder for future array configuration.",
+    turn_order: [Army::Blue, Army::Red, Army::Black, Army::Yellow], // Default
+    controller_map: [
+        PlayerId::PLAYER_ONE,
+        PlayerId::PLAYER_ONE,
+        PlayerId::PLAYER_TWO,
+        PlayerId::PLAYER_TWO,
+    ],
+    throne_squares: [
+        [square(3, 0), square(4, 0)],
+        [square(0, 3), square(0, 4)],
+        [square(3, 7), square(4, 7)],
+        [square(7, 3), square(7, 4)],
+    ],
+    promotion_zones: DEFAULT_PROMOTION_ZONES,
+    placements: PLACEHOLDER_PLACEMENTS,
+};
+
+pub const ARRAY_8_PLACEHOLDER: ArraySpec = ArraySpec {
+    name: "Array 8 (TBD)",
+    description: "Placeholder for future array configuration.",
+    turn_order: [Army::Blue, Army::Red, Army::Black, Army::Yellow], // Default
+    controller_map: [
+        PlayerId::PLAYER_ONE,
+        PlayerId::PLAYER_ONE,
+        PlayerId::PLAYER_TWO,
+        PlayerId::PLAYER_TWO,
+    ],
+    throne_squares: [
+        [square(3, 0), square(4, 0)],
+        [square(0, 3), square(0, 4)],
+        [square(3, 7), square(4, 7)],
+        [square(7, 3), square(7, 4)],
+    ],
+    promotion_zones: DEFAULT_PROMOTION_ZONES,
+    placements: PLACEHOLDER_PLACEMENTS,
+};
+
+pub const ALL_ARRAYS: [&ArraySpec; 8] = [
     &TABLET_OF_FIRE_PROTOTYPE,
     &TABLET_OF_WATER_PLACEHOLDER,
     &TABLET_OF_AIR_PLACEHOLDER,
     &TABLET_OF_EARTH_PLACEHOLDER,
+    &ARRAY_5_PLACEHOLDER,
+    &ARRAY_6_PLACEHOLDER,
+    &ARRAY_7_PLACEHOLDER,
+    &ARRAY_8_PLACEHOLDER,
 ];
 
 pub fn available_arrays() -> &'static [&'static ArraySpec] {
