@@ -71,8 +71,8 @@ pub fn compute_king_moves(board: &Board, army: Army) -> u64 {
     }
     let own_pieces = board.occupancy_by_army[army as usize];
     let index = king.trailing_zeros();
-    // Add the king's precomputed moves, excluding occupied by own
-    KING_MOVES[index as usize] & !own_pieces
+    let computed_moves = KING_MOVES[index as usize] & !own_pieces;
+    computed_moves
 }
 
 pub const KNIGHT_MOVES: [u64; 64] = precompute_moves!(precompute_knight_moves);
@@ -186,7 +186,7 @@ const fn precompute_rook_rays(index: u8) -> [u64; 4] {
     [top, right, bottom, left]
 }
 
-fn compute_sliding_moves(
+fn get_sliding_moves(
     mut pieces: u64,
     directions: &[usize],
     own_pieces: u64,
@@ -217,11 +217,34 @@ fn compute_sliding_moves(
     moves
 }
 
+pub fn get_sliding_attacks(
+    mut pieces: u64,
+    directions: &[usize],
+    occupied: u64,
+) -> u64 {
+    let mut attacks = 0u64;
+
+    while pieces != 0 {
+        let index = pieces.trailing_zeros();
+        let rays = QUEEN_RAYS[index as usize]; // Assuming QUEEN_RAYS contain all directional rays
+
+        for &dir in directions {
+            let ray = rays[dir];
+            let (blocked_bit, blocked_mask) = find_blocker_mask(ray, occupied, dir);
+            attacks |= ray & !blocked_mask; // squares up to the blocker
+            attacks |= blocked_bit; // include the blocker itself
+        }
+
+        pieces &= pieces - 1;
+    }
+    attacks
+}
+
 pub fn compute_rooks_moves(board: &Board, army: Army) -> u64 {
     let rooks = board.by_army_kind[army as usize][PieceKind::Rook as usize];
     let own_pieces = board.occupancy_by_army[army as usize];
     let occupied = board.all_occupancy;
-    compute_sliding_moves(rooks, &ROOK_RAYS_DIRECTIONS, own_pieces, occupied)
+    get_sliding_moves(rooks, &ROOK_RAYS_DIRECTIONS, own_pieces, occupied)
 }
 
 const fn precompute_bishop_rays(index: u8) -> [u64; 4] {

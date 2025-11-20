@@ -2,12 +2,16 @@ use crate::engine::arrays::{ArraySpec, TABLET_OF_FIRE_PROTOTYPE};
 use crate::engine::board::Board;
 use crate::engine::moves::{
     compute_bishops_moves, compute_king_moves, compute_knights_moves, compute_pawns_moves,
-    compute_queens_moves, compute_rooks_moves,
+    compute_queens_moves, compute_rooks_moves, get_sliding_attacks,
 };
 use crate::engine::piece_kind::{parse_move, ParsedMove, SpecialMove};
-use crate::engine::types::{Army, PieceKind, PlayerId, Square, Team, ARMY_COUNT, PIECE_KIND_COUNT};
+use crate::engine::types::{
+    file_char, rank_char, Army, Move, PieceKind, PlayerId, Square, Team, ARMY_COUNT,
+    PIECE_KIND_COUNT,
+};
 
 /// Game struct responsible for all game logics (pin, check, valid captures, etc)
+#[derive(Clone)]
 pub struct Game {
     pub board: Board,
     pub config: GameConfig,
@@ -120,7 +124,7 @@ pub enum MoveError {
     GameOver,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Copy, Clone)]
 pub enum Status {
     Ongoing,
     Draw,
@@ -170,9 +174,9 @@ impl Game {
 
         let enemy_mask = self.board.all_occupancy & !self.board.occupancy_by_army[army.index()];
         let (pawn_moves, pawn_attacks) = compute_pawns_moves(&self.board, army);
-        let pawn_attacks = pawn_attacks & enemy_mask;
+        let pawn_attacks_filtered = pawn_attacks & enemy_mask;
         pawn_moves
-            | pawn_attacks
+            | pawn_attacks_filtered
             | compute_knights_moves(&self.board, army)
             | compute_bishops_moves(&self.board, army)
             | compute_rooks_moves(&self.board, army)
@@ -185,10 +189,9 @@ impl Game {
             return false;
         }
         let mask = 1u64 << square;
-        let enemy_mask = self.board.all_occupancy & !self.board.occupancy_by_army[army.index()];
-        let (_, pawn_attacks) = compute_pawns_moves(&self.board, army);
-        let pawn_capture_mask = pawn_attacks & enemy_mask;
-        if pawn_capture_mask & mask != 0 {
+        let _enemy_mask = self.board.all_occupancy & !self.board.occupancy_by_army[army.index()];
+        let (_pawn_moves, pawn_attacks) = compute_pawns_moves(&self.board, army);
+        if pawn_attacks & mask != 0 {
             return true;
         }
         let king_moves = compute_king_moves(&self.board, army);
@@ -199,13 +202,28 @@ impl Game {
         if knight_moves & mask != 0 {
             return true;
         }
-        if compute_bishops_moves(&self.board, army) & mask != 0 {
+        let bishops_attacks = get_sliding_attacks(
+            self.board.by_army_kind[army.index()][PieceKind::Bishop.index()],
+            &crate::engine::moves::BISHOP_RAYS_DIRECTIONS,
+            self.board.all_occupancy,
+        );
+        if bishops_attacks & mask != 0 {
             return true;
         }
-        if compute_rooks_moves(&self.board, army) & mask != 0 {
+        let rooks_attacks = get_sliding_attacks(
+            self.board.by_army_kind[army.index()][PieceKind::Rook.index()],
+            &crate::engine::moves::ROOK_RAYS_DIRECTIONS,
+            self.board.all_occupancy,
+        );
+        if rooks_attacks & mask != 0 {
             return true;
         }
-        if compute_queens_moves(&self.board, army) & mask != 0 {
+        let queens_attacks = get_sliding_attacks(
+            self.board.by_army_kind[army.index()][PieceKind::Queen.index()],
+            &crate::engine::moves::QUEEN_RAYS_DIRECTIONS,
+            self.board.all_occupancy,
+        );
+        if queens_attacks & mask != 0 {
             return true;
         }
         false
@@ -229,7 +247,7 @@ impl Game {
     }
 
     pub fn must_move_king(&self, army: Army) -> bool {
-        self.king_in_check(army) && self.king_moves_bitboard(army) != 0
+        self.king_in_check(army) && self.generate_legal_non_king_moves(army).is_empty()
     }
 
     pub fn freeze_army(&mut self, army: Army) {
@@ -312,7 +330,6 @@ impl Game {
         match (queen, bishop) {
             (1, 0) if no_secondary => true,
             (0, 1) if no_secondary => true,
-            (0, 0) if no_secondary => true,
             _ => false,
         }
     }
@@ -366,13 +383,13 @@ impl Game {
     }
 
     pub fn update_stalemate_status(&mut self, army: Army) {
-        if self.king_in_check(army) {
+        let king_in_check_status = self.king_in_check(army);
+        if king_in_check_status {
             self.state.set_stalemate(army, false);
             return;
         }
-        let king_moves = self.king_moves_bitboard(army);
-        let non_king_moves = self.army_moves_bitboard(army) & !king_moves;
-        let stalemated = king_moves == 0 && non_king_moves == 0;
+        let legal_moves = self.generate_legal_moves(army);
+        let stalemated = legal_moves.is_empty();
         self.state.set_stalemate(army, stalemated);
     }
 
@@ -411,10 +428,144 @@ impl Game {
             PieceKind::Bishop => compute_bishops_moves(&self.board, army),
             PieceKind::Knight => compute_knights_moves(&self.board, army),
             PieceKind::Pawn => {
-                let (moves, attacks) = compute_pawns_moves(&self.board, army);
-                moves | attacks
+                let (forward_moves_bitboard, diagonal_attack_squares_bitboard) =
+                    compute_pawns_moves(&self.board, army);
+
+                let mut legal_pawn_moves = 0u64;
+
+                // Add forward moves (only if empty)
+                legal_pawn_moves |= forward_moves_bitboard & self.board.free;
+
+                // Add diagonal capture moves (only if enemy piece is present)
+                let enemy_occupancy =
+                    self.board.all_occupancy & !self.board.occupancy_by_army[army.index()];
+                legal_pawn_moves |= diagonal_attack_squares_bitboard & enemy_occupancy;
+
+                legal_pawn_moves
             }
         }
+    }
+
+    pub fn generate_legal_king_moves(&self, army: Army) -> Vec<Move> {
+        if self.army_is_frozen(army) {
+            return Vec::new();
+        }
+
+        let mut legal_king_moves = Vec::new();
+        if let Some(from_sq) = self.state.king_square(army) {
+            let pseudo_legal_destinations = self.piece_moves(army, PieceKind::King);
+            let mut destinations = pseudo_legal_destinations;
+
+            while destinations != 0 {
+                let to_sq = destinations.trailing_zeros() as Square;
+                destinations &= destinations - 1;
+
+                let mut next_game_state = self.clone();
+
+                // Simulate the move on the cloned board
+                // Save the piece at the destination square, if any, for later restoration if needed
+                let original_piece_at_dest = next_game_state.board.piece_at(to_sq);
+
+                next_game_state.board.clear_square(from_sq); // Clear the source square
+                if let Some((target_army, target_kind)) = original_piece_at_dest {
+                    // Remove the captured piece from the board before placing the moving piece
+                    next_game_state
+                        .board
+                        .remove_piece(target_army, target_kind, to_sq);
+                }
+                next_game_state
+                    .board
+                    .place_piece(army, PieceKind::King, to_sq); // Place the piece on the destination square
+
+                // Update king's square since king moved
+                next_game_state.state.set_king_square(army, Some(to_sq));
+
+                next_game_state.board.refresh_occupancy();
+                next_game_state
+                    .state
+                    .sync_with_board(&next_game_state.board);
+
+                if !next_game_state.king_in_check(army) {
+                    legal_king_moves.push(Move {
+                        from: from_sq,
+                        to: to_sq,
+                        kind: PieceKind::King,
+                        promotion: None,
+                    });
+                }
+            }
+        }
+        legal_king_moves
+    }
+
+    // New function to generate legal moves for non-king pieces
+    pub fn generate_legal_non_king_moves(&self, army: Army) -> Vec<Move> {
+        if self.army_is_frozen(army) {
+            return Vec::new();
+        }
+
+        let mut legal_moves = Vec::new();
+        for (from_sq, kind) in self.board.all_pieces_for_army(army) {
+            if kind == PieceKind::King {
+                continue; // Skip king moves
+            }
+
+            let pseudo_legal_destinations = self.piece_moves(army, kind);
+            let mut destinations = pseudo_legal_destinations;
+
+            while destinations != 0 {
+                let to_sq = destinations.trailing_zeros() as Square;
+                destinations &= destinations - 1;
+
+                let mut next_game_state = self.clone();
+
+                // Simulate the move on the cloned board
+                let original_piece_at_dest = next_game_state.board.piece_at(to_sq);
+
+                next_game_state.board.clear_square(from_sq);
+                if let Some((target_army, target_kind)) = original_piece_at_dest {
+                    next_game_state
+                        .board
+                        .remove_piece(target_army, target_kind, to_sq);
+                }
+                next_game_state.board.place_piece(army, kind, to_sq);
+
+                if kind == PieceKind::Pawn && next_game_state.can_promote_at(army, to_sq) {
+                    next_game_state.promote_pawn(army, to_sq, PieceKind::Queen);
+                }
+
+                next_game_state.board.refresh_occupancy();
+                next_game_state
+                    .state
+                    .sync_with_board(&next_game_state.board);
+
+                if !next_game_state.king_in_check(army) {
+                    legal_moves.push(Move {
+                        from: from_sq,
+                        to: to_sq,
+                        kind,
+                        promotion: None,
+                    });
+                }
+            }
+        }
+        legal_moves
+    }
+
+    pub fn generate_legal_moves(&self, army: Army) -> Vec<Move> {
+        if self.army_is_frozen(army) {
+            return Vec::new();
+        }
+
+        let mut legal_moves = Vec::new();
+
+        // Add legal non-king moves
+        legal_moves.extend(self.generate_legal_non_king_moves(army));
+
+        // Add legal king moves
+        legal_moves.extend(self.generate_legal_king_moves(army));
+
+        legal_moves
     }
 
     pub fn apply_move(
@@ -437,8 +588,13 @@ impl Game {
         }
         let piece_kind = piece.1;
 
-        if self.must_move_king(army) && piece_kind != PieceKind::King {
-            return Err("King must move while in check".to_string());
+        // If the king is in check and a non-king piece is trying to move, check if a non-king move can resolve the check.
+        // If no non-king moves can resolve the check, then the king must move.
+        if self.king_in_check(army) && piece_kind != PieceKind::King {
+            let non_king_resolving_moves = self.generate_legal_non_king_moves(army);
+            if non_king_resolving_moves.is_empty() {
+                return Err("King must move while in check".to_string());
+            }
         }
 
         let allowed = self.piece_moves(army, piece_kind);

@@ -135,3 +135,32 @@ pub struct Piece {
     pub kind: PieceKind,
     pub pawn_type: Option<PieceKind>, // for “pawn of X” if you want to distinguish
 }
+
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Hash)]
+pub struct Move {
+    pub from: Square,
+    pub to: Square,
+    pub kind: PieceKind,
+    pub promotion: Option<PieceKind>,
+}
+
+impl std::fmt::Display for Move {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(
+            f,
+            "{}{:?}{}{}",
+            file_char(self.from),
+            rank_char(self.from),
+            file_char(self.to),
+            rank_char(self.to)
+        )
+    }
+}
+
+pub fn file_char(square: Square) -> char {
+    ((square % 8) + b'a') as char
+}
+
+pub fn rank_char(square: Square) -> char {
+    ((square / 8) + b'1') as char
+}

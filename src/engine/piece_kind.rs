@@ -213,13 +213,13 @@ fn parse_pawn(source: char, mut chars: Chars) -> Result<ParsedMove, ParseError> 
     }
 
     let mut state = PawnParserState::Initial;
-    let mut target_rank: u64 = 0;
+    let mut _target_rank: u64 = 0;
 
     while let Some(c) = chars.next() {
         match state {
             PawnParserState::Initial => match c {
                 rank @ '1'..='8' => {
-                    target_rank = rank.to_digit(10).unwrap() as u64;
+                    _target_rank = rank.to_digit(10).unwrap() as u64;
                     to = 0; // Replace with a valid bitboard value
                     state = PawnParserState::TargetParsed;
                 }
@@ -232,11 +232,11 @@ fn parse_pawn(source: char, mut chars: Chars) -> Result<ParsedMove, ParseError> 
                 }
             },
             PawnParserState::Capturing => match c {
-                file @ 'a'..='h' => {
+                _file @ 'a'..='h' => {
                     if let Some(c) = chars.next() {
                         match c {
                             rank @ '1'..='8' => {
-                                target_rank = rank.to_digit(10).unwrap() as u64;
+                                _target_rank = rank.to_digit(10).unwrap() as u64;
                                 to = 0; // Replace with a valid bitboard value
                                 state = PawnParserState::TargetParsed;
                             }

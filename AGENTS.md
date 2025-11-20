@@ -128,3 +128,4 @@ history/
 - ❌ Do NOT clutter repo root with planning documents                  
                                                                        
 For more details, see README.md and QUICKSTART.md.
+

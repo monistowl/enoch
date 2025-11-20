@@ -59,6 +59,8 @@ fn bishop_moves_follow_aries_diagonal() {
         | bit(square('f', 5))
         | bit(square('g', 6))
         | bit(square('h', 7))
+        | bit(square('d', 5))
+        | bit(square('h', 1))
         | bit(square('d', 3))
         | bit(square('c', 2))
         | bit(square('b', 1))

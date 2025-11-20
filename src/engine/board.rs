@@ -185,6 +185,19 @@ impl Board {
         rows
     }
 
+    pub fn all_pieces_for_army(&self, army: Army) -> impl Iterator<Item = (Square, PieceKind)> + '_ {
+        let mut pieces = Vec::new();
+        for kind in PieceKind::ALL {
+            let mut bitboard = self.by_army_kind[army.index()][kind.index()];
+            while bitboard != 0 {
+                let square = bitboard.trailing_zeros() as Square;
+                pieces.push((square, kind));
+                bitboard &= bitboard - 1;
+            }
+        }
+        pieces.into_iter()
+    }
+
     pub fn throne_owner(&self, square: Square) -> Option<Army> {
         for army in Army::ALL {
             if self.armies[army.index()].throne_squares.contains(&square) {
@@ -193,6 +206,7 @@ impl Board {
         }
         None
     }
+
 }
 
 const fn square_index(file: u8, rank: u8) -> Square {
