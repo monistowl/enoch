@@ -1,97 +1,121 @@
-# Enochian Chess Architecture
+# Enochian Chess Engine Architecture
 
-This document outlines the current architecture of the chess engine and the proposed changes to adapt it for Enochian chess.
+This document outlines the high-level architecture of the `enoch` project, focusing on the core modules, data structures, and their interactions.
 
-## Current Architecture
+## 1. Overview
 
-The existing codebase is a standard FIDE chess engine with the following key components:
-
-*   **`src/main.rs`**: The entry point of the application, responsible for initializing the game and the TUI.
-*   **`src/engine/`**: Contains the core chess logic.
-    *   **`board.rs`**: Defines the `Board` struct, which uses bitboards to represent the chess board and the pieces. The representation is hardcoded for two players (white and black) and standard FIDE pieces.
-    *   **`game.rs`**: Defines the `Game` struct, which manages the game state, including turns, castling rights, checks, and game status (ongoing, checkmate, draw). The logic is tightly coupled to FIDE rules.
-    *   **`moves.rs`**: Implements move generation for each piece type based on FIDE rules. It uses precomputed move tables and rays for performance.
-    *   **`parser.rs`**: Parses PGN notation for moves.
-*   **`src/ui/`**: Contains the terminal user interface code.
-    *   **`app.rs`**: Manages the application state for the UI.
-    *   **`ui.rs`**: Renders the TUI, including the board, pieces, and game information.
-
-### Hardcoded FIDE Rules and Two-Player Logic
-
-The current implementation has several parts that are hardcoded for a two-player FIDE chess game:
-
-*   **`src/engine/board.rs`**: The `Board` struct has separate bitboards for `white_pawns`, `black_knights`, etc.
-*   **`src/engine/game.rs`**: The `Game` struct assumes two players, with methods like `is_white()` to determine the current player. It implements FIDE-specific rules like castling, en passant, and checkmate.
-*   **`src/engine/moves.rs`**: The move generation functions are all based on standard FIDE piece movements.
-*   **`src/ui/ui.rs`**: The TUI is designed to render a two-player chess game.
-
-## Refactoring Plan for Enochian Chess
-
-To transform the engine to support Enochian chess, the following changes will be necessary:
-
-### 1. Core Data Model (`src/engine/board.rs`, `src/engine/game.rs`)
-
-*   **Armies and Teams:** Replace the `white`/`black` concept with four armies (Blue, Black, Red, Yellow) and two teams (Air, Earth). This will require introducing new enums, `Army` and `Team`.
-*   **Board Representation:** The `Board` struct will be updated to use a four-dimensional array of bitboards `by_army_kind: [[u64; 6]; 4]` to represent the pieces of the four armies.
-*   **Game State:** The `Game` struct will be modified to handle a four-player turn order and the unique game states of Enochian chess, such as frozen armies. FIDE-specific state like castling rights and en passant squares will be removed.
-
-### 2. Move Generation (`src/engine/moves.rs`)
-
-*   The move generation logic for each piece will be rewritten to match the Enochian rules:
-    *   **Queen:** Implement the two-square leap.
-    *   **Bishop/Queen Interaction:** Implement the "Concourse of Bishoping" rules, where Bishops and Queens have special capture restrictions.
-    *   **Pawn:** Remove the initial double move and en passant. Implement the "pawn of X" promotion mechanic.
-
-### 3. Game Rules (`src/engine/game.rs`)
-
-*   Implement the following Enochian rules:
-    *   **King Capture:** Kings can be captured.
-    *   **Frozen Pieces:** Armies with captured kings are frozen.
-    *   **Seizing the Throne:** Kings can take control of allied armies.
-    *   **Exchange of Prisoners:** Captured kings can be exchanged.
-    *   **Privileged Pawn:** Special promotion rules for pawns.
-    *   **Stalemate:** The unique stalemate condition where a player skips turns.
-
-### 4. User Interface (`src/ui/`)
-
-*   The TUI will be updated to:
-    *   Render a four-colored board representing the four armies.
-    *   Display game state information relevant to Enochian chess (e.g., frozen armies, current turn).
-    *   Handle the new move notation (e.g., `blue: e2-e4`).
-
-## Module Relationships (current state)
+The `enoch` project is structured into two main top-level modules: `engine` and `ui`. The `main.rs` file orchestrates the interaction between these two modules, setting up the terminal user interface (TUI) and managing the main application loop and event handling.
 
 ```
-┌────────┐      ┌────────┐      ┌──────────┐      ┌───────┐
-│  UI    │ ───▶ │ Parser │ ───▶ │  Game    │ ───▶ │ Board │
-│ (App + │      │ (PGN)  │      │ (rules & │      │ (data │
-│  View) │      └────────┘      │ state)   │      │ model)│
-└────────┘                       ▲          └───────┘
-     │                            │
-     │                            ▼
-     └──────────────────────▶ Moves
-                              (precomputed move
-                               tables + helpers)
+.
+├── src/
+│   ├── engine/                 # Core game logic and rules
+│   │   ├── arrays.rs
+│   │   ├── board.rs
+│   │   ├── game.rs
+│   │   ├── macros.rs
+│   │   ├── moves.rs
+│   │   ├── piece_kind.rs
+│   │   └── types.rs
+│   ├── ui/                     # Terminal User Interface (TUI)
+│   │   ├── app.rs
+│   │   └── ui.rs
+│   ├── lib.rs                  # Module re-exports
+│   └── main.rs                 # Main application entry point
+└── docs/
+    ├── architecture.md         # This document
+    ├── enochian-rules.md       # Detailed Enochian rules in markdown
+    └── enochian-rules.yaml     # Machine-readable Enochian rules
 ```
 
-- **UI (`src/ui/app.rs`, `src/ui/ui.rs`)** owns terminal state, renders the board, and forwards keystrokes to the parser/game.
-- **Parser (`src/engine/piece_kind.rs`)** only understands PGN-style commands today.
-- **Game (`src/engine/game.rs`)** coordinates move validation, legality (check/checkmate), turn tracking, and end-game detection.
-- **Board (`src/engine/board.rs`)** holds bitboards for every piece type and exposes helpers for move generation.
-- **Moves (`src/engine/moves.rs`)** builds pseudo-legal moves for the six FIDE piece types using precomputed rays and direction masks.
+## 2. Core Modules
 
-## FIDE-Specific Behaviors to Replace
+### 2.1. `engine` Module
 
-| Area | File(s) | Why it must change |
-| ---- | ------- | ------------------ |
-| Two-color assumption | `src/engine/board.rs`, `src/engine/game.rs`, `src/ui/ui.rs` | Bitboards, turn logic, and render paths all hard-code `white`/`black`. Need four-army enums, occupancy, frozen status, and team concepts. |
-| Castling & en passant bookkeeping | `src/engine/game.rs` | Enochian chess removes castling and en passant; these fields should be dropped or repurposed for throne/frozen state. |
-| Checkmate-oriented legality filters | `src/engine/game.rs` | The current legality filter forbids leaving the king in check; Enochian rules allow it (king capture instead of mate). Need forced-king-move logic instead. |
-| Sliding queen implementation | `src/engine/moves.rs` | Queens leap two squares Alibaba-style rather than sliding. The move tables must be rebuilt. |
-| Bishop capture matrix | `src/engine/moves.rs` | Bishops currently capture any opposing piece. They must obey Aries/Cancer networks and restricted capture targets. |
-| Pawn direction & double-step | `src/engine/moves.rs` | The code assumes white moves +8 and black moves −8 with optional double moves/en passant. All four armies require unique forward vectors and no double-step. |
-| PGN parser | `src/engine/piece_kind.rs` | Input is PGN-only. The Enochian UI will accept commands like `blue: a3-a4` plus custom verbs (`/arrays`, `/exchange`). Parser and command routing must be rebuilt. |
-| Sprite rendering | `src/ui/ui.rs` | The board only renders two colors of pieces and standard chess glyphs. We need four color palettes, throne indicators, frozen markers, and per-army legends. |
-| Tests | `tests/` | Existing tests reference PGN helpers and fail to compile. The new rule set requires scenario-based fixtures that cover the Enochian mechanics. |
+The `engine` module encapsulates all the core game logic, rules, and data structures related to Enochian Chess.
 
-Documenting these hotspots clarifies where agents must focus when replacing the legacy FIDE logic with the new Enochian model described in `docs/enochian-rules.*`.
+*   **`types.rs`**: Defines fundamental enumerations and structures that are used throughout the engine:
+    *   `Army`: Represents the four armies (Blue, Black, Red, Yellow).
+    *   `Team`: Represents the two teams (Air: Blue+Black, Earth: Red+Yellow).
+    *   `PieceKind`: Defines the types of pieces (King, Queen, Rook, Bishop, Knight, Pawn).
+    *   `Square`: Represents a square on the 8x8 board (0-63).
+    *   `Move`: Represents a chess move, including `from`, `to`, `kind`, and optional `promotion`.
+    *   `PlayerId`: Identifies the players controlling armies.
+
+*   **`board.rs`**: Manages the state of the chessboard and the pieces on it.
+    *   `Board` struct: Uses bitboards (`u64`) for efficient representation of piece positions.
+        *   `by_army_kind`: `[[u64; PIECE_KIND_COUNT]; ARMY_COUNT]` - Stores bitboards for each piece kind for each army.
+        *   `occupancy_by_army`: `[u64; ARMY_COUNT]` - Bitboard of all pieces for each army.
+        *   `occupancy_by_team`: `[u64; TEAM_COUNT]` - Bitboard of all pieces for each team.
+        *   `all_occupancy`: `u64` - Bitboard of all occupied squares.
+        *   `free`: `u64` - Bitboard of all empty squares.
+    *   Provides methods for placing, moving, and removing pieces, and querying the board state (e.g., `piece_at`, `king_square`).
+    *   Includes `refresh_occupancy()` to keep bitboards consistent after modifications.
+
+*   **`piece_kind.rs`**: Primarily defines the `PieceKind` enum and associated helper methods, possibly for parsing and formatting piece information.
+
+*   **`moves.rs`**: Responsible for generating pseudo-legal moves for each piece type.
+    *   Contains functions like `compute_king_moves`, `compute_knights_moves`, `compute_pawns_moves`, etc.
+    *   Utilizes precomputed lookup tables (e.g., `KING_MOVES`, `KNIGHT_MOVES`) for efficiency.
+    *   Handles sliding piece logic (Rook, Bishop, Queen) with ray-based attacks and blocker detection.
+    *   Integrates Enochian specific movement rules (e.g., Queen leaps).
+
+*   **`game.rs`**: Implements the main game logic and rules enforcement. This is the central orchestrator of the game state and rules.
+    *   `Game` struct: Holds the current `Board`, `GameConfig`, `GameState`, and `Status`.
+    *   `GameConfig`: Stores game configuration like `armies`, `turn_order`, and `controller_map`.
+    *   `GameState`: Manages dynamic game state elements such as `current_turn_index`, `army_frozen` status, `king_positions`, and `stalemated_armies`.
+    *   Key functions include:
+        *   `apply_move`: Attempts to apply a move, enforcing rules like turn order, piece ownership, and check constraints.
+        *   `generate_legal_moves`: Generates all legal moves for a given army, filtering pseudo-legal moves based on check safety.
+        *   `generate_legal_king_moves`: Generates legal moves specifically for the king.
+        *   `generate_legal_non_king_moves`: Generates legal moves for non-king pieces.
+        *   `king_in_check`: Determines if an army's king is currently under attack.
+        *   `must_move_king`: Determines if the king is in check and no other piece can legally resolve the check.
+        *   `update_stalemate_status`: Updates the stalemate status of an army.
+        *   `capture_king`, `freeze_army`, `seize_throne_at`, `exchange_prisoners`: Implement Enochian-specific game mechanics.
+        *   `is_privileged_pawn`, `promotion_targets`, `promote_pawn`: Handle pawn promotion logic.
+
+*   **`arrays.rs`**: Expected to contain definitions and logic for different starting board arrays (e.g., Zalewski's eight arrays).
+
+*   **`macros.rs`**: Contains Rust macros to simplify code generation, possibly for precomputed move tables or repetitive bitboard operations.
+
+### 2.2. `ui` Module
+
+The `ui` module is responsible for the Terminal User Interface (TUI) components using the `ratatui` and `crossterm` libraries.
+
+*   **`app.rs`**: Defines the main application state for the TUI (`App` struct). It manages:
+    *   The current screen/mode of the application (e.g., Main, Exiting).
+    *   User input processing (e.g., adding characters, deleting, submitting commands).
+    *   Interaction with the game engine based on user commands.
+
+*   **`ui.rs`**: Contains the rendering logic.
+    *   `render` function: Takes the current `App` state and draws the various UI elements to the terminal frame (e.g., game board, status messages, input field).
+    *   `render_size_error`: Handles drawing a message if the terminal window is too small.
+
+## 3. Key Concepts & Implementations
+
+### Bitboards
+
+The engine heavily relies on bitboards (`u64`) for efficient representation and manipulation of the board state. This allows for fast calculation of piece occupancies and move generation.
+
+### Multi-Army and Teams
+
+Enochian Chess introduces four armies (Blue, Black, Red, Yellow) grouped into two teams (Air and Earth). The `engine/types.rs` and `engine/board.rs` are designed to manage this multi-army structure, replacing traditional two-color chess logic.
+
+### Enochian-Specific Rules
+
+The `engine/game.rs` module is central to enforcing the unique rules of Enochian Chess, including:
+*   **King Capture**: Kings are captured, not checkmated, leading to armies becoming "frozen".
+*   **Frozen Armies**: Captured kings lead to their armies being unable to move, attack, or be captured, acting as blocking terrain.
+*   **Throne Seizure**: Kings moving onto ally throne squares can transfer control.
+*   **Privileged Pawns**: Special promotion rules based on remaining pieces.
+*   **Queen Leaps**: Queens move by leaping exactly two squares.
+*   **Bishop/Queen Diagonal Interaction**: Specific capture rules based on diagonal systems (Aries/Cancer).
+
+## 4. TUI Interaction
+
+The `main.rs` and `ui` module set up a `ratatui`-based TUI. The `App` struct in `ui/app.rs` acts as an intermediary, processing user commands (e.g., moves, system commands) and invoking the appropriate functions within the `engine` module to update the game state. The `ui/ui.rs` then renders the current game state, including the board, piece positions, and game messages, to the terminal.
+
+## 5. FIDE vs. Enochian Adaptations
+
+The codebase has been adapted from a more traditional chess engine to accommodate Enochian rules. While the underlying bitboard mechanics might share similarities with FIDE engines, explicit FIDE-only fields (like castling rights, en passant squares, 50-move rule counters) are either removed or unused, reflecting the Enochian rule set. The core logic now revolves around `Army` and `Team` instead of `Color` or `Side`.

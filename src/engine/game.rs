@@ -325,11 +325,13 @@ impl Game {
         let bishop = counts[PieceKind::Bishop.index()];
         let knight = counts[PieceKind::Knight.index()];
         let rook = counts[PieceKind::Rook.index()];
-        let no_secondary = knight == 0 && rook == 0;
 
-        match (queen, bishop) {
-            (1, 0) if no_secondary => true,
-            (0, 1) if no_secondary => true,
+        match (queen, bishop, knight, rook) {
+            (1, 0, 0, 0) => true, // King + Queen + Pawn
+            (0, 1, 0, 0) => true, // King + Bishop + Pawn
+            (0, 0, 1, 0) => true, // King + Knight + Pawn
+            (0, 0, 0, 1) => true, // King + Rook + Pawn
+            (0, 0, 0, 0) => true, // King + Pawn
             _ => false,
         }
     }

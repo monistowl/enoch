@@ -1,8 +1,8 @@
 use enoch::engine::{
     board::Board,
     game::{Game, GameConfig},
-    types::{Army, PieceKind, Square},
 };
+use enoch::engine::types::{Army, PieceKind, Square};
 
 fn square(file: char, rank: u8) -> Square {
     let file = file.to_ascii_lowercase() as u8 - b'a';
@@ -160,6 +160,8 @@ fn apply_move_rejects_opponent_move() {
 fn promotion_targets_default_to_queen() {
     let placements = &[
         (Army::Blue, PieceKind::King, bit(square('e', 1))),
+        (Army::Blue, PieceKind::Rook, bit(square('h', 1))),
+        (Army::Blue, PieceKind::Bishop, bit(square('c', 1))), // Added a Bishop to ensure non-privileged (Rook + Bishop)
         (Army::Blue, PieceKind::Pawn, bit(square('e', 7))),
     ];
     let game = build_game_with_pieces(placements);
@@ -252,4 +254,190 @@ fn stalemate_clears_after_any_move() {
     game.update_stalemate_status(Army::Blue); // Recalculate stalemate status
 
     assert!(!game.army_in_stalemate(Army::Blue), "Stalemate should be cleared after removing an attacking piece");
+}
+
+#[test]
+fn test_is_privileged_pawn_king_pawn_only() {
+    let placements = &[
+        (Army::Blue, PieceKind::King, bit(square('e', 1))),
+        (Army::Blue, PieceKind::Pawn, bit(square('a', 2))),
+    ];
+    let game = build_game_with_pieces(placements);
+    assert!(game.is_privileged_pawn(Army::Blue));
+}
+
+#[test]
+fn test_privileged_promotion_demotes_queen_to_pawn() {
+    let placements = &[
+        (Army::Blue, PieceKind::King, bit(square('e', 1))),
+        (Army::Blue, PieceKind::Queen, bit(square('d', 1))),
+        (Army::Blue, PieceKind::Pawn, bit(square('e', 7))),
+    ];
+    let mut game = build_game_with_pieces(placements);
+    let result = game.apply_move(
+        Army::Blue,
+        square('e', 7),
+        square('e', 8),
+        Some(PieceKind::Queen),
+    );
+    assert!(result.is_ok());
+    // The pawn count should remain 1 (original pawn replaced by new queen, old queen demoted to pawn)
+    assert_eq!(
+        game.board.piece_counts(Army::Blue)[PieceKind::Pawn.index()],
+        1
+    );
+    // The piece at d1 (original Queen's square) should now be a Pawn
+    assert_eq!(
+        game.board.piece_at(square('d', 1)).unwrap().1,
+        PieceKind::Pawn
+    );
+    // The piece at e8 (promoted pawn's square) should be a Queen
+    assert_eq!(
+        game.board.piece_at(square('e', 8)).unwrap().1,
+        PieceKind::Queen
+    );
+}
+
+#[test]
+fn test_privileged_promotion_demotes_bishop_to_pawn() {
+    let placements = &[
+        (Army::Blue, PieceKind::King, bit(square('e', 1))),
+        (Army::Blue, PieceKind::Bishop, bit(square('c', 1))),
+        (Army::Blue, PieceKind::Pawn, bit(square('e', 7))),
+    ];
+    let mut game = build_game_with_pieces(placements);
+    let result = game.apply_move(
+        Army::Blue,
+        square('e', 7),
+        square('e', 8),
+        Some(PieceKind::Bishop),
+    );
+    assert!(result.is_ok());
+    assert_eq!(
+        game.board.piece_counts(Army::Blue)[PieceKind::Pawn.index()],
+        1
+    );
+    assert_eq!(
+        game.board.piece_at(square('c', 1)).unwrap().1,
+        PieceKind::Pawn
+    );
+    assert_eq!(
+        game.board.piece_at(square('e', 8)).unwrap().1,
+        PieceKind::Bishop
+    );
+}
+
+#[test]
+fn test_privileged_promotion_demotes_rook_to_pawn() {
+    let placements = &[
+        (Army::Blue, PieceKind::King, bit(square('e', 1))),
+        (Army::Blue, PieceKind::Rook, bit(square('a', 1))),
+        (Army::Blue, PieceKind::Pawn, bit(square('e', 7))),
+    ];
+    let mut game = build_game_with_pieces(placements);
+    let result = game.apply_move(
+        Army::Blue,
+        square('e', 7),
+        square('e', 8),
+        Some(PieceKind::Rook),
+    );
+    assert!(result.is_ok());
+    assert_eq!(
+        game.board.piece_counts(Army::Blue)[PieceKind::Pawn.index()],
+        1
+    );
+    assert_eq!(
+        game.board.piece_at(square('a', 1)).unwrap().1,
+        PieceKind::Pawn
+    );
+    assert_eq!(
+        game.board.piece_at(square('e', 8)).unwrap().1,
+        PieceKind::Rook
+    );
+}
+
+#[test]
+fn test_privileged_promotion_demotes_knight_to_pawn() {
+    let placements = &[
+        (Army::Blue, PieceKind::King, bit(square('e', 1))),
+        (Army::Blue, PieceKind::Knight, bit(square('b', 1))),
+        (Army::Blue, PieceKind::Pawn, bit(square('e', 7))),
+    ];
+    let mut game = build_game_with_pieces(placements);
+    let result = game.apply_move(
+        Army::Blue,
+        square('e', 7),
+        square('e', 8),
+        Some(PieceKind::Knight),
+    );
+    assert!(result.is_ok());
+    assert_eq!(
+        game.board.piece_counts(Army::Blue)[PieceKind::Pawn.index()],
+        1
+    );
+    assert_eq!(
+        game.board.piece_at(square('b', 1)).unwrap().1,
+        PieceKind::Pawn
+    );
+    assert_eq!(
+        game.board.piece_at(square('e', 8)).unwrap().1,
+        PieceKind::Knight
+    );
+}
+
+#[test]
+fn test_privileged_promotion_no_demotion() {
+    let placements = &[
+        (Army::Blue, PieceKind::King, bit(square('e', 1))),
+        (Army::Blue, PieceKind::Pawn, bit(square('e', 7))),
+    ];
+    let mut game = build_game_with_pieces(placements);
+    let result = game.apply_move(
+        Army::Blue,
+        square('e', 7),
+        square('e', 8),
+        Some(PieceKind::Queen),
+    );
+    assert!(result.is_ok());
+    // Pawn count should be 0 as no demotion occurs
+    assert_eq!(
+        game.board.piece_counts(Army::Blue)[PieceKind::Pawn.index()],
+        0
+    );
+    // Queen count should be 1
+    assert_eq!(
+        game.board.piece_counts(Army::Blue)[PieceKind::Queen.index()],
+        1
+    );
+    assert_eq!(
+        game.board.piece_at(square('e', 8)).unwrap().1,
+        PieceKind::Queen
+    );
+}
+
+#[test]
+fn test_promotion_targets_cannot_be_king_or_pawn() {
+    let placements = &[
+        (Army::Blue, PieceKind::King, bit(square('e', 1))),
+        (Army::Blue, PieceKind::Pawn, bit(square('e', 7))),
+    ];
+    let mut game = build_game_with_pieces(placements);
+
+    // Try to promote to Pawn
+    let result_pawn = game.apply_move(
+        Army::Blue,
+        square('e', 7),
+        square('e', 8),
+        Some(PieceKind::Pawn),
+    );
+    assert!(result_pawn.is_err()); // Should be an error
+
+    // Try to promote to King
+    let result_king = game.apply_move(
+        Army::Blue,
+        square('e', 7),
+        square('e', 8),
+        Some(PieceKind::King),
+    );
+    assert!(result_king.is_err()); // Should be an error
 }

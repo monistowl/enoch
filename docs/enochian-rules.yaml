@@ -1,186 +1,96 @@
----
-board:
-  size: "8x8"
-  coordinates:
-    origin: a1
-    orientation: "Blue home rank at the south; files increase left→right when looking from Blue's perspective."
-    indexing: "Bit 0 = a1, bit 63 = h8"
-  throne_squares:
-    blue: [d1, e1]
-    red: [d8, e8]
-    black: [a4, a5]
-    yellow: [h4, h5]
-  diagonal_systems:
-    - id: aries
-      mask: 0x55AA55AA55AA55AA
-      description: "Primary Aries lattice (alternating squares starting at a1)."
-    - id: cancer
-      mask: 0xAA55AA55AA55AA55
-      description: "Complementary Cancer lattice."
-players:
-  armies:
-    - name: Blue
-      element: Air
-      team: Air
-      pawn_direction: north
-      pawn_delta: "+8"
-      promotion_zone: rank8
-      throne_squares: [d1, e1]
-    - name: Red
-      element: Fire
-      team: Earth
-      pawn_direction: south
-      pawn_delta: "-8"
-      promotion_zone: rank1
-      throne_squares: [d8, e8]
-    - name: Black
-      element: Water
-      team: Air
-      pawn_direction: east
-      pawn_delta: "+1"
-      promotion_zone: fileH
-      throne_squares: [a4, a5]
-    - name: Yellow
-      element: Earth
-      team: Earth
-      pawn_direction: west
-      pawn_delta: "-1"
-      promotion_zone: fileA
-      throne_squares: [h4, h5]
-  teams:
-    - name: Air
-      armies: [Blue, Black]
-    - name: Earth
-      armies: [Red, Yellow]
-turn_orders:
-  default: [Blue, Red, Black, Yellow]
-  variants:
-    - name: counter_clockwise
-      order: [Blue, Yellow, Black, Red]
-pieces:
-  king:
-    movement: "1 step in any direction"
-    capture_rules: "Kings are captured (no checkmate). Must move if any king move exists while checked."
-  queen:
-    movement: "Leaps exactly two squares orthogonally or diagonally (Alibaba leaper)."
-    capture_rules: "Cannot capture queens; may capture bishops that share the same diagonal network."
-  bishop:
-    movement: "Slides along its assigned diagonal system (Aries or Cancer)."
-    capture_rules: "Cannot capture bishops; may capture queens that share its system."
-  rook:
-    movement: "Standard orthogonal slider."
-  knight:
-    movement: "Standard 2+1 leap."
-  pawn:
-    movement: "Single-square advance in the army's forward direction."
-    capture: "Single-square diagonal advance in the army's forward direction."
-    promotion:
-      standard: "Promotes to its patron piece type when reaching the promotion zone."
-      privileged: "If the army is reduced to (king + queen + pawn), (king + bishop + pawn), or (king + pawn), the pawn may promote to any major piece and demotes the pre-existing piece of that type if necessary."
-special_rules:
-  king_capture:
-    description: "Capturing a king freezes that army. Frozen pieces cannot move, capture, or give check but continue to block squares."
-  forced_king_move:
-    description: "If a checked king has any legal king move, only king moves are legal that turn."
-  throne_control:
-    description: "Moving onto an allied throne grants control over that army and unfreezes it if necessary. Control persists until the conquering king is captured."
-  exchange_of_prisoners:
-    description: "Opponents who each hold a captured king may mutually exchange prisoners, returning each king to its throne or nearest legal square and thawing the armies."
-  stalemate:
-    description: "Unchecked kings with no safe moves skip their turns until conditions change."
-  victory:
-    description: "A team wins when both opposing kings are captured (and not later exchanged)."
-  draws:
-    - "Both allied kings bare."
-    - "Four bare kings remain."
-divination_mode:
-  die_map:
-    1: [King, Pawn]
-    2: [Knight]
-    3: [Bishop]
-    4: [Queen]
-    5: [Rook]
-    6: [Pawn]
-starting_arrays:
-  - id: tablet_of_fire_prototype
-    name: "Tablet of Fire (clockwise, prototype transcription)"
-    status: prototype
-    description: |
-      Stand-in transcription used until the Golden Dawn diagrams are ingested.
-      Armies are stacked in south-to-north bands so developers have concrete
-      data to consume.
-    turn_order: [Blue, Red, Black, Yellow]
-    controller_map:
-      - player: Player1
-        armies: [Blue, Black]
-      - player: Player2
-        armies: [Red, Yellow]
-    throne_squares_override:
-      blue: [d1, e1]
-      red: [d8, e8]
-      black: [d4, e4]
-      yellow: [d5, e5]
-    board_diagram_legend: "Tokens are <ArmyCode>_<Piece>. Army codes: BU=Blue, BK=Black, YE=Yellow, RD=Red."
-    board_diagram:
-      - "RD_R RD_N RD_B RD_Q RD_K RD_B RD_N RD_R"
-      - "RD_P RD_P RD_P RD_P RD_P RD_P RD_P RD_P"
-      - "YE_P YE_P YE_P YE_P YE_P YE_P YE_P YE_P"
-      - "YE_R YE_N YE_B YE_Q YE_K YE_B YE_N YE_R"
-      - "BK_P BK_P BK_P BK_P BK_P BK_P BK_P BK_P"
-      - "BK_R BK_N BK_B BK_Q BK_K BK_B BK_N BK_R"
-      - "BU_P BU_P BU_P BU_P BU_P BU_P BU_P BU_P"
-      - "BU_R BU_N BU_B BU_Q BU_K BU_B BU_N BU_R"
-    notes:
-      - "Replace with true Zalewski placement once source diagrams land in repo."
-      - "All bishops attached to Aries on dark squares and Cancer on light squares; exact mapping TBD."
-  - id: tablet_of_water_placeholder
-    name: "Tablet of Water (placeholder)"
-    status: placeholder
-    description: "Turn order Blue → Black → Yellow → Red (standing placeholder copied from the roadmap)."
-    turn_order: [Blue, Black, Yellow, Red]
-    controller_map:
-      - player: Player1
-        armies: [Blue, Yellow]
-      - player: Player2
-        armies: [Black, Red]
-    throne_squares_override:
-      blue: [d1, e1]
-      black: [a4, a5]
-      yellow: [h4, h5]
-      red: [d8, e8]
-    notes:
-      - "Layout data pending; this placeholder keeps the API aware of the tablet order."
-  - id: tablet_of_air_placeholder
-    name: "Tablet of Air (placeholder)"
-    status: placeholder
-    description: "Counter-clockwise turn sequence Red → Yellow → Black → Blue; placements forthcoming."
-    turn_order: [Red, Yellow, Black, Blue]
-    controller_map:
-      - player: Player2
-        armies: [Red, Blue]
-      - player: Player1
-        armies: [Yellow, Black]
-    throne_squares_override:
-      red: [d8, e8]
-      yellow: [h4, h5]
-      black: [a4, a5]
-      blue: [d1, e1]
-    notes:
-      - "Details from Zalewski still to be transcribed."
-  - id: tablet_of_earth_placeholder
-    name: "Tablet of Earth (placeholder)"
-    status: placeholder
-    description: "Counter-clockwise order Yellow → Blue → Red → Black; waiting on official layout data."
-    turn_order: [Yellow, Blue, Red, Black]
-    controller_map:
-      - player: Player2
-        armies: [Yellow, Red]
-      - player: Player1
-        armies: [Blue, Black]
-    throne_squares_override:
-      yellow: [h4, h5]
-      blue: [d1, e1]
-      red: [d8, e8]
-      black: [a4, a5]
-    notes:
-      - "This placeholder keeps the engine aware of the alternate turn order."
+# Machine-readable specification for Enochian Chess rules.
+# This YAML file serves as a single source of truth for game logic.
+
+game_rules:
+  board:
+    size:
+      ranks: 8
+      files: 8
+    armies:
+      count: 4
+      names: ["Blue", "Black", "Red", "Yellow"]
+    teams:
+      count: 2
+      definitions:
+        Air: ["Blue", "Black"]
+        Earth: ["Red", "Yellow"]
+    turn_order: ["Blue", "Red", "Black", "Yellow"] # Example for one common array, configurable per array
+
+  pieces:
+    king:
+      movement: "1 step in any direction (orthogonal or diagonal)"
+      capture_behavior: "captured, not checkmated"
+    queen:
+      movement: "leaps exactly two squares along ranks, files, or diagonals (Alibaba-style), ignoring intervening pieces"
+      special_interaction:
+        - "cannot capture enemy queens"
+        - "can capture enemy bishops whose diagonal system matches the queen's system"
+    rook:
+      movement: "any number of squares orthogonally"
+    bishop:
+      movement: "any number of squares diagonally"
+      special_interaction:
+        - "cannot capture enemy bishops"
+        - "can capture enemy queens whose diagonal system matches the bishop's system"
+    knight:
+      movement: "FIDE knight (2 squares in one direction, 1 square perpendicular)"
+    pawn:
+      movement: "one square forward only"
+      capture: "diagonally forward"
+      special_rules:
+        - "no double-step initial move"
+        - "no en passant"
+      promotion:
+        standard: "promotes to piece of its 'type' (e.g., pawn of queen becomes queen)"
+        privileged:
+          condition: "side reduced to (king + queen + pawn) OR (king + bishop + pawn) OR (king + pawn)"
+          promotion_targets: ["Queen", "Rook", "Bishop", "Knight"]
+          demotion_on_existing: "if promoting to a type already in play, the existing piece is demoted back to a pawn-of-that-type"
+
+  game_mechanics:
+    check_logic:
+      king_capture_instead_of_mate: true
+      must_move_king_in_check:
+        condition: "king is in check AND has any legal king move"
+        action: "must move the king (even if it stays in check)"
+        alternative_action: "if king has no legal move (blocked by friendly pieces, board edge etc.), may move another piece"
+    frozen_pieces:
+      condition: "when a king is captured"
+      effect:
+        - "all pieces of that army become frozen"
+        - "frozen pieces cannot move"
+        - "frozen pieces cannot threaten"
+        - "frozen pieces cannot be captured"
+        - "frozen pieces occupy squares as blocking terrain"
+    throne_seizure:
+      condition: "king moves onto an ally’s throne square"
+      effect:
+        - "gain control of that army"
+        - "frozen pieces revive (unfreeze)"
+        - "control persists even if king later leaves"
+        - "if controlling king is captured, control reverts (if ally still has a king)"
+    exchange_of_prisoners:
+      condition: "two enemy players each captured a king"
+      action: "may agree to exchange kings back to their thrones (or nearest allowed squares) and unfreeze their armies"
+    stalemate:
+      condition: "player’s unchecked king has no moves except to move into check"
+      action: "player skips turns until stalemate is lifted"
+    draw_conditions:
+      - "both allied kings bare"
+      - "four bare kings only"
+      - "other conditions as per Zalewski"
+
+  divination_mode:
+    enabled: false # Optional, Phase 5
+    die_roll_mapping:
+      1: ["King", "Pawn"]
+      2: "Knight"
+      3: "Bishop"
+      4: "Queen"
+      5: "Rook"
+      6: "Pawn"
+    rule: "filter legal moves to only moves whose moving piece kind matches the die selection"
+
+  metadata:
+    source: "Zalewski-Enochian-Chess-of-the-Golden-Dawn.pdf, Enochian Chess.html"
+    version: "1.0"
