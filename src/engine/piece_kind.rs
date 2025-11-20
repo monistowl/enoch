@@ -41,9 +41,11 @@ pub fn parse_move(cmd: &str) -> Result<ParsedMove, ParseError> {
     match piece {
         PieceKind::Pawn => parse_pawn(source, chars),
 
-        PieceKind::Knight | PieceKind::Rook | PieceKind::Bishop | PieceKind::Queen | PieceKind::King => {
-            parse_piece(piece, chars)
-        }
+        PieceKind::Knight
+        | PieceKind::Rook
+        | PieceKind::Bishop
+        | PieceKind::Queen
+        | PieceKind::King => parse_piece(piece, chars),
     }
 }
 

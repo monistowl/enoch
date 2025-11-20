@@ -1,49 +1,186 @@
 ---
 board:
-  size: 8x8
+  size: "8x8"
+  coordinates:
+    origin: a1
+    orientation: "Blue home rank at the south; files increase left→right when looking from Blue's perspective."
+    indexing: "Bit 0 = a1, bit 63 = h8"
   throne_squares:
-    rule: "King + another piece can occupy a throne square. If captured, both are removed."
+    blue: [d1, e1]
+    red: [d8, e8]
+    black: [a4, a5]
+    yellow: [h4, h5]
+  diagonal_systems:
+    - id: aries
+      mask: 0x55AA55AA55AA55AA
+      description: "Primary Aries lattice (alternating squares starting at a1)."
+    - id: cancer
+      mask: 0xAA55AA55AA55AA55
+      description: "Complementary Cancer lattice."
 players:
-  armies: [Blue, Black, Red, Yellow]
+  armies:
+    - name: Blue
+      element: Air
+      team: Air
+      pawn_direction: north
+      pawn_delta: "+8"
+      promotion_zone: rank8
+      throne_squares: [d1, e1]
+    - name: Red
+      element: Fire
+      team: Earth
+      pawn_direction: south
+      pawn_delta: "-8"
+      promotion_zone: rank1
+      throne_squares: [d8, e8]
+    - name: Black
+      element: Water
+      team: Air
+      pawn_direction: east
+      pawn_delta: "+1"
+      promotion_zone: fileH
+      throne_squares: [a4, a5]
+    - name: Yellow
+      element: Earth
+      team: Earth
+      pawn_direction: west
+      pawn_delta: "-1"
+      promotion_zone: fileA
+      throne_squares: [h4, h5]
   teams:
-    - [Blue, Black]
-    - [Red, Yellow]
-  turn_order: [Blue, Red, Black, Yellow] # Example, can be changed by array
+    - name: Air
+      armies: [Blue, Black]
+    - name: Earth
+      armies: [Red, Yellow]
+turn_orders:
+  default: [Blue, Red, Black, Yellow]
+  variants:
+    - name: counter_clockwise
+      order: [Blue, Yellow, Black, Red]
 pieces:
-  - name: King
+  king:
     movement: "1 step in any direction"
-    notes: "Cannot be checkmated, only captured."
-  - name: Queen
-    movement: "Leaps exactly 2 squares (rank, file, or diagonal)"
-    notes: "Ignores intervening pieces. Cannot capture other Queens."
-  - name: Rook
-    movement: "Slides any number of squares (rank or file)"
-  - name: Bishop
-    movement: "Slides any number of squares (diagonal)"
-    notes: "Cannot capture other Bishops. Can capture Queens."
-  - name: Knight
-    movement: "L-shaped leap (2+1)"
-  - name: Pawn
-    movement: "1 step forward"
-    capture: "1 step diagonally forward"
-    notes: "No double-step, no en passant."
+    capture_rules: "Kings are captured (no checkmate). Must move if any king move exists while checked."
+  queen:
+    movement: "Leaps exactly two squares orthogonally or diagonally (Alibaba leaper)."
+    capture_rules: "Cannot capture queens; may capture bishops that share the same diagonal network."
+  bishop:
+    movement: "Slides along its assigned diagonal system (Aries or Cancer)."
+    capture_rules: "Cannot capture bishops; may capture queens that share its system."
+  rook:
+    movement: "Standard orthogonal slider."
+  knight:
+    movement: "Standard 2+1 leap."
+  pawn:
+    movement: "Single-square advance in the army's forward direction."
+    capture: "Single-square diagonal advance in the army's forward direction."
+    promotion:
+      standard: "Promotes to its patron piece type when reaching the promotion zone."
+      privileged: "If the army is reduced to (king + queen + pawn), (king + bishop + pawn), or (king + pawn), the pawn may promote to any major piece and demotes the pre-existing piece of that type if necessary."
 special_rules:
-  - name: "King in Check"
-    description: "If a king is in check and has a legal move, it must move. If the king has no legal moves, another piece may be moved."
-  - name: "Frozen Pieces"
-    description: "When a king is captured, all pieces of that army become frozen. They cannot move, threaten, or be captured."
-  - name: "Seizing the Throne"
-    description: "If a king moves onto an ally's throne, you gain control of that army. Frozen pieces are revived."
-  - name: "Exchange of Prisoners"
-    description: "Two enemy players who have each captured a king may agree to exchange them back to their thrones."
-  - name: "Privileged Pawn"
-    description: "A pawn becomes privileged if the army is reduced to (king + queen + pawn), (king + bishop + pawn), or (king + pawn). It can then promote to any major piece."
-  - name: "Stalemate"
-    description: "If a player's unchecked king has no moves except to move into check, the player skips turns until the stalemate is lifted."
-  - name: "Divination Mode"
-    description: "(Optional) A dice roll determines which piece type must be moved."
-draw_conditions:
-  - "Both allied kings are bare."
-  - "Four bare kings."
+  king_capture:
+    description: "Capturing a king freezes that army. Frozen pieces cannot move, capture, or give check but continue to block squares."
+  forced_king_move:
+    description: "If a checked king has any legal king move, only king moves are legal that turn."
+  throne_control:
+    description: "Moving onto an allied throne grants control over that army and unfreezes it if necessary. Control persists until the conquering king is captured."
+  exchange_of_prisoners:
+    description: "Opponents who each hold a captured king may mutually exchange prisoners, returning each king to its throne or nearest legal square and thawing the armies."
+  stalemate:
+    description: "Unchecked kings with no safe moves skip their turns until conditions change."
+  victory:
+    description: "A team wins when both opposing kings are captured (and not later exchanged)."
+  draws:
+    - "Both allied kings bare."
+    - "Four bare kings remain."
+divination_mode:
+  die_map:
+    1: [King, Pawn]
+    2: [Knight]
+    3: [Bishop]
+    4: [Queen]
+    5: [Rook]
+    6: [Pawn]
 starting_arrays:
-  - "Eight possible starting arrays, defined by Zalewski."
+  - id: tablet_of_fire_prototype
+    name: "Tablet of Fire (clockwise, prototype transcription)"
+    status: prototype
+    description: |
+      Stand-in transcription used until the Golden Dawn diagrams are ingested.
+      Armies are stacked in south-to-north bands so developers have concrete
+      data to consume.
+    turn_order: [Blue, Red, Black, Yellow]
+    controller_map:
+      - player: Player1
+        armies: [Blue, Black]
+      - player: Player2
+        armies: [Red, Yellow]
+    throne_squares_override:
+      blue: [d1, e1]
+      red: [d8, e8]
+      black: [d4, e4]
+      yellow: [d5, e5]
+    board_diagram_legend: "Tokens are <ArmyCode>_<Piece>. Army codes: BU=Blue, BK=Black, YE=Yellow, RD=Red."
+    board_diagram:
+      - "RD_R RD_N RD_B RD_Q RD_K RD_B RD_N RD_R"
+      - "RD_P RD_P RD_P RD_P RD_P RD_P RD_P RD_P"
+      - "YE_P YE_P YE_P YE_P YE_P YE_P YE_P YE_P"
+      - "YE_R YE_N YE_B YE_Q YE_K YE_B YE_N YE_R"
+      - "BK_P BK_P BK_P BK_P BK_P BK_P BK_P BK_P"
+      - "BK_R BK_N BK_B BK_Q BK_K BK_B BK_N BK_R"
+      - "BU_P BU_P BU_P BU_P BU_P BU_P BU_P BU_P"
+      - "BU_R BU_N BU_B BU_Q BU_K BU_B BU_N BU_R"
+    notes:
+      - "Replace with true Zalewski placement once source diagrams land in repo."
+      - "All bishops attached to Aries on dark squares and Cancer on light squares; exact mapping TBD."
+  - id: tablet_of_water_placeholder
+    name: "Tablet of Water (placeholder)"
+    status: placeholder
+    description: "Turn order Blue → Black → Yellow → Red (standing placeholder copied from the roadmap)."
+    turn_order: [Blue, Black, Yellow, Red]
+    controller_map:
+      - player: Player1
+        armies: [Blue, Yellow]
+      - player: Player2
+        armies: [Black, Red]
+    throne_squares_override:
+      blue: [d1, e1]
+      black: [a4, a5]
+      yellow: [h4, h5]
+      red: [d8, e8]
+    notes:
+      - "Layout data pending; this placeholder keeps the API aware of the tablet order."
+  - id: tablet_of_air_placeholder
+    name: "Tablet of Air (placeholder)"
+    status: placeholder
+    description: "Counter-clockwise turn sequence Red → Yellow → Black → Blue; placements forthcoming."
+    turn_order: [Red, Yellow, Black, Blue]
+    controller_map:
+      - player: Player2
+        armies: [Red, Blue]
+      - player: Player1
+        armies: [Yellow, Black]
+    throne_squares_override:
+      red: [d8, e8]
+      yellow: [h4, h5]
+      black: [a4, a5]
+      blue: [d1, e1]
+    notes:
+      - "Details from Zalewski still to be transcribed."
+  - id: tablet_of_earth_placeholder
+    name: "Tablet of Earth (placeholder)"
+    status: placeholder
+    description: "Counter-clockwise order Yellow → Blue → Red → Black; waiting on official layout data."
+    turn_order: [Yellow, Blue, Red, Black]
+    controller_map:
+      - player: Player2
+        armies: [Yellow, Red]
+      - player: Player1
+        armies: [Blue, Black]
+    throne_squares_override:
+      yellow: [h4, h5]
+      blue: [d1, e1]
+      red: [d8, e8]
+      black: [a4, a5]
+    notes:
+      - "This placeholder keeps the engine aware of the alternate turn order."

@@ -1,5 +1,10 @@
+pub const ARMY_COUNT: usize = 4;
+pub const TEAM_COUNT: usize = 2;
+pub const PIECE_KIND_COUNT: usize = 6;
 
-#[derive(Copy, Clone, Eq, PartialEq, Debug)]
+pub type Square = u8;
+
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Hash)]
 pub enum Army {
     Blue,
     Black,
@@ -7,13 +12,35 @@ pub enum Army {
     Yellow,
 }
 
-#[derive(Copy, Clone, Eq, PartialEq, Debug)]
-pub enum Team {
-    Air,   // Blue + Black
-    Earth, // Red + Yellow
+impl Army {
+    pub fn from_str(name: &str) -> Option<Army> {
+        match name.to_lowercase().as_str() {
+            "blue" => Some(Army::Blue),
+            "black" => Some(Army::Black),
+            "red" => Some(Army::Red),
+            "yellow" => Some(Army::Yellow),
+            _ => None,
+        }
+    }
+
+    pub fn display_name(self) -> &'static str {
+        match self {
+            Army::Blue => "Blue",
+            Army::Black => "Black",
+            Army::Red => "Red",
+            Army::Yellow => "Yellow",
+        }
+    }
 }
 
 impl Army {
+    pub const ALL: [Army; ARMY_COUNT] = [Army::Blue, Army::Black, Army::Red, Army::Yellow];
+
+    #[inline]
+    pub const fn index(self) -> usize {
+        self as usize
+    }
+
     pub fn team(self) -> Team {
         match self {
             Army::Blue | Army::Black => Team::Air,
@@ -22,7 +49,43 @@ impl Army {
     }
 }
 
-#[derive(Copy, Clone, Eq, PartialEq, Debug)]
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Hash)]
+pub enum Team {
+    Air,   // Blue + Black
+    Earth, // Red + Yellow
+}
+
+impl Team {
+    pub const ALL: [Team; TEAM_COUNT] = [Team::Air, Team::Earth];
+
+    #[inline]
+    pub const fn index(self) -> usize {
+        self as usize
+    }
+
+    pub fn name(self) -> &'static str {
+        match self {
+            Team::Air => "Air",
+            Team::Earth => "Earth",
+        }
+    }
+
+    pub const fn armies(self) -> [Army; 2] {
+        match self {
+            Team::Air => [Army::Blue, Army::Black],
+            Team::Earth => [Army::Red, Army::Yellow],
+        }
+    }
+
+    pub const fn opponent(self) -> Team {
+        match self {
+            Team::Air => Team::Earth,
+            Team::Earth => Team::Air,
+        }
+    }
+}
+
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Hash)]
 pub enum PieceKind {
     King,
     Queen,
@@ -30,6 +93,40 @@ pub enum PieceKind {
     Knight,
     Rook,
     Pawn,
+}
+
+impl PieceKind {
+    pub const ALL: [PieceKind; PIECE_KIND_COUNT] = [
+        PieceKind::King,
+        PieceKind::Queen,
+        PieceKind::Bishop,
+        PieceKind::Knight,
+        PieceKind::Rook,
+        PieceKind::Pawn,
+    ];
+
+    #[inline]
+    pub const fn index(self) -> usize {
+        self as usize
+    }
+}
+
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Hash)]
+pub struct PlayerId(pub u8);
+
+impl PlayerId {
+    pub const PLAYER_ONE: PlayerId = PlayerId(0);
+    pub const PLAYER_TWO: PlayerId = PlayerId(1);
+
+    pub const fn new(id: u8) -> PlayerId {
+        PlayerId(id)
+    }
+}
+
+impl Default for PlayerId {
+    fn default() -> Self {
+        PlayerId::PLAYER_ONE
+    }
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]

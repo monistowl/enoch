@@ -114,6 +114,14 @@ cargo run -- --halfblocks
 cargo test
 ```
 
+### Run regression suite
+
+More specialized checks live under `tests/` (e.g., movement/check rules for the new Enochian model). Run them via:
+
+```
+cargo test --tests
+```
+
 ### Build and run
 Build 
 ```

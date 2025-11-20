@@ -5,7 +5,7 @@ mod ui;
 
 use crate::ui::app::{App, CurrentScreen};
 use crate::ui::ui::{render, render_size_error};
-use crossterm::event::{self, DisableMouseCapture, Event, KeyCode, KeyEvent, KeyEventKind};
+use crossterm::event::{self, DisableMouseCapture, Event, KeyCode, KeyEventKind};
 use crossterm::terminal::{
     disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen,
 };
@@ -28,7 +28,8 @@ fn check_size(terminal: &mut DefaultTerminal) -> Result<(), io::Error> {
     let size = terminal.size()?;
     if size.width < MIN_WIDTH || size.height < MIN_HEIGHT {
         terminal.clear();
-        terminal.draw(|frame| render_size_error(frame, MIN_WIDTH, MIN_HEIGHT, size))?;
+        let area = Rect::new(0, 0, size.width, size.height);
+        terminal.draw(|frame| render_size_error(frame, MIN_WIDTH, MIN_HEIGHT, area))?;
 
         loop {
             match event::read()? {
@@ -72,18 +73,22 @@ fn run(terminal: &mut DefaultTerminal, app: &mut App) -> io::Result<bool> {
         if let Event::Key(key) = event::read()? {
             if key.kind == KeyEventKind::Press {
                 match key.code {
-                    KeyCode::Char('.') => {
-                        app.flipped = !app.flipped;
+                    KeyCode::Char(']') => {
+                        app.cycle_array_direction(1);
+                        continue;
+                    }
+                    KeyCode::Char('[') => {
+                        app.cycle_array_direction(-1);
                         continue;
                     }
                     _ => {}
                 }
-
                 match app.current_screen {
                     CurrentScreen::Main => match key.code {
                         KeyCode::Esc => app.current_screen = CurrentScreen::Exiting,
                         KeyCode::Char(to_insert) => app.add_char(to_insert),
                         KeyCode::Backspace => app.delete_char(),
+                        KeyCode::Enter => app.submit_command(),
                         _ => {}
                     },
                     CurrentScreen::Exiting => match key.code {

@@ -58,3 +58,40 @@ To transform the engine to support Enochian chess, the following changes will be
     *   Render a four-colored board representing the four armies.
     *   Display game state information relevant to Enochian chess (e.g., frozen armies, current turn).
     *   Handle the new move notation (e.g., `blue: e2-e4`).
+
+## Module Relationships (current state)
+
+```
+┌────────┐      ┌────────┐      ┌──────────┐      ┌───────┐
+│  UI    │ ───▶ │ Parser │ ───▶ │  Game    │ ───▶ │ Board │
+│ (App + │      │ (PGN)  │      │ (rules & │      │ (data │
+│  View) │      └────────┘      │ state)   │      │ model)│
+└────────┘                       ▲          └───────┘
+     │                            │
+     │                            ▼
+     └──────────────────────▶ Moves
+                              (precomputed move
+                               tables + helpers)
+```
+
+- **UI (`src/ui/app.rs`, `src/ui/ui.rs`)** owns terminal state, renders the board, and forwards keystrokes to the parser/game.
+- **Parser (`src/engine/piece_kind.rs`)** only understands PGN-style commands today.
+- **Game (`src/engine/game.rs`)** coordinates move validation, legality (check/checkmate), turn tracking, and end-game detection.
+- **Board (`src/engine/board.rs`)** holds bitboards for every piece type and exposes helpers for move generation.
+- **Moves (`src/engine/moves.rs`)** builds pseudo-legal moves for the six FIDE piece types using precomputed rays and direction masks.
+
+## FIDE-Specific Behaviors to Replace
+
+| Area | File(s) | Why it must change |
+| ---- | ------- | ------------------ |
+| Two-color assumption | `src/engine/board.rs`, `src/engine/game.rs`, `src/ui/ui.rs` | Bitboards, turn logic, and render paths all hard-code `white`/`black`. Need four-army enums, occupancy, frozen status, and team concepts. |
+| Castling & en passant bookkeeping | `src/engine/game.rs` | Enochian chess removes castling and en passant; these fields should be dropped or repurposed for throne/frozen state. |
+| Checkmate-oriented legality filters | `src/engine/game.rs` | The current legality filter forbids leaving the king in check; Enochian rules allow it (king capture instead of mate). Need forced-king-move logic instead. |
+| Sliding queen implementation | `src/engine/moves.rs` | Queens leap two squares Alibaba-style rather than sliding. The move tables must be rebuilt. |
+| Bishop capture matrix | `src/engine/moves.rs` | Bishops currently capture any opposing piece. They must obey Aries/Cancer networks and restricted capture targets. |
+| Pawn direction & double-step | `src/engine/moves.rs` | The code assumes white moves +8 and black moves −8 with optional double moves/en passant. All four armies require unique forward vectors and no double-step. |
+| PGN parser | `src/engine/piece_kind.rs` | Input is PGN-only. The Enochian UI will accept commands like `blue: a3-a4` plus custom verbs (`/arrays`, `/exchange`). Parser and command routing must be rebuilt. |
+| Sprite rendering | `src/ui/ui.rs` | The board only renders two colors of pieces and standard chess glyphs. We need four color palettes, throne indicators, frozen markers, and per-army legends. |
+| Tests | `tests/` | Existing tests reference PGN helpers and fail to compile. The new rule set requires scenario-based fixtures that cover the Enochian mechanics. |
+
+Documenting these hotspots clarifies where agents must focus when replacing the legacy FIDE logic with the new Enochian model described in `docs/enochian-rules.*`.

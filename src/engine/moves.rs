@@ -1,6 +1,8 @@
-use crate::engine::board::{Board, MASK_FILE_A, MASK_FILE_B, MASK_FILE_G, MASK_FILE_H};
+use crate::engine::board::{
+    diagonal_system, Board, MASK_FILE_A, MASK_FILE_B, MASK_FILE_G, MASK_FILE_H,
+};
 use crate::engine::piece_kind::ParsedMove;
-use crate::engine::types::{Army, PieceKind};
+use crate::engine::types::{Army, PieceKind, Square};
 use crate::precompute_moves;
 /// move generation related, only generate pseudo-legal moves which ensure that
 /// moves are within bounds, exclude friendly pieces and exclude blocked pieces
@@ -13,6 +15,39 @@ pub const DOWN: usize = 4;
 pub const DOWN_LEFT: usize = 5;
 pub const LEFT: usize = 6;
 pub const UP_LEFT: usize = 7;
+
+pub const QUEEN_LEAPS: [u64; 64] = precompute_moves!(precompute_queen_leaps);
+
+const fn precompute_queen_leaps(index: u8) -> u64 {
+    let mut leaps = 0u64;
+    let file = index % 8;
+    let rank = index / 8;
+
+    const DIRECTIONS: [(i8, i8); 8] = [
+        (0, 2),
+        (2, 2),
+        (2, 0),
+        (2, -2),
+        (0, -2),
+        (-2, -2),
+        (-2, 0),
+        (-2, 2),
+    ];
+
+    let mut i = 0;
+    while i < DIRECTIONS.len() {
+        let (dx, dy) = DIRECTIONS[i];
+        let nf = file as i8 + dx;
+        let nr = rank as i8 + dy;
+        if nf >= 0 && nf < 8 && nr >= 0 && nr < 8 {
+            let dest = ((nr as u64) * 8 + nf as u64) as u8;
+            leaps |= 1u64 << dest;
+        }
+        i += 1;
+    }
+
+    leaps
+}
 
 pub const KING_MOVES: [u64; 64] = precompute_moves!(precompute_king_moves);
 // precompute all the moves available for knights at each bit index in the bitboard
@@ -237,10 +272,60 @@ const fn precompute_bishop_rays(index: u8) -> [u64; 4] {
 }
 
 pub fn compute_bishops_moves(board: &Board, army: Army) -> u64 {
-    let bishops = board.by_army_kind[army as usize][PieceKind::Bishop as usize];
-    let own_pieces = board.occupancy_by_army[army as usize];
-    let occupied = board.all_occupancy;
-    compute_sliding_moves(bishops, &BISHOP_RAYS_DIRECTIONS, own_pieces, occupied)
+    let mut moves = 0u64;
+    let mut bishops = board.by_army_kind[army.index()][PieceKind::Bishop.index()];
+    let own_pieces = board.occupancy_by_army[army.index()];
+
+    const VECTORS: [(i8, i8); 4] = [(1, 1), (1, -1), (-1, -1), (-1, 1)];
+
+    while bishops != 0 {
+        let index = bishops.trailing_zeros() as Square;
+        bishops &= bishops - 1;
+        let diag_system = diagonal_system(index);
+        let file = (index % 8) as i8;
+        let rank = (index / 8) as i8;
+
+        for &(dx, dy) in &VECTORS {
+            let mut search_file = file;
+            let mut search_rank = rank;
+            loop {
+                search_file += dx;
+                search_rank += dy;
+                if search_file < 0 || search_file >= 8 || search_rank < 0 || search_rank >= 8 {
+                    break;
+                }
+                let dest = (search_rank as u64 * 8 + search_file as u64) as Square;
+                let dest_mask = 1u64 << dest;
+                if own_pieces & dest_mask != 0 {
+                    break;
+                }
+
+                if let Some((target_army, target_kind)) = board.piece_at(dest) {
+                    if target_army == army {
+                        break;
+                    }
+                    match target_kind {
+                        PieceKind::Bishop => {
+                            break;
+                        }
+                        PieceKind::Queen => {
+                            if diagonal_system(dest) == diag_system {
+                                moves |= dest_mask;
+                            }
+                        }
+                        _ => {
+                            moves |= dest_mask;
+                        }
+                    }
+                    break;
+                } else {
+                    moves |= dest_mask;
+                }
+            }
+        }
+    }
+
+    moves
 }
 
 // clockwise direction
@@ -258,52 +343,114 @@ const fn precompute_queen_rays(index: u8) -> [u64; 8] {
 }
 
 pub fn compute_queens_moves(board: &Board, army: Army) -> u64 {
-    let queens = board.by_army_kind[army as usize][PieceKind::Queen as usize];
-    let own_pieces = board.occupancy_by_army[army as usize];
-    let occupied = board.all_occupancy;
-    compute_sliding_moves(queens, &QUEEN_RAYS_DIRECTIONS, own_pieces, occupied)
+    let mut moves = 0u64;
+    let mut queens = board.by_army_kind[army.index()][PieceKind::Queen.index()];
+    let own_pieces = board.occupancy_by_army[army.index()];
+
+    while queens != 0 {
+        let index = queens.trailing_zeros() as u8;
+        let diag_system = diagonal_system(index);
+        let leaps = QUEEN_LEAPS[index as usize];
+
+        let mut targets = leaps;
+        while targets != 0 {
+            let dest = targets.trailing_zeros() as Square;
+            targets &= targets - 1;
+            let dest_mask = 1u64 << dest;
+            if own_pieces & dest_mask != 0 {
+                continue;
+            }
+
+            match board.piece_at(dest) {
+                None => moves |= dest_mask,
+                Some((target_army, target_kind)) => {
+                    if target_army == army {
+                        continue;
+                    }
+
+                    match target_kind {
+                        PieceKind::Queen => continue,
+                        PieceKind::Bishop => {
+                            if diagonal_system(dest) == diag_system {
+                                moves |= dest_mask;
+                            }
+                        }
+                        _ => {
+                            moves |= dest_mask;
+                        }
+                    }
+                }
+            }
+        }
+
+        queens &= queens - 1;
+    }
+
+    moves
 }
 
 pub fn compute_pawns_moves(board: &Board, army: Army) -> (u64, u64) {
     let mut moves = 0u64;
     let mut attack_moves = 0u64;
-    let own_pieces = board.occupancy_by_army[army as usize];
-    let mut pawns = board.by_army_kind[army as usize][PieceKind::Pawn as usize];
+    let own_pieces = board.occupancy_by_army[army.index()];
+    let mut pawns = board.by_army_kind[army.index()][PieceKind::Pawn.index()];
 
     while pawns != 0 {
         let index = pawns.trailing_zeros() as usize;
+        pawns &= pawns - 1;
 
-        let single_move;
-        let left_diagonal;
-        let right_diagonal;
+        let file = (index % 8) as i8;
+        let rank = (index / 8) as i8;
 
-        match army {
-            Army::Blue => {
-                single_move = 1u64 << (index + 8);
-                left_diagonal = 1u64 << (index + 7) & !MASK_FILE_H;
-                right_diagonal = 1u64 << (index + 9) & !MASK_FILE_A;
-            }
-            Army::Red => {
-                single_move = 1u64 << (index - 8);
-                left_diagonal = 1u64 << (index - 9) & !MASK_FILE_H;
-                right_diagonal = 1u64 << (index - 7) & !MASK_FILE_A;
-            }
-            Army::Black => {
-                single_move = 1u64 << (index + 1);
-                left_diagonal = 1u64 << (index + 9) & !MASK_FILE_A;
-                right_diagonal = 1u64 << (index - 7) & !MASK_FILE_A;
-            }
-            Army::Yellow => {
-                single_move = 1u64 << (index - 1);
-                left_diagonal = 1u64 << (index - 9) & !MASK_FILE_H;
-                right_diagonal = 1u64 << (index + 7) & !MASK_FILE_H;
+        let (forward, diag_left, diag_right) = match army {
+            Army::Blue => (
+                offset_square(file, rank, 0, 1),
+                offset_square(file, rank, -1, 1),
+                offset_square(file, rank, 1, 1),
+            ),
+            Army::Red => (
+                offset_square(file, rank, 0, -1),
+                offset_square(file, rank, -1, -1),
+                offset_square(file, rank, 1, -1),
+            ),
+            Army::Black => (
+                offset_square(file, rank, 1, 0),
+                offset_square(file, rank, 1, 1),
+                offset_square(file, rank, 1, -1),
+            ),
+            Army::Yellow => (
+                offset_square(file, rank, -1, 0),
+                offset_square(file, rank, -1, 1),
+                offset_square(file, rank, -1, -1),
+            ),
+        };
+
+        if let Some(dest) = forward {
+            let dest_mask = 1u64 << dest;
+            if board.all_occupancy & dest_mask == 0 {
+                moves |= dest_mask;
             }
         }
 
-        moves |= single_move & !board.all_occupancy;
-        attack_moves |= (left_diagonal | right_diagonal) & !own_pieces;
-
-        pawns &= pawns - 1;
+        for diag in [diag_left, diag_right] {
+            if let Some(dest) = diag {
+                let dest_mask = 1u64 << dest;
+                if own_pieces & dest_mask == 0 {
+                    attack_moves |= dest_mask;
+                }
+            }
+        }
     }
+
     (moves, attack_moves)
+}
+
+fn offset_square(file: i8, rank: i8, df: i8, dr: i8) -> Option<u8> {
+    let nf = file + df;
+    let nr = rank + dr;
+    if nf >= 0 && nf < 8 && nr >= 0 && nr < 8 {
+        Some(((nr as u64) * 8 + nf as u64) as u8)
+    } else {
+        None
+    }
 }
