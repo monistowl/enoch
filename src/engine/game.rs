@@ -9,9 +9,10 @@ use crate::engine::types::{
     file_char, rank_char, Army, Move, PieceKind, PlayerId, Square, Team, ARMY_COUNT,
     PIECE_KIND_COUNT,
 };
+use serde::{Deserialize, Serialize};
 
 /// Game struct responsible for all game logics (pin, check, valid captures, etc)
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Game {
     pub board: Board,
     pub config: GameConfig,
@@ -19,7 +20,7 @@ pub struct Game {
     pub status: Status,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GameConfig {
     pub armies: [Army; ARMY_COUNT],
     pub turn_order: [Army; ARMY_COUNT],
@@ -41,7 +42,7 @@ impl Default for GameConfig {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GameState {
     pub current_turn_index: usize,
     pub army_frozen: [bool; ARMY_COUNT],
@@ -124,7 +125,7 @@ pub enum MoveError {
     GameOver,
 }
 
-#[derive(Debug, PartialEq, Copy, Clone)]
+#[derive(Debug, PartialEq, Copy, Clone, Serialize, Deserialize)]
 pub enum Status {
     Ongoing,
     Draw,
@@ -154,6 +155,23 @@ impl Game {
             state,
             status: Status::Ongoing,
         }
+    }
+
+    /// Recomputes derived state (occupancy bitboards) after deserialization.
+    /// This MUST be called after loading a game from JSON.
+    pub fn refresh_after_load(&mut self) {
+        self.board.refresh_occupancy();
+        self.state.sync_with_board(&self.board);
+    }
+
+    pub fn to_json(&self) -> Result<String, serde_json::Error> {
+        serde_json::to_string_pretty(self)
+    }
+
+    pub fn from_json(json: &str) -> Result<Game, serde_json::Error> {
+        let mut game: Game = serde_json::from_str(json)?;
+        game.refresh_after_load();
+        Ok(game)
     }
 
     pub fn army_is_frozen(&self, army: Army) -> bool {

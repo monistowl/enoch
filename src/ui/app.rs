@@ -2,6 +2,7 @@ use crate::engine::arrays::{available_arrays, default_array, find_array_by_name}
 use crate::engine::game::Game;
 use crate::engine::types::{Army, PieceKind, Square};
 use std::fmt;
+use std::fs;
 
 pub struct App {
     pub game: Game,
@@ -33,6 +34,8 @@ pub enum UiCommand {
     SelectArray(String),
     CycleArray(isize),
     Exchange(Army),
+    Save(String),
+    Load(String),
 }
 
 #[derive(Debug)]
@@ -153,6 +156,35 @@ impl App {
                         Some("Exchange failed: both kings must be captured and frozen".into());
                 }
             }
+            UiCommand::Save(filename) => match self.game.to_json() {
+                Ok(json) => match fs::write(&filename, json) {
+                    Ok(_) => {
+                        self.status_message = Some(format!("Game saved to {}", filename));
+                        self.error_message = None;
+                    }
+                    Err(e) => {
+                        self.error_message = Some(format!("Failed to write file: {}", e));
+                    }
+                },
+                Err(e) => {
+                    self.error_message = Some(format!("Serialization error: {}", e));
+                }
+            },
+            UiCommand::Load(filename) => match fs::read_to_string(&filename) {
+                Ok(json) => match Game::from_json(&json) {
+                    Ok(game) => {
+                        self.game = game;
+                        self.status_message = Some(format!("Game loaded from {}", filename));
+                        self.error_message = None;
+                    }
+                    Err(e) => {
+                        self.error_message = Some(format!("Deserialization error: {}", e));
+                    }
+                },
+                Err(e) => {
+                    self.error_message = Some(format!("Failed to read file: {}", e));
+                }
+            },
         }
         if self.status_message.is_some() {
             self.error_message = None;
@@ -248,6 +280,20 @@ fn parse_ui_command(input: &str) -> Result<UiCommand, CommandParseError> {
                         }
                     } else {
                         Err(CommandParseError("Missing army name".into()))
+                    }
+                }
+                "save" => {
+                    if let Some(filename) = parts.next() {
+                        Ok(UiCommand::Save(filename.to_string()))
+                    } else {
+                        Err(CommandParseError("Missing filename".into()))
+                    }
+                }
+                "load" => {
+                    if let Some(filename) = parts.next() {
+                        Ok(UiCommand::Load(filename.to_string()))
+                    } else {
+                        Err(CommandParseError("Missing filename".into()))
                     }
                 }
                 _ => Err(CommandParseError("Unknown command".into())),

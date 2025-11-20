@@ -1,8 +1,9 @@
 use crate::engine::types::{
     Army, Piece, PieceKind, PlayerId, Square, Team, ARMY_COUNT, PIECE_KIND_COUNT, TEAM_COUNT,
 };
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct ArmyState {
     pub army: Army,
     pub throne_squares: [Square; 2],
@@ -21,12 +22,16 @@ impl ArmyState {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct Board {
     pub by_army_kind: [[u64; PIECE_KIND_COUNT]; ARMY_COUNT],
+    #[serde(skip)]
     pub occupancy_by_army: [u64; ARMY_COUNT],
+    #[serde(skip)]
     pub occupancy_by_team: [u64; TEAM_COUNT],
+    #[serde(skip)]
     pub all_occupancy: u64,
+    #[serde(skip)]
     pub free: u64,
     pub armies: [ArmyState; ARMY_COUNT],
     pub promotion_zones: [u64; ARMY_COUNT],
@@ -48,7 +53,7 @@ impl Board {
     ) -> Board {
         let mut by_army_kind = [[0u64; PIECE_KIND_COUNT]; ARMY_COUNT];
         for (army, piece, bitboard) in initial_placements {
-            by_army_kind[army.index()][piece.kind.index()] = *bitboard;
+            by_army_kind[army.index()][piece.kind.index()] |= *bitboard;
         }
 
         let occupancy_by_army = compute_occupancy_by_army(&by_army_kind);

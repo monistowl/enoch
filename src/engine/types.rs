@@ -1,10 +1,12 @@
+use serde::{Deserialize, Serialize};
+
 pub const ARMY_COUNT: usize = 4;
 pub const TEAM_COUNT: usize = 2;
 pub const PIECE_KIND_COUNT: usize = 6;
 
 pub type Square = u8;
 
-#[derive(Copy, Clone, Eq, PartialEq, Debug, Hash)]
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Hash, Serialize, Deserialize)]
 pub enum Army {
     Blue,
     Black,
@@ -49,7 +51,7 @@ impl Army {
     }
 }
 
-#[derive(Copy, Clone, Eq, PartialEq, Debug, Hash)]
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Hash, Serialize, Deserialize)]
 pub enum Team {
     Air,   // Blue + Black
     Earth, // Red + Yellow
@@ -85,7 +87,7 @@ impl Team {
     }
 }
 
-#[derive(Copy, Clone, Eq, PartialEq, Debug, Hash)]
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Hash, Serialize, Deserialize)]
 pub enum PieceKind {
     King,
     Queen,
@@ -111,7 +113,7 @@ impl PieceKind {
     }
 }
 
-#[derive(Copy, Clone, Eq, PartialEq, Debug, Hash)]
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Hash, Serialize, Deserialize)]
 pub struct PlayerId(pub u8);
 
 impl PlayerId {
@@ -129,14 +131,14 @@ impl Default for PlayerId {
     }
 }
 
-#[derive(Copy, Clone, Eq, PartialEq, Debug)]
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Serialize, Deserialize)]
 pub struct Piece {
     pub army: Army,
     pub kind: PieceKind,
     pub pawn_type: Option<PieceKind>, // for “pawn of X” if you want to distinguish
 }
 
-#[derive(Copy, Clone, Eq, PartialEq, Debug, Hash)]
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Hash, Serialize, Deserialize)]
 pub struct Move {
     pub from: Square,
     pub to: Square,
