@@ -129,3 +129,37 @@ history/
                                                                        
 For more details, see README.md and QUICKSTART.md.
 
+## Enochian Chess Engine (enoch-mcp)
+
+This project includes an Enochian chess engine with MCP integration.
+
+**Install:**
+```bash
+pip install enoch-mcp
+```
+
+**Add to MCP config** (e.g., `~/.config/claude/config.json`):
+```json
+{
+  "mcpServers": {
+    "enoch": {
+      "command": "enoch-mcp"
+    }
+  }
+}
+```
+
+**Available MCP tools:**
+- `enoch_validate_move` - Check if a move is legal
+- `enoch_analyze_square` - Inspect a square and see legal moves
+- `enoch_query_rules` - Ask questions about game rules
+- `enoch_generate_position` - Create custom positions
+- `enoch_make_move` - Make a move in a game
+- `enoch_get_status` - Get current game state
+- `enoch_get_legal_moves` - List all legal moves for an army
+- `enoch_convert_format` - Convert game state between formats
+- `enoch_show_board` - Display the current board
+- `enoch_perft` - Performance testing
+
+All tools work with game state files (JSON) for persistence. See `enoch-mcp/README.md` for examples.
+
