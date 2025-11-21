@@ -28,6 +28,7 @@ use std::{env, io, process};
 
 #[derive(Parser)]
 #[command(name = "enoch")]
+#[command(version)]
 #[command(about = "Enochian Chess - Four-player chess variant", long_about = None)]
 struct Args {
     /// Run in headless mode (no TUI)
@@ -105,6 +106,10 @@ struct Args {
     /// Import game from PGN format
     #[arg(long)]
     import_pgn: Option<String>,
+    
+    /// Suppress non-essential output
+    #[arg(long, short)]
+    quiet: bool,
     
     /// Show board
     #[arg(long)]
@@ -416,7 +421,9 @@ fn run_headless(args: Args) {
     if let Some(count) = args.undo {
         match game.undo(count) {
             Ok(undone) => {
-                println!("Undid {} move(s)", undone);
+                if !args.quiet {
+                    println!("Undid {} move(s)", undone);
+                }
                 // Save state after undo
                 if let Some(save_file) = &args.state {
                     if let Ok(json) = game.to_json() {
@@ -497,7 +504,9 @@ fn execute_headless_move(game: &mut Game, move_cmd: &str, args: &Args) -> Result
     
     game.apply_move(army, from, to, None)?;
     
-    println!("✓ {} moved from {} to {}", army.display_name(), coords[0], coords[1]);
+    if !args.quiet {
+        println!("✓ {} moved from {} to {}", army.display_name(), coords[0], coords[1]);
+    }
     
     Ok(())
 }
@@ -530,8 +539,10 @@ fn make_ai_moves(game: &mut Game, ai_armies: &[Army], args: &Args) {
             
             game.apply_move(current, mv.from, mv.to, None).ok();
             
-            println!("🤖 {} AI: {}{} -> {}{}", 
-                current.display_name(), from_file, from_rank, to_file, to_rank);
+            if !args.quiet {
+                println!("🤖 {} AI: {}{} -> {}{}", 
+                    current.display_name(), from_file, from_rank, to_file, to_rank);
+            }
         } else {
             break;
         }
