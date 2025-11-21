@@ -14,6 +14,7 @@ pub struct App {
     pub selected_array: String,
     pub array_index: usize,
     pub help_scroll: usize,
+    pub last_frame: Option<String>,
 }
 
 pub enum CurrentScreen {
@@ -40,6 +41,7 @@ pub enum UiCommand {
     Load(String),
     ToggleDivination,
     RollDie,
+    Screenshot(String),
 }
 
 #[derive(Debug)]
@@ -64,6 +66,7 @@ impl App {
             selected_array: spec.name.to_string(),
             array_index: 0,
             help_scroll: 0,
+            last_frame: None,
         }
     }
 
@@ -227,6 +230,21 @@ impl App {
                 }
                 self.error_message = None;
             }
+            UiCommand::Screenshot(filename) => {
+                if let Some(ref frame) = self.last_frame {
+                    match fs::write(&filename, frame) {
+                        Ok(_) => {
+                            self.status_message = Some(format!("Screenshot saved to {}", filename));
+                            self.error_message = None;
+                        }
+                        Err(e) => {
+                            self.error_message = Some(format!("Failed to save screenshot: {}", e));
+                        }
+                    }
+                } else {
+                    self.error_message = Some("No frame captured yet".into());
+                }
+            }
         }
         if self.status_message.is_some() {
             self.error_message = None;
@@ -385,6 +403,7 @@ impl App {
             "• /exchange <army> - Exchange prisoners with army".to_string(),
             "• /save <file> - Save game to file".to_string(),
             "• /load <file> - Load game from file".to_string(),
+            "• /screenshot <file> - Capture terminal state to text file".to_string(),
             "• [ ] - Cycle arrays with bracket keys".to_string(),
             "• ? or F1 - Toggle this help screen".to_string(),
             "• ESC - Exit help or quit game".to_string(),
@@ -442,6 +461,13 @@ fn parse_ui_command(input: &str) -> Result<UiCommand, CommandParseError> {
                 "load" => {
                     if let Some(filename) = parts.next() {
                         Ok(UiCommand::Load(filename.to_string()))
+                    } else {
+                        Err(CommandParseError("Missing filename".into()))
+                    }
+                }
+                "screenshot" | "snap" | "capture" => {
+                    if let Some(filename) = parts.next() {
+                        Ok(UiCommand::Screenshot(filename.to_string()))
                     } else {
                         Err(CommandParseError("Missing filename".into()))
                     }

@@ -70,6 +70,7 @@ fn run(terminal: &mut DefaultTerminal, app: &mut App) -> io::Result<bool> {
         check_size(terminal)?;
         terminal.hide_cursor()?;
         terminal.draw(|frame| render(frame, app))?;
+        
         if let Event::Key(key) = event::read()? {
             if key.kind == KeyEventKind::Press {
                 match key.code {
