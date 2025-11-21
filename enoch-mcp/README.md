@@ -37,6 +37,16 @@ Add to your MCP client configuration (e.g., `~/.config/claude/config.json`):
 - **enoch_get_status** - Get current game state (turn, frozen armies, winner)
 - **enoch_get_legal_moves** - List all legal moves for an army
 - **enoch_show_board** - Display the current board
+- **enoch_list_arrays** - List all available starting arrays
+- **enoch_undo** - Undo last N moves
+
+### Game I/O
+- **enoch_export_pgn** - Export game to PGN format
+- **enoch_import_pgn** - Import game from PGN format
+
+### Automation
+- **enoch_batch** - Execute commands from batch file
+- **enoch_stats** - Get game statistics (moves, captures, status)
 
 ### Utilities
 - **enoch_convert_format** - Convert between JSON, ASCII, and compact formats

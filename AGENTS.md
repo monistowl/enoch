@@ -149,16 +149,32 @@ pip install enoch-mcp
 }
 ```
 
-**Available MCP tools:**
+**Available MCP tools (17 total):**
+
+Game Analysis:
 - `enoch_validate_move` - Check if a move is legal
 - `enoch_analyze_square` - Inspect a square and see legal moves
 - `enoch_query_rules` - Ask questions about game rules
+
+Game Management:
 - `enoch_generate_position` - Create custom positions
 - `enoch_make_move` - Make a move in a game
 - `enoch_get_status` - Get current game state
 - `enoch_get_legal_moves` - List all legal moves for an army
-- `enoch_convert_format` - Convert game state between formats
 - `enoch_show_board` - Display the current board
+- `enoch_list_arrays` - List available starting arrays
+- `enoch_undo` - Undo last N moves
+
+Game I/O:
+- `enoch_export_pgn` - Export to PGN format
+- `enoch_import_pgn` - Import from PGN format
+
+Automation:
+- `enoch_batch` - Execute batch commands
+- `enoch_stats` - Get game statistics
+
+Utilities:
+- `enoch_convert_format` - Convert game state between formats
 - `enoch_perft` - Performance testing
 
 All tools work with game state files (JSON) for persistence. See `enoch-mcp/README.md` for examples.

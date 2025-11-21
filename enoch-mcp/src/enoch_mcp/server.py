@@ -132,6 +132,72 @@ async def list_tools() -> list[Tool]:
                 "required": ["depth"],
             },
         ),
+        Tool(
+            name="enoch_list_arrays",
+            description="List all available starting arrays",
+            inputSchema={
+                "type": "object",
+                "properties": {},
+            },
+        ),
+        Tool(
+            name="enoch_undo",
+            description="Undo last N moves",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "count": {"type": "integer", "description": "Number of moves to undo (default 1)"},
+                    "state_file": {"type": "string", "description": "Path to game state JSON file"},
+                },
+                "required": ["state_file"],
+            },
+        ),
+        Tool(
+            name="enoch_batch",
+            description="Execute commands from batch file",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "batch_file": {"type": "string", "description": "Path to batch command file"},
+                    "state_file": {"type": "string", "description": "Optional path to game state JSON file"},
+                },
+                "required": ["batch_file"],
+            },
+        ),
+        Tool(
+            name="enoch_stats",
+            description="Get game statistics (moves, captures, status)",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "state_file": {"type": "string", "description": "Optional path to game state JSON file"},
+                },
+            },
+        ),
+        Tool(
+            name="enoch_export_pgn",
+            description="Export game to PGN format",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "state_file": {"type": "string", "description": "Path to game state JSON file"},
+                    "output_file": {"type": "string", "description": "Path to output PGN file"},
+                },
+                "required": ["state_file", "output_file"],
+            },
+        ),
+        Tool(
+            name="enoch_import_pgn",
+            description="Import game from PGN format",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "pgn_file": {"type": "string", "description": "Path to PGN file to import"},
+                    "state_file": {"type": "string", "description": "Optional path to save game state"},
+                },
+                "required": ["pgn_file"],
+            },
+        ),
     ]
 
 
@@ -169,6 +235,18 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
             result = cli.show_board(arguments.get("state_file"))
         elif name == "enoch_perft":
             result = cli.run_perft(arguments["depth"], arguments.get("state_file"))
+        elif name == "enoch_list_arrays":
+            result = cli.list_arrays()
+        elif name == "enoch_undo":
+            result = cli.undo_moves(arguments.get("count", 1), arguments["state_file"])
+        elif name == "enoch_batch":
+            result = cli.run_batch(arguments["batch_file"], arguments.get("state_file"))
+        elif name == "enoch_stats":
+            result = cli.get_stats(arguments.get("state_file"))
+        elif name == "enoch_export_pgn":
+            result = cli.export_pgn(arguments["state_file"], arguments["output_file"])
+        elif name == "enoch_import_pgn":
+            result = cli.import_pgn(arguments["pgn_file"], arguments.get("state_file"))
         else:
             raise ValueError(f"Unknown tool: {name}")
         

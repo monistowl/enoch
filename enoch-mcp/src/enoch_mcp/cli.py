@@ -225,3 +225,106 @@ def run_perft(depth: int, state_file: Optional[str] = None) -> dict:
             result["nps"] = int(float(line.split("NPS:")[1].strip()))
     
     return result
+
+
+def list_arrays() -> dict:
+    """List all available starting arrays."""
+    args = ["--headless", "--list-arrays"]
+    stdout, stderr, code = run_enoch(args)
+    
+    arrays = []
+    lines = stdout.strip().split("\n")
+    i = 0
+    while i < len(lines):
+        line = lines[i].strip()
+        if line and line[0].isdigit() and "." in line:
+            # Parse "1. Array Name"
+            parts = line.split(".", 1)
+            if len(parts) == 2:
+                name = parts[1].strip()
+                # Next line is description
+                if i + 1 < len(lines):
+                    desc = lines[i + 1].strip()
+                    arrays.append({"name": name, "description": desc})
+                    i += 2
+                    continue
+        i += 1
+    
+    return {"arrays": arrays}
+
+
+def undo_moves(count: int, state_file: str) -> dict:
+    """Undo last N moves."""
+    args = ["--headless", "--undo", str(count), "--state", state_file]
+    stdout, stderr, code = run_enoch(args)
+    
+    if code == 0:
+        return {"success": True, "message": stdout.strip()}
+    else:
+        return {"success": False, "error": stdout.strip() or stderr.strip()}
+
+
+def run_batch(batch_file: str, state_file: Optional[str] = None) -> dict:
+    """Execute commands from batch file."""
+    args = ["--headless", "--batch", batch_file]
+    if state_file:
+        args.extend(["--state", state_file])
+    
+    stdout, stderr, code = run_enoch(args)
+    return {"success": code == 0, "output": stdout.strip()}
+
+
+def get_stats(state_file: Optional[str] = None) -> dict:
+    """Get game statistics."""
+    args = ["--headless", "--stats"]
+    if state_file:
+        args.extend(["--state", state_file])
+    
+    stdout, stderr, code = run_enoch(args)
+    lines = stdout.strip().split("\n")
+    
+    result = {"moves_played": 0, "captures": {}, "status": {}}
+    
+    for line in lines:
+        if "Moves played:" in line:
+            result["moves_played"] = int(line.split("Moves played:")[1].strip())
+        elif "lost:" in line and any(army in line for army in ["Blue", "Red", "Black", "Yellow"]):
+            parts = line.split(":")
+            army = parts[0].strip()
+            lost_info = parts[1].strip()
+            result["captures"][army] = lost_info
+        elif ":" in line and any(status in line for status in ["Active", "Frozen", "In Check"]):
+            parts = line.split(":")
+            army = parts[0].strip()
+            status = parts[1].strip()
+            result["status"][army] = status
+    
+    return result
+
+
+def export_pgn(state_file: str, output_file: str) -> dict:
+    """Export game to PGN format."""
+    args = ["--headless", "--state", state_file, "--export-pgn", output_file]
+    stdout, stderr, code = run_enoch(args)
+    
+    if code == 0:
+        return {"success": True, "output_file": output_file}
+    else:
+        return {"success": False, "error": stderr.strip() or stdout.strip()}
+
+
+def import_pgn(pgn_file: str, state_file: Optional[str] = None) -> dict:
+    """Import game from PGN format."""
+    args = ["--headless", "--import-pgn", pgn_file]
+    if state_file:
+        args.extend(["--state", state_file])
+    
+    stdout, stderr, code = run_enoch(args)
+    
+    result = {"success": code == 0}
+    for line in stdout.strip().split("\n"):
+        if "Imported" in line and "moves" in line:
+            result["message"] = line
+    
+    return result
+
