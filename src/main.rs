@@ -74,6 +74,10 @@ struct Args {
     #[arg(long)]
     array: Option<String>,
     
+    /// Show move history
+    #[arg(long)]
+    history: bool,
+    
     /// Show board
     #[arg(long)]
     show: bool,
@@ -368,6 +372,10 @@ fn run_headless(args: Args) {
         }
     }
     
+    if args.history {
+        show_history(&game);
+    }
+    
     if args.status {
         show_status(&game);
     }
@@ -490,6 +498,41 @@ fn show_legal_moves(game: &mut Game, army: Army) {
         let to_file = (b'a' + (mv.to % 8)) as char;
         let to_rank = (b'1' + (mv.to / 8)) as char;
         println!("  {}{} -> {}{}", from_file, from_rank, to_file, to_rank);
+    }
+}
+
+fn show_history(game: &Game) {
+    if game.move_history.is_empty() {
+        println!("No moves played yet");
+        return;
+    }
+    
+    println!("Move history ({} moves):\n", game.move_history.len());
+    for (i, (army, from, to, promotion)) in game.move_history.iter().enumerate() {
+        let from_file = (b'a' + (from % 8)) as char;
+        let from_rank = (b'1' + (from / 8)) as char;
+        let to_file = (b'a' + (to % 8)) as char;
+        let to_rank = (b'1' + (to / 8)) as char;
+        
+        let promo_str = if let Some(kind) = promotion {
+            format!("={}", match kind {
+                crate::engine::types::PieceKind::Queen => "Q",
+                crate::engine::types::PieceKind::Rook => "R",
+                crate::engine::types::PieceKind::Bishop => "B",
+                crate::engine::types::PieceKind::Knight => "N",
+                _ => "",
+            })
+        } else {
+            String::new()
+        };
+        
+        println!("{}. {}: {}{}-{}{}{}", 
+            i + 1, 
+            army.display_name(), 
+            from_file, from_rank, 
+            to_file, to_rank,
+            promo_str
+        );
     }
 }
 

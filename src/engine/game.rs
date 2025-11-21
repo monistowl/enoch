@@ -22,6 +22,8 @@ pub struct Game {
     pub status: Status,
     #[serde(skip)]
     cached_legal_moves: Option<(Army, Vec<Move>)>,
+    #[serde(default)]
+    pub move_history: Vec<(Army, Square, Square, Option<PieceKind>)>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -161,6 +163,7 @@ impl Game {
             state,
             status: Status::Ongoing,
             cached_legal_moves: None,
+            move_history: Vec::new(),
         }
     }
 
@@ -623,6 +626,7 @@ impl Game {
                     state: next_state,
                     status: self.status.clone(),
                     cached_legal_moves: None,
+                    move_history: Vec::new(),
                 };
 
                 if !next_game.king_in_check(army) {
@@ -731,6 +735,9 @@ impl Game {
         }
         self.advance_to_next_army();
         self.clear_move_cache();
+        
+        // Track move in history
+        self.move_history.push((army, from, to, promotion));
 
         Ok(format!(
             "{} moved {} to {}",
