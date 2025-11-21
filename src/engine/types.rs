@@ -49,6 +49,15 @@ impl Army {
             Army::Red | Army::Yellow => Team::Earth,
         }
     }
+
+    pub fn pawn_direction(self) -> i8 {
+        match self {
+            Army::Blue => 1,   // moves up
+            Army::Red => -1,   // moves down
+            Army::Black => -1, // moves left (but in rank terms)
+            Army::Yellow => 1, // moves right (but in rank terms)
+        }
+    }
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug, Hash, Serialize, Deserialize)]

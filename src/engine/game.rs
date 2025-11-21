@@ -1,8 +1,10 @@
 use crate::engine::arrays::{ArraySpec, TABLET_OF_FIRE_PROTOTYPE};
-use crate::engine::board::Board;
+use crate::engine::board::{diagonal_system, Board, MASK_FILE_A, MASK_FILE_H};
 use crate::engine::moves::{
     compute_bishops_moves, compute_king_moves, compute_knights_moves, compute_pawns_moves,
-    compute_queens_moves, compute_rooks_moves, get_sliding_attacks,
+    compute_queens_moves, compute_rooks_moves, find_blocker_mask, get_sliding_attacks,
+    BISHOP_RAYS_DIRECTIONS, KING_MOVES, KNIGHT_MOVES, QUEEN_LEAPS, QUEEN_RAYS,
+    ROOK_RAYS_DIRECTIONS,
 };
 use crate::engine::piece_kind::{parse_move, ParsedMove, SpecialMove};
 use crate::engine::types::{
@@ -264,10 +266,6 @@ impl Game {
         }
     }
 
-    pub fn must_move_king(&self, army: Army) -> bool {
-        self.king_in_check(army) && self.generate_legal_non_king_moves(army).is_empty()
-    }
-
     pub fn freeze_army(&mut self, army: Army) {
         self.board.set_frozen(army, true);
         self.state.set_frozen(army, true);
@@ -403,14 +401,16 @@ impl Game {
     }
 
     pub fn update_stalemate_status(&mut self, army: Army) {
-        let king_in_check_status = self.king_in_check(army);
-        if king_in_check_status {
+        if self.king_in_check(army) {
             self.state.set_stalemate(army, false);
             return;
         }
-        let legal_moves = self.generate_legal_moves(army);
-        let stalemated = legal_moves.is_empty();
-        self.state.set_stalemate(army, stalemated);
+
+        if self.generate_legal_moves(army).is_empty() {
+            self.state.set_stalemate(army, true);
+        } else {
+            self.state.set_stalemate(army, false);
+        }
     }
 
     pub fn army_in_stalemate(&self, army: Army) -> bool {
@@ -466,100 +466,147 @@ impl Game {
         }
     }
 
-    pub fn generate_legal_king_moves(&self, army: Army) -> Vec<Move> {
-        if self.army_is_frozen(army) {
-            return Vec::new();
-        }
-
-        let mut legal_king_moves = Vec::new();
-        if let Some(from_sq) = self.state.king_square(army) {
-            let pseudo_legal_destinations = self.piece_moves(army, PieceKind::King);
-            let mut destinations = pseudo_legal_destinations;
-
-            while destinations != 0 {
-                let to_sq = destinations.trailing_zeros() as Square;
-                destinations &= destinations - 1;
-
-                let mut next_game_state = self.clone();
-
-                // Simulate the move on the cloned board
-                // Save the piece at the destination square, if any, for later restoration if needed
-                let original_piece_at_dest = next_game_state.board.piece_at(to_sq);
-
-                next_game_state.board.clear_square(from_sq); // Clear the source square
-                if let Some((target_army, target_kind)) = original_piece_at_dest {
-                    // Remove the captured piece from the board before placing the moving piece
-                    next_game_state
-                        .board
-                        .remove_piece(target_army, target_kind, to_sq);
+    fn piece_moves_from(&self, army: Army, kind: PieceKind, from_sq: Square) -> u64 {
+        use crate::engine::moves::*;
+        
+        let own_pieces = self.board.occupancy_by_army[army.index()];
+        let occupied = self.board.all_occupancy;
+        
+        match kind {
+            PieceKind::King => KING_MOVES[from_sq as usize] & !own_pieces,
+            PieceKind::Queen => {
+                let diag_system = diagonal_system(from_sq);
+                let leaps = QUEEN_LEAPS[from_sq as usize];
+                let mut moves = 0u64;
+                
+                let mut targets = leaps;
+                while targets != 0 {
+                    let dest = targets.trailing_zeros() as Square;
+                    targets &= targets - 1;
+                    let dest_mask = 1u64 << dest;
+                    
+                    if own_pieces & dest_mask != 0 {
+                        continue;
+                    }
+                    
+                    match self.board.piece_at(dest) {
+                        None => moves |= dest_mask,
+                        Some((target_army, target_kind)) => {
+                            if target_army == army {
+                                continue;
+                            }
+                            match target_kind {
+                                PieceKind::Queen => continue,
+                                PieceKind::Bishop => {
+                                    if diagonal_system(dest) == diag_system {
+                                        moves |= dest_mask;
+                                    }
+                                }
+                                _ => moves |= dest_mask,
+                            }
+                        }
+                    }
                 }
-                next_game_state
-                    .board
-                    .place_piece(army, PieceKind::King, to_sq); // Place the piece on the destination square
-
-                // Update king's square since king moved
-                next_game_state.state.set_king_square(army, Some(to_sq));
-
-                next_game_state.board.refresh_occupancy();
-                next_game_state
-                    .state
-                    .sync_with_board(&next_game_state.board);
-
-                if !next_game_state.king_in_check(army) {
-                    legal_king_moves.push(Move {
-                        from: from_sq,
-                        to: to_sq,
-                        kind: PieceKind::King,
-                        promotion: None,
-                    });
+                moves
+            },
+            PieceKind::Rook => {
+                let rays = QUEEN_RAYS[from_sq as usize];
+                let mut moves = 0u64;
+                for &dir in &ROOK_RAYS_DIRECTIONS {
+                    let ray = rays[dir];
+                    let (blocked_bit, blocked_mask) = find_blocker_mask(ray, occupied, dir);
+                    moves |= ray & !blocked_mask;
+                    if blocked_bit & own_pieces == 0 {
+                        moves |= blocked_bit;
+                    }
                 }
+                moves
+            },
+            PieceKind::Bishop => {
+                let rays = QUEEN_RAYS[from_sq as usize];
+                let mut moves = 0u64;
+                for &dir in &BISHOP_RAYS_DIRECTIONS {
+                    let ray = rays[dir];
+                    let (blocked_bit, blocked_mask) = find_blocker_mask(ray, occupied, dir);
+                    moves |= ray & !blocked_mask;
+                    if blocked_bit & own_pieces == 0 {
+                        moves |= blocked_bit;
+                    }
+                }
+                moves
+            },
+            PieceKind::Knight => KNIGHT_MOVES[from_sq as usize] & !own_pieces,
+            PieceKind::Pawn => {
+                let direction = army.pawn_direction();
+                let from_mask = 1u64 << from_sq;
+                let mut moves = 0u64;
+                
+                // Forward move
+                let forward = match direction {
+                    1 => from_mask << 8,
+                    -1 => from_mask >> 8,
+                    _ => 0,
+                };
+                if forward & self.board.free != 0 {
+                    moves |= forward;
+                }
+                
+                // Diagonal captures
+                let enemy_occupancy = self.board.all_occupancy & !own_pieces;
+                let left_capture = match direction {
+                    1 => (from_mask << 7) & !MASK_FILE_H,
+                    -1 => (from_mask >> 9) & !MASK_FILE_H,
+                    _ => 0,
+                };
+                let right_capture = match direction {
+                    1 => (from_mask << 9) & !MASK_FILE_A,
+                    -1 => (from_mask >> 7) & !MASK_FILE_A,
+                    _ => 0,
+                };
+                moves |= (left_capture | right_capture) & enemy_occupancy;
+                
+                moves
             }
         }
-        legal_king_moves
     }
 
-    // New function to generate legal moves for non-king pieces
-    pub fn generate_legal_non_king_moves(&self, army: Army) -> Vec<Move> {
+    pub fn generate_legal_moves(&self, army: Army) -> Vec<Move> {
         if self.army_is_frozen(army) {
             return Vec::new();
         }
 
         let mut legal_moves = Vec::new();
         for (from_sq, kind) in self.board.all_pieces_for_army(army) {
-            if kind == PieceKind::King {
-                continue; // Skip king moves
-            }
-
-            let pseudo_legal_destinations = self.piece_moves(army, kind);
+            let pseudo_legal_destinations = self.piece_moves_from(army, kind, from_sq);
             let mut destinations = pseudo_legal_destinations;
 
             while destinations != 0 {
                 let to_sq = destinations.trailing_zeros() as Square;
                 destinations &= destinations - 1;
 
-                let mut next_game_state = self.clone();
+                let mut next_board = self.board.clone();
+                let mut next_state = self.state.clone();
 
-                // Simulate the move on the cloned board
-                let original_piece_at_dest = next_game_state.board.piece_at(to_sq);
-
-                next_game_state.board.clear_square(from_sq);
-                if let Some((target_army, target_kind)) = original_piece_at_dest {
-                    next_game_state
-                        .board
-                        .remove_piece(target_army, target_kind, to_sq);
-                }
-                next_game_state.board.place_piece(army, kind, to_sq);
-
-                if kind == PieceKind::Pawn && next_game_state.can_promote_at(army, to_sq) {
-                    next_game_state.promote_pawn(army, to_sq, PieceKind::Queen);
+                if let Some((target_army, target_kind)) = next_board.piece_at(to_sq) {
+                    if target_army == army {
+                        continue;
+                    }
+                    next_board.remove_piece(target_army, target_kind, to_sq);
                 }
 
-                next_game_state.board.refresh_occupancy();
-                next_game_state
-                    .state
-                    .sync_with_board(&next_game_state.board);
+                next_board.move_piece(army, kind, from_sq, to_sq);
+                if kind == PieceKind::King {
+                    next_state.set_king_square(army, Some(to_sq));
+                }
 
-                if !next_game_state.king_in_check(army) {
+                let next_game = Game {
+                    board: next_board,
+                    config: self.config.clone(),
+                    state: next_state,
+                    status: self.status.clone(),
+                };
+
+                if !next_game.king_in_check(army) {
                     legal_moves.push(Move {
                         from: from_sq,
                         to: to_sq,
@@ -569,21 +616,17 @@ impl Game {
                 }
             }
         }
-        legal_moves
-    }
 
-    pub fn generate_legal_moves(&self, army: Army) -> Vec<Move> {
-        if self.army_is_frozen(army) {
-            return Vec::new();
+        if self.king_in_check(army) {
+            let king_moves: Vec<Move> = legal_moves
+                .iter()
+                .filter(|m| m.kind == PieceKind::King)
+                .cloned()
+                .collect();
+            if !king_moves.is_empty() {
+                return king_moves;
+            }
         }
-
-        let mut legal_moves = Vec::new();
-
-        // Add legal non-king moves
-        legal_moves.extend(self.generate_legal_non_king_moves(army));
-
-        // Add legal king moves
-        legal_moves.extend(self.generate_legal_king_moves(army));
 
         legal_moves
     }
@@ -595,33 +638,21 @@ impl Game {
         to: Square,
         promotion: Option<PieceKind>,
     ) -> Result<String, String> {
+        if self.army_is_frozen(army) {
+            return Err(format!("{}'s army is frozen", army.display_name()));
+        }
         if army != self.current_army() {
             return Err(format!("It is not {}'s turn", army.display_name()));
         }
 
-        let piece = self
-            .board
-            .piece_at(from)
-            .ok_or_else(|| "No piece on source square".to_string())?;
-        if piece.0 != army {
-            return Err("Source square does not belong to the current army".to_string());
-        }
-        let piece_kind = piece.1;
+        let legal_moves = self.generate_legal_moves(army);
+        let current_move = legal_moves.iter().find(|m| m.from == from && m.to == to);
 
-        // If the king is in check and a non-king piece is trying to move, check if a non-king move can resolve the check.
-        // If no non-king moves can resolve the check, then the king must move.
-        if self.king_in_check(army) && piece_kind != PieceKind::King {
-            let non_king_resolving_moves = self.generate_legal_non_king_moves(army);
-            if non_king_resolving_moves.is_empty() {
-                return Err("King must move while in check".to_string());
-            }
+        if current_move.is_none() {
+            return Err("Invalid move".to_string());
         }
 
-        let allowed = self.piece_moves(army, piece_kind);
-        let dest_mask = 1u64 << to;
-        if allowed & dest_mask == 0 {
-            return Err("Destination is not a legal move".to_string());
-        }
+        let piece_kind = current_move.unwrap().kind;
 
         if let Some((target_army, target_kind)) = self.board.piece_at(to) {
             if target_army == army {
@@ -647,7 +678,6 @@ impl Game {
             }
         }
 
-        self.state.sync_with_board(&self.board);
         for &other in Army::ALL.iter() {
             self.update_stalemate_status(other);
         }
@@ -661,7 +691,8 @@ impl Game {
         ))
     }
 
-    fn advance_to_next_army(&mut self) {
+    /// Public for testing purposes only
+    pub fn advance_to_next_army(&mut self) {
         for _ in 0..self.config.turn_order.len() {
             self.state.advance_turn(&self.config);
             let candidate = self.state.current_army(&self.config);

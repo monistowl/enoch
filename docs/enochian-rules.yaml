@@ -15,53 +15,157 @@ game_rules:
         Air: ["Blue", "Black"]
         Earth: ["Red", "Yellow"]
     turn_order: ["Blue", "Red", "Black", "Yellow"] # Example for one common array, configurable per array
+    
+    layout:
+      description: "Four distinct elemental boards (Earth, Air, Water, Fire), each 8x8 squares, with unique coloring and attributions."
+      characteristics:
+        - "Each board is composed of 64 flat pyramid squares."
+        - "Flashing colors for talismatic effect, with options for painting or paper cutouts."
+        - "Each board is divided into four 4x4 'Lesser Angles' (Air, Water, Fire, Earth) signifying an element within an element."
+        - "Each square visually appears as a pyramid shape, divided into four flat faces plus a truncated top."
+      orientation:
+        ranks: "Horizontal rows of squares (when looking towards the top)."
+        columns: "Vertical rows of squares (when looking towards the top)."
+      usage: "Only one elemental chessboard is played on at a time for any given game."
+      square_coloring:
+        pyramid_face_colors:
+          fire_triangle: "red (symbols in green)"
+          water_triangle: "blue (symbols in orange)"
+          air_triangle: "yellow (symbols in mauve)"
+          earth_triangle: "black (symbols in white)"
+          truncated_top: "white (symbols in black, or none as per old manuscripts)"
+      attribution_formula:
+        principle: "Based on four specific permutations of Tetragrammaton (YHVH) applied through a rank and column system."
+        tetragrammaton_mapping:
+          Y: "Fire (Yod), positive/masculine energy, Zodiac signs: Aries, Leo, Sagittarius"
+          H: "Water (Heh), negative/feminine energy, Zodiac signs: Cancer, Scorpio, Pisces"
+          V: "Air (Vau), positive/masculine energy, Zodiac signs: Libra, Aquarius, Gemini"
+          Hf: "Earth (Heh final), negative/feminine energy, Zodiac signs: Capricorn, Taurus, Virgo"
+        quadruplicities_association: "Cardinal (Yod/Fire), Fixed (Heh/Water), Mutable (Vau/Air). Earth (Hf) represents all four elements in manifested form."
+        order_generation:
+          starting_point: "Letter of the element of each angle."
+          reading_direction:
+            air_water_boards: "Right to left horizontally in upper quarters; left to right horizontally in lower quarters (mirror image)."
+            fire_earth_boards: "Left to right horizontally in all quarters."
+          vertical_order:
+            active_angles: "Corner letter (Fire/Air Angles) goes to 4th square down; rest from angle read in duplicate horizontally towards corner."
+            passive_angles: "Corner letter (Earth/Water Angles) goes to corner square; rest read in duplicate horizontally out from corner."
+        pyramid_face_attributions:
+          triangle_1: "Element color of board, element symbol, astrological attribution (Zodiac sign) in complementary color."
+          triangle_2: "Color of elemental association of Tetragrammaton letter (column), element symbol, Tarot trump (related to Triangle 1 astrological attribution)."
+          triangle_3: "Elemental color of Lesser Angle, its symbol, geomantic figure (associated with Triangle 1 Zodiac sign)."
+          triangle_4: "Elemental color of Tetragrammaton letter (rank), its elemental symbol, Hebrew letter (associated with Triangle 2 Tarot trump)."
 
   pieces:
+    arrangement:
+      starting_pieces_per_player: "Five major pieces (King, Knight, Queen, Bishop, Rook) and four pawns."
+      player_angle_association: "Each player operates pieces associated with the element of their Angle (e.g., Earth Angle -> Earth set)."
+      throne_squares:
+        description: "Corner squares where each of the four Kings resides at the beginning of play, sharing with one other major piece."
+        rules:
+          - "No other piece can mount that square while the King or sharing piece occupy it except in the event of capturing the King."
+          - "Once either the King or piece sharing the Throne Square moves, neither can share that square or any other square for the duration of the game."
+          - "The King and the piece sharing the Throne Square do not move off together; either can be moved one at a time."
+          - "No two pieces can share the same square except the two pieces on the Throne Square, until one moves off."
+          - "A piece giving check to a King on its Throne Square also checks the sharing piece. When King is captured, so is the sharing piece (and vice versa)."
+      major_piece_placement: "On sequential squares beside the King, in the order of Tetragrammaton according to the elemental Angle of the board."
+      pawn_placement: "On the column or rank directly in front of the four squares with major pieces, sequentially positioned according to their vice-gerents."
+      angle_specific_placement:
+        Air_Angle: "Air pieces and pawns on eight squares of the two upper ranks (two rows of four squares each)."
+        Water_Angle: "Water pieces and pawns on the two right-hand columns."
+        Fire_Angle: "Fire pieces and pawns on the two bottom ranks."
+        Earth_Angle: "Earth pieces and pawns on the two left-hand columns."
+      opening_positions:
+        count: 8 # 16 theoretical, but 8 unique due to Fire/Earth and Air/Water board similarities.
+        source: "Refer to docs/enochian-arrays.md for detailed positions."
+        rule: "All four sets in each Angle must be placed according to only one chosen position for all, in any given game."
+
     king:
-      movement: "1 step in any direction (orthogonal or diagonal)"
+      movement: "1 square at a time in any direction (orthogonal or diagonal). To capture, must land on occupied square."
       capture_behavior: "captured, not checkmated"
     queen:
-      movement: "leaps exactly two squares along ranks, files, or diagonals (Alibaba-style), ignoring intervening pieces"
+      movement: "leaps exactly two squares (3 squares total, including starting square) along ranks, files, or diagonals (Alibaba-style), ignoring intervening pieces. Captures only on the last square."
       special_interaction:
         - "cannot capture enemy queens"
         - "can capture enemy bishops whose diagonal system matches the queen's system"
     rook:
-      movement: "any number of squares orthogonally"
+      movement: "any number of squares orthogonally (horizontal or vertical, forward or backward) in a straight line. Cannot leap over pieces; move stopped if not capturing obstructing piece. Captures on any square it moves to."
     bishop:
-      movement: "any number of squares diagonally"
+      movement: "any number of squares diagonally (right or left, forward or backward) in a straight line. Cannot leap over pieces; move stopped if not capturing obstructing piece. Captures by landing on occupied square."
       special_interaction:
         - "cannot capture enemy bishops"
         - "can capture enemy queens whose diagonal system matches the bishop's system"
     knight:
-      movement: "FIDE knight (2 squares in one direction, 1 square perpendicular)"
+      movement: "L-shaped move (1 square any direction then 1 diagonal, OR 2 squares straight then 1 across at right angle). Always leaps over obstructing pieces without capturing them. Captures only on the last square."
     pawn:
-      movement: "one square forward only"
-      capture: "diagonally forward"
-      special_rules:
-        - "no double-step initial move"
-        - "no en passant"
+      movement: "one square forward only (no double-step initial move). Cannot move backward or at right angles."
+      capture: "one square diagonally forward, left or right."
       promotion:
-        standard: "promotes to piece of its 'type' (e.g., pawn of queen becomes queen)"
+        standard: "If a pawn reaches an unoccupied or uncovered square on the opposite side of the board, it is promoted to the piece to which it is vice-gerent."
+        promotion_conditions:
+          - "Promotion only occurs if the player has already lost one or more pawns. If player controls four pawns, promotion is delayed."
+          - "Pawn reaching a Throne Square is not promoted to a King; only to the piece originally sharing the Throne Square."
         privileged:
           condition: "side reduced to (king + queen + pawn) OR (king + bishop + pawn) OR (king + pawn)"
-          promotion_targets: ["Queen", "Rook", "Bishop", "Knight"]
-          demotion_on_existing: "if promoting to a type already in play, the existing piece is demoted back to a pawn-of-that-type"
+          promotion_targets: ["Queen", "Rook", "Bishop", "Knight"] # Can promote to any major piece (not King) at player's choice.
+          demotion_on_existing: "If promoting to a type already in play, the existing piece is demoted back to a pawn-of-that-type."
+        off_board_movement_rule: "If a pawn at any time comes to a different side other than the opposite side of the board, it must continue to move on its original forward course."
+        king_pawn_rule: "A King does not have a pawn. The pawn in front of the King belongs to the piece sharing the Throne Square."
+
+  game_conduct:
+    players:
+      count: 4
+      two_player_variant: "Two players can play, each operating a pair of allies (Actives: Air+Fire, Passives: Water+Earth)."
+      two_player_move_rule: "A player operating two sets cannot choose; move piece from specific Angle when its turn comes (exception: Rule 9.1)."
+    turn_direction:
+      choice: "Decided before game (widdershins or deosil). Cannot be changed mid-game."
+      default: "Original Golden Dawn used deosil."
+    player_angle_selection: "Decided by dice throw (highest chooses first)."
+    starting_player: "Player operating pieces of the 'greater Angle' (element of the board being used, e.g., Fire Angle on Fire Board)."
+    move_per_turn: "At each player's turn, move one piece only."
+
+  move_definition:
+    basic: "Transfer of a piece from one square to another (vacant or enemy-occupied)."
+    restrictions:
+      - "Cannot move to square occupied by allied or own piece (exception: Rule 11.3)."
+      - "No piece except Knight and Queen may cross a square occupied by another piece."
+    capture: "Entering enemy-occupied square captures it; move ends, captured piece removed."
+    no_castling: true
+    no_en_passant: true
+    completion: "Move completed when player's hand removed from piece."
+    touched_piece_rule:
+      adjustment: "May adjust pieces if warned, but not move them to new squares until turn."
+      forced_move: "If player touches one or more pieces on turn, must move/capture the first touched that can be moved/captured."
+      free_move_if_not_possible: "If forced move/capture not possible, player free to make any legal move."
+      violation_claim: "Must claim violation before touching any piece."
+    set_of_moves: "When each player has moved once, it is a 'Set of Moves' or 'round of play'."
+    concourse_of_bishoping:
+      description: "Enemy Bishops move on different courses; cannot capture each other. Allied Bishops move on same course."
+      special_rule: "If three Bishops are on adjacent squares and fourth moves into position, player completes concourse, captures two enemy Bishops, and takes control of ally Bishop's moves. Only five positions for concourse."
+    concourse_of_queens: "Rule 5.10 (concourse logic) also applies to Queens."
 
   game_mechanics:
+    object_of_game: "To work as a team with ally to capture opponents' Kings, paralyzing their play. Involves strategical play, encountering, capturing, defending King, and considering ally's welfare."
     check_logic:
       king_capture_instead_of_mate: true
       must_move_king_in_check:
         condition: "king is in check AND has any legal king move"
         action: "must move the king (even if it stays in check)"
         alternative_action: "if king has no legal move (blocked by friendly pieces, board edge etc.), may move another piece"
+      check_definition: "King is in check when opponent's next move can capture it. Opponent must say 'check'."
+      king_capture_if_unchecked: "If King in check cannot be freed, it's captured on next turn. Remaining pieces become frozen (Rule 8.2)."
+      king_move_priority: "Player obliged to move King when attacked/checked. If King unable, move piece to aid King."
+      king_move_into_check: "A King can move into check if already in check by another piece (to enable ally/own pieces to free situation)."
     frozen_pieces:
-      condition: "when a king is captured"
+      condition: "when a King is captured (not merely checked)."
       effect:
         - "all pieces of that army become frozen"
         - "frozen pieces cannot move"
         - "frozen pieces cannot threaten"
         - "frozen pieces cannot be captured"
         - "frozen pieces occupy squares as blocking terrain"
+        - "must remain on squares, no other piece can move onto them."
+      revival: "If a King is restored (Rule 8.5), its pieces are unfrozen."
     throne_seizure:
       condition: "king moves onto an ally’s throne square"
       effect:
@@ -69,16 +173,70 @@ game_rules:
         - "frozen pieces revive (unfreeze)"
         - "control persists even if king later leaves"
         - "if controlling king is captured, control reverts (if ally still has a king)"
+      ally_control_effect: "If king moves onto ally's throne, gains command of allied forces and can move ally's pieces during ally's turns (until Rule 8.9 operates)."
     exchange_of_prisoners:
       condition: "two enemy players each captured a king"
       action: "may agree to exchange kings back to their thrones (or nearest allowed squares) and unfreeze their armies"
+      rules:
+        - "Exchange cannot take place if opponent was not the one that captured the ally's King."
+        - "Rescued King re-enters on own Throne Square, or nearest unoccupied, unthreatened square."
+        - "Player regains control of previously frozen pieces when King restored."
+        - "Offer can be made when hostile King captured or thereafter; can be made more than once if refused."
+        - "Players with frozen pieces cannot negotiate King exchanges."
     stalemate:
       condition: "player’s unchecked king has no moves except to move into check"
       action: "player skips turns until stalemate is lifted"
+      game_end_if_ally_out: "If ally is out of game (withdrawn or pieces under partner's control), the game is drawn."
     draw_conditions:
-      - "both allied kings bare"
-      - "four bare kings only"
-      - "other conditions as per Zalewski"
+      - "When only Kings are left to play (four bare Kings)."
+      - "Two ally Kings are bare."
+      - "Other conditions as per Zalewski (e.g., stalemate with ally out)."
+
+  endgame_conditions:
+    win_by_team_capture: "One side (both allies) captures both opposing Kings (Rule 8.7)."
+    win_by_player_capture: "If a player captures both opponents' Kings while ally's pieces are frozen, or captures the second while ally captured the first, that player is victor."
+    allies_win_together: "If a player and ally capture both opponent Kings, both are victors."
+    no_ally_play_after_victory: "Allies do not continue to play against each other after victory."
+    control_reversion_on_king_capture: "If ally's pieces are under player's control (Rule 7.7 or 11.3) and that player's King is captured, ally's pieces release to original player. Captured King's pieces freeze. If control via Rule 11.3, ally's King regains throne via Rule 8.5(b)."
+    player_out_of_game: "When a player loses all pieces (including King) and pawns, that player is out. Turn does not pass to partner."
+    player_resignation: "If a player faces two opponents with one set and position seems hopeless, may resign, giving victory to opponents."
+    game_termination_criteria:
+      - "One side (both allies) captures both opposing Kings (win)."
+      - "Drawn game (Rule 8.10)."
+      - "Drawn (Rule 8.11), resigned, or stalemate game."
+      - "Annulment (Rules 12.2 and 12.3)."
+
+  withdrawing:
+    all_pieces_lost_except_king:
+      condition: "If a player loses all pieces except the King."
+      action: "May withdraw. Remaining player takes withdrawn player's turn for their own pieces."
+      king_control: "Withdrawn player's King remains; remaining player controls it on King's Angle turn."
+      two_player_exception: "Does not apply if only two players operating four Angles."
+    any_time_withdrawal:
+      condition: "Any player can withdraw at any time (other than above)."
+      action: "Forfeits control of pieces; leaves them under ally's control. Playing turn not shared; continues as before (one turn per corner)."
+      two_player_exception: "Does not apply if only two players operating four Angles."
+    two_player_single_set_loss:
+      condition: "In two-player game, if one set loses all pieces except King."
+      action: "Player may play on with King or withdraw that Angle. If withdrawn, King becomes frozen, Angle's turns relinquished (remaining Angle continues with one turn)."
+
+  allies:
+    valid_pairs: "Fire and Air, or Water and Earth (diagonal to each other). Fire and Water, Fire and Earth, etc. cannot be allies."
+    play_philosophy: "One plays for self but aware of ally strategy; should not hinder ally but complement. Work together for victory."
+    no_capture_or_check: "Player does not capture ally's pieces or check ally's King (exception: Rule 11.3)."
+    ally_king_capture_for_control:
+      condition: "If a King is about to be taken."
+      action: "Ally may capture the King and gain control of both elemental sides. Captured King removed, but pieces not frozen."
+      two_player_exception: "Does not apply in two-player game."
+    assuming_command: "See Rule 7.7 (Throne Seizure)."
+
+  illegal_moves:
+    reinstatement: "If an illegal move made, positions reinstated, game continues."
+    annulment: "If several illegal moves made, game annulled. If opening positions found incorrect, game annulled."
+
+  illegal_moves:
+    reinstatement: "If an illegal move made, positions reinstated, game continues."
+    annulment: "If several illegal moves made, game annulled. If opening positions found incorrect, game annulled."
 
   divination_mode:
     enabled: false # Optional, Phase 5
@@ -91,6 +249,137 @@ game_rules:
       6: "Pawn"
     rule: "filter legal moves to only moves whose moving piece kind matches the die selection"
 
-  metadata:
-    source: "Zalewski-Enochian-Chess-of-the-Golden-Dawn.pdf, Enochian Chess.html"
-    version: "1.0"
+  pantheons:
+    description: "Enochian chess pieces are constructed in the images of Egyptian god pantheons, representing energies and archetypes. Each elemental set consists of a King, Knight, Queen, Bishop, Rook, and four Pawns. The Ptah piece is used only in divination."
+    pawns:
+      description: "Pawn god-forms, images, and names do not change across pantheons. Their angle in play is defined by base color. They are vice-regents to the four elemental pieces."
+      types:
+        Kabexnuv:
+          image: "Hawk head"
+          elemental_prime_regent: "Knight"
+          representation_elements: ["Fire", "Air", "Earth"]
+        Tmoumthph:
+          image: "Dog head"
+          elemental_prime_regent: "Queen"
+          representation_elements: ["Water", "Air", "Earth"]
+        Ahephi:
+          image: "Ape head"
+          elemental_prime_regent: "Bishop"
+          representation_elements: ["Air", "Fire", "Water"]
+        Ameshet:
+          image: "Human head"
+          elemental_prime_regent: "Rook"
+          representation_elements: ["Earth", "Fire", "Water"]
+      king_pawn_rule: "The King has no single pawn; all pieces and pawns of its angle are its vice-regents."
+    
+    ptah_piece:
+      name: "Ptah (Spirit of Spirits, Ruler of Life and Death)"
+      description: "Only used in divination to mark the divining square. Colored white, half the size of other pieces. Standing, bald and bearded, holding a scepter and emblems of life and stability. Tight-fitting clothes, menat from neck. Pedestal is the sign of Maat."
+
+    earth_pantheon:
+      king:
+        name: "Osiris"
+        tarot: "Ace of Disks (Spirit of Earth)"
+        coptic_name: "Aeshoori"
+        description: "The Silent One, representing Spirit. Bearded, mummified figure sitting on a black and white throne. Left hand: yellow scourge and crook. Right hand: green phoenix wand. Striped collar (red, blue, yellow, black). White conical crown with twin green feathers and red cross. Face and hands green, black and white striped arm bands. Black menat. Central stripes on arm bands relate to element, outer to complementary color."
+      knight:
+        name: "Horus"
+        tarot: "Knight of Disks (Fire of Earth)"
+        coptic_name: "Hoooor"
+        description: "Fiery avenging force of Spirit. Standing, ready to stride. Hawk's head, crown of North and South united (red conical top, white base, yellow plume). Black nemyss with red knots. Left hand: green phoenix wand. Right hand: green ankh. Naturally colored skin. Black skirt with red skirt wrap, shoulder straps, and belt (yellow pouch). Black and red striped wristbands, ankle bands, arm bands, collar. Black base."
+      queen:
+        name: "Isis"
+        tarot: "Queen of Disks (Water of Earth)"
+        coptic_name: "Eeisest"
+        description: "Mother and beginning. Sitting on black and white throne. Right hand: green ankh. Left hand: green lotus wand with red top. Green headdress (throne symbol) and nemyss. Blue and black striped arm bands and wristbands. Black gown, naturally colored skin."
+      bishop:
+        name: "Aroueris"
+        tarot: "Prince/King of Disks (Air of Earth)"
+        coptic_name: "Areeooueris"
+        description: "Airy forces of Spirit. Human form, standing. Left hand: green phoenix wand. Right hand: green ankh. Black tunic with yellow belt, pouch, skirt wrap, and shoulder straps. Yellow and black striped collar, wristbands, ankle bands, arm bands. Black nemyss with yellow knots. Conical crown of North and South united (white on red base with yellow plume and nose guard). Naturally colored skin."
+      rook:
+        name: "Nephthys"
+        tarot: "Princess of Disks (Earth of Earth)"
+        coptic_name: "Neuphthusest"
+        description: "The Bride and force of Earth. Sitting on black and white throne, enclosed in rectangular frame. Black robe. Black and white striped wristbands and arm bands. Left hand: green lotus wand with red top. Right hand: green ankh. Green nemyss with green crescent symbol above a yellow, green, and red rectangular headdress (hieroglyph of name)."
+
+    air_pantheon:
+      king:
+        name: "Socharis (Seker)"
+        tarot: "Ace of Swords (Spirit of Air)"
+        coptic_name: "Soukaourist"
+        description: "Spirit of the force of Air, the Silent One. Mummified form with falcon's head. White atef-crown with green and black striped feathers. Black nemyss, yellow menat. Left hand: yellow crook and scourge. Right hand: green phoenix wand. Yellow, blue, and red striped collar. Red cross on white robe. Purple and yellow arm bands. Sits on yellow throne and base. Green skin."
+      knight:
+        name: "Seb"
+        tarot: "Knight/King of Swords (Fire of Air)"
+        coptic_name: "Soubal"
+        description: "Avenging force of Air, He who held fast the wicked. Human form, standing. Naturally colored skin. Yellow nemyss with red knots, white goose atop. Yellow tunic with red skirt wrap, belt, and yellow pouch. Red shoulder straps. Red and yellow striped collar, wristbands, ankle bands, arm bands. Yellow base."
+      queen:
+        name: "Knousou Pekht"
+        tarot: "Queen of Swords (Water of Air)"
+        coptic_name: "Knooou tha pekht"
+        description: "Form of Nut, goddess of the sky. Sits on yellow and purple throne. Yellow robe. Red, black, blue, and yellow collar. Blue and yellow striped arm bands and wristbands. Left hand: green lotus wand with red top. Right hand: green ankh. Urn headdress and green nemyss. Naturally colored skin. Yellow base."
+      bishop:
+        name: "Shu Zoan"
+        tarot: "King/Prince of Swords (Air of Air)"
+        coptic_name: "Zoo ooan"
+        description: "Personification of the atmosphere. Striding forward. Blue and white feather headdress over yellow nemyss with mauve knots. Yellow with mauve striped collar, arm bands, wristbands, and ankle bands. Mauve shoulder straps. Yellow tunic with mauve skirt wrap and belt. Left hand: green phoenix wand. Right hand: green ankh. Yellow base."
+      rook:
+        name: "Tharpeshest Jefine Pasht"
+        tarot: "Princess of Swords (Earth of Air)"
+        coptic_name: "Tharpheshst va Knooutha pe"
+        description: "Form of Bast (Sekhmet), destructive powers of the Sun. Lion-headed woman seated on yellow and mauve throne, framed. Red solar disk with yellow uraeus serpent headdress, red nemyss. Green skin. Right hand: green lotus with red top. Left hand: green ankh. Black and yellow striped arm bands. Black belt, yellow skirt. Yellow base."
+    
+    water_pantheon:
+      king:
+        name: "Ptah ha (Ra) Pan-Lses"
+        tarot: "Ace of Cups (Spirit of Water)"
+        coptic_name: "Knoou phooeesh (Y manuscript), Ptah Chaphen Chox (actual Coptic)"
+        description: "The Opener of the Day. Bearded, mummified man seated on an orange and blue throne, blue base. White robe with red belt and cross. Black nemyss with curved blue stripes, blue menat. Red band on nemyss with yellow lunar disk and curved horns. Green skin. Right hand: green phoenix wand. Left hand: yellow crook and scourge. Blue and orange striped wristbands."
+      knight:
+        name: "Sebek"
+        tarot: "Knight/King of Cups (Fire of Water)"
+        coptic_name: "Seba Knooou haourist tha mooou"
+        description: "The Gatherer. Crocodile-headed man wearing headdress of two small red solar disks between two blue and white striped plumes on green mount and ram's horns. Yellow band atop blue nemyss with red knots. Blue collar with red stripe (also arm bands, wristbands, ankle bands). Blue tunic with red shoulder straps, belt, skirt wrap, yellow pouch. Left hand: green phoenix wand. Right hand: green ankh. Green skin. Blue base."
+      queen:
+        name: "Thoueris (Taurt)"
+        tarot: "Queen of Cups (Water of Water)"
+        coptic_name: "Theeooour ist Thamooou"
+        description: "Patroness of Childbirth. Benevolent. Head of hippopotamus (partly crocodile), large human breasts, hippopotamus body. Seated on orange and blue throne, blue base. Headdress: black cow horns with red lunar disk between them, mounted on yellow and black headpiece, on green nemyss. Left hand: green lotus wand with red top. Right hand: green ankh. Yellow collar with thin black stripes. Orange with blue striped arm bands and wristbands. Blue robe. Naturally colored skin."
+      bishop:
+        name: "Hapimoun"
+        tarot: "King/Prince of Cups (Air of Water)"
+        coptic_name: "Xopist tha mooou"
+        description: "God of the Nile. Standing, striding forward. Green headdress of aquatic plants (red tops, yellow bands/buds) over blue nemyss with yellow knots. Yellow collar with blue stripes (also wristbands, ankle bands). Blue tunic with yellow skirt wrap and belt. Holds two green water jugs in each hand."
+      rook:
+        name: "Shooen"
+        tarot: "Princess of Cups (Earth of Water)"
+        coptic_name: "Sheeooee tha ist"
+        description: "Form of Hathor, She that Nourishes. Encased in blue rectangle with orange border. Headdress: black bull horns with red lunar disk between them, mounted on green nemyss. Naturally colored skin, cow's head, robust human body. Blue skirt and shoulder strap. Blue arm bands and wristbands with black center stripe. Right hand: green lotus with red top and yellow stripe. Left hand: green ankh. Throne blue with orange lines."
+    
+    fire_pantheon:
+      king:
+        name: "Chnupis Kneph"
+        tarot: "Ace of Wands (Spirit of Fire)"
+        coptic_name: "Knou phooeesh"
+        description: "The Molder of Men. Throned, ram-headed, mummified man. Throne red with green lines, red base. Headdress: twin green plumes on green conical hat with red solar disk, yellow band. Two green ram's horns. Black nemyss. Red collar and menat with thin black stripes. Red, blue, yellow, and red striped shoulder collar. Red cross band. Red wristbands with yellow stripes. Green skin. Right hand: green phoenix wand. Left hand: yellow crook and scourge."
+      knight:
+        name: "Ra"
+        tarot: "Knight/King of Wands (Fire of Fire)"
+        coptic_name: "Phaouroo"
+        description: "The Sun in fullness of strength. Hawk-headed man striding forward. Naturally colored skin, green beak, red eyes. Headdress: red solar disk with yellow serpent, mounted on red nemyss with green knots. Green collar with red stripe (also arm bands, wristbands, ankle bands). Red tunic with green skirt wrap, belt, and purse. Left hand: green phoenix wand. Right hand: green ankh. Red base."
+      queen:
+        name: "Sati-Ashtoreth"
+        tarot: "Queen of Wands (Water of Fire)"
+        coptic_name: "Isthaoureth"
+        description: "The Purifier and Consecrator. Woman seated on red throne with green lines. White crown with vulture's head and tail feathers. Two black cow horns. Blue collar with red stripes (also wristbands, arm bands, shoulder strap). Red robe, naturally colored skin. Right hand: green ankh. Left hand: green lotus wand with red top."
+      bishop:
+        name: "Toum"
+        tarot: "King/Prince of Wands (Air of Fire)"
+        coptic_name: "Thoooum moooou"
+        description: "Man striding forward. Headdress of North and South (white conical part, red base and back support, red plume). Red nemyss with yellow knots. Yellow with red striped collar, arm bands, wristbands, ankle bands. Red tunic and shoulder straps. Yellow skirt wrap, belt, and pouch. Left hand: green phoenix wand. Right hand: green ankh. Red base. Naturally colored skin."
+      rook:
+        name: "Anouke"
+        tarot: "Princess of Wands (Earth of Fire)"
+        coptic_name: "Ooan oo Kist"
+        description: "Mistress of the Gods, giver of power, health and joy. Woman seated on red throne with green stripes, in rectangular frame. Green crown of feathers (red and gold feathers). Gold nemyss, red band. Naturally colored skin, blue eyes. Black with red striped collar, arm bands, wristbands. Red tunic. Right hand: green ankh. Left hand: green lotus wand with red top. Red base."
