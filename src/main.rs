@@ -98,6 +98,14 @@ struct Args {
     #[arg(long)]
     stats: bool,
     
+    /// Export game in PGN-like format
+    #[arg(long)]
+    export_pgn: Option<String>,
+    
+    /// Import game from PGN format
+    #[arg(long)]
+    import_pgn: Option<String>,
+    
     /// Show board
     #[arg(long)]
     show: bool,
@@ -330,6 +338,18 @@ fn run_headless(args: Args) {
         Game::from_array_spec(array)
     };
     
+    // Import PGN if provided
+    if let Some(pgn_file) = &args.import_pgn {
+        game = import_pgn(pgn_file);
+        // Save to state file if provided
+        if let Some(save_file) = &args.state {
+            if let Ok(json) = game.to_json() {
+                fs::write(save_file, json).ok();
+                println!("Imported and saved to {}", save_file);
+            }
+        }
+    }
+    
     // Parse AI armies
     let ai_armies: Vec<Army> = if let Some(ai_str) = &args.ai {
         ai_str.split(',')
@@ -433,6 +453,10 @@ fn run_headless(args: Args) {
     
     if args.stats {
         show_stats(&game);
+    }
+    
+    if let Some(output_file) = &args.export_pgn {
+        export_pgn(&game, output_file);
     }
     
     if args.status {
@@ -816,6 +840,142 @@ fn run_interactive(game: &mut Game, ai_armies: &[Army], args: &Args) {
             println!("Game saved to {}", save_file);
         }
     }
+}
+
+fn import_pgn(pgn_file: &str) -> Game {
+    use std::fs;
+    use crate::engine::arrays::default_array;
+    
+    let contents = match fs::read_to_string(pgn_file) {
+        Ok(c) => c,
+        Err(e) => {
+            eprintln!("Error reading PGN file: {}", e);
+            process::exit(1);
+        }
+    };
+    
+    let mut game = Game::from_array_spec(default_array());
+    let mut move_count = 0;
+    
+    for line in contents.lines() {
+        let line = line.trim();
+        
+        // Skip headers and empty lines
+        if line.is_empty() || line.starts_with('[') {
+            continue;
+        }
+        
+        // Parse moves (format: B:e2-e3 R:e7-e6)
+        for token in line.split_whitespace() {
+            // Skip move numbers (e.g., "1.")
+            if token.ends_with('.') {
+                continue;
+            }
+            
+            // Parse move (format: B:e2-e3)
+            let parts: Vec<&str> = token.split(':').collect();
+            if parts.len() != 2 {
+                continue;
+            }
+            
+            let army = match parts[0] {
+                "B" => Army::Blue,
+                "R" => Army::Red,
+                "K" => Army::Black,
+                "Y" => Army::Yellow,
+                _ => continue,
+            };
+            
+            let move_str = parts[1];
+            let coords: Vec<&str> = move_str.split('-').collect();
+            if coords.len() != 2 {
+                continue;
+            }
+            
+            if let (Ok(from), Ok(to)) = (
+                parse_square_headless(coords[0]),
+                parse_square_headless(coords[1])
+            ) {
+                if let Err(e) = game.apply_move(army, from, to, None) {
+                    eprintln!("Warning: Failed to apply move {}: {}", token, e);
+                } else {
+                    move_count += 1;
+                }
+            }
+        }
+    }
+    
+    println!("Imported {} moves from {}", move_count, pgn_file);
+    game
+}
+
+fn export_pgn(game: &Game, output_file: &str) {
+    use std::fs;
+    
+    let mut pgn = String::new();
+    
+    // Header
+    pgn.push_str("[Event \"Enochian Chess Game\"]\n");
+    pgn.push_str(&format!("[Date \"{}\"]\n", chrono::Local::now().format("%Y.%m.%d")));
+    pgn.push_str("[Variant \"Enochian\"]\n");
+    pgn.push_str("[Players \"4\"]\n");
+    
+    if let Some(team) = game.winning_team() {
+        pgn.push_str(&format!("[Result \"{} team wins\"]\n", team.name()));
+    } else {
+        pgn.push_str("[Result \"*\"]\n");
+    }
+    
+    pgn.push_str("\n");
+    
+    // Moves
+    for (i, (army, from, to, promotion)) in game.move_history.iter().enumerate() {
+        if i % 4 == 0 {
+            pgn.push_str(&format!("{}. ", i / 4 + 1));
+        }
+        
+        let from_file = (b'a' + (from % 8)) as char;
+        let from_rank = (b'1' + (from / 8)) as char;
+        let to_file = (b'a' + (to % 8)) as char;
+        let to_rank = (b'1' + (to / 8)) as char;
+        
+        let promo_str = if let Some(kind) = promotion {
+            format!("={}", match kind {
+                crate::engine::types::PieceKind::Queen => "Q",
+                crate::engine::types::PieceKind::Rook => "R",
+                crate::engine::types::PieceKind::Bishop => "B",
+                crate::engine::types::PieceKind::Knight => "N",
+                _ => "",
+            })
+        } else {
+            String::new()
+        };
+        
+        pgn.push_str(&format!("{}:{}{}-{}{}{} ", 
+            match army {
+                crate::engine::types::Army::Blue => "B",
+                crate::engine::types::Army::Red => "R",
+                crate::engine::types::Army::Black => "K",
+                crate::engine::types::Army::Yellow => "Y",
+            },
+            from_file, from_rank, to_file, to_rank, promo_str
+        ));
+        
+        if (i + 1) % 4 == 0 {
+            pgn.push('\n');
+        }
+    }
+    
+    if !game.move_history.is_empty() && game.move_history.len() % 4 != 0 {
+        pgn.push('\n');
+    }
+    
+    if let Err(e) = fs::write(output_file, pgn) {
+        eprintln!("Error writing PGN: {}", e);
+        process::exit(1);
+    }
+    
+    println!("Exported to {}", output_file);
 }
 
 fn show_stats(game: &Game) {
