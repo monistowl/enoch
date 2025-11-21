@@ -58,6 +58,10 @@ struct Args {
     #[arg(long)]
     generate: Option<String>,
     
+    /// Performance test: count positions at depth N
+    #[arg(long)]
+    perft: Option<u8>,
+    
     /// Show board
     #[arg(long)]
     show: bool,
@@ -282,6 +286,12 @@ fn run_headless(args: Args) {
         return;
     }
     
+    // Perft if provided
+    if let Some(depth) = args.perft {
+        run_perft(&mut game, depth);
+        return;
+    }
+    
     // Execute move if provided
     if let Some(move_cmd) = &args.move_cmd {
         if let Err(e) = execute_headless_move(&mut game, move_cmd, &args) {
@@ -453,6 +463,43 @@ fn show_board(game: &Game) {
     for row in game.board.ascii_rows() {
         println!("{}", row);
     }
+}
+
+fn run_perft(game: &mut Game, depth: u8) {
+    use std::time::Instant;
+    
+    println!("Running perft({})", depth);
+    let start = Instant::now();
+    let nodes = perft(game, depth);
+    let elapsed = start.elapsed();
+    
+    println!("Nodes: {}", nodes);
+    println!("Time: {:.3}s", elapsed.as_secs_f64());
+    println!("NPS: {:.0}", nodes as f64 / elapsed.as_secs_f64());
+}
+
+fn perft(game: &mut Game, depth: u8) -> u64 {
+    if depth == 0 {
+        return 1;
+    }
+    
+    let army = game.current_army();
+    let moves = game.legal_moves(army).to_vec();
+    
+    if depth == 1 {
+        return moves.len() as u64;
+    }
+    
+    let mut nodes = 0u64;
+    for mv in moves {
+        let saved = game.clone();
+        if game.apply_move(army, mv.from, mv.to, None).is_ok() {
+            nodes += perft(game, depth - 1);
+        }
+        *game = saved;
+    }
+    
+    nodes
 }
 
 fn generate_position(gen_str: &str, args: &Args) {
