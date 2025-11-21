@@ -86,6 +86,10 @@ struct Args {
     #[arg(long)]
     interactive: bool,
     
+    /// Undo last N moves (default 1)
+    #[arg(long)]
+    undo: Option<usize>,
+    
     /// Show board
     #[arg(long)]
     show: bool,
@@ -374,6 +378,25 @@ fn run_headless(args: Args) {
         make_ai_moves(&mut game, &ai_armies, &args);
     }
     
+    // Undo moves if requested
+    if let Some(count) = args.undo {
+        match game.undo(count) {
+            Ok(undone) => {
+                println!("Undid {} move(s)", undone);
+                // Save state after undo
+                if let Some(save_file) = &args.state {
+                    if let Ok(json) = game.to_json() {
+                        std::fs::write(save_file, json).ok();
+                    }
+                }
+            }
+            Err(e) => {
+                eprintln!("Error: {}", e);
+                process::exit(1);
+            }
+        }
+    }
+    
     // Auto-play mode
     if args.auto_play {
         auto_play(&mut game, &ai_armies, &args);
@@ -553,6 +576,7 @@ fn run_interactive(game: &mut Game, ai_armies: &[Army], args: &Args) {
                 println!("  analyze <square>  - Analyze a square");
                 println!("  validate <move>   - Validate a move");
                 println!("  move <move>       - Make a move (e.g., 'move blue: e2-e3')");
+                println!("  undo [N]          - Undo last N moves (default 1)");
                 println!("  legal <army>      - Show legal moves for army");
                 println!("  quit              - Exit interactive mode");
             }
@@ -668,6 +692,17 @@ fn run_interactive(game: &mut Game, ai_armies: &[Army], args: &Args) {
                     show_legal_moves(game, army);
                 } else {
                     println!("Unknown army");
+                }
+            }
+            "undo" | "u" => {
+                let count = if parts.len() > 1 {
+                    parts[1].parse().unwrap_or(1)
+                } else {
+                    1
+                };
+                match game.undo(count) {
+                    Ok(undone) => println!("Undid {} move(s)", undone),
+                    Err(e) => println!("Error: {}", e),
                 }
             }
             _ => println!("Unknown command. Type 'help' for commands."),

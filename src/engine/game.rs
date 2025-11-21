@@ -24,6 +24,8 @@ pub struct Game {
     cached_legal_moves: Option<(Army, Vec<Move>)>,
     #[serde(default)]
     pub move_history: Vec<(Army, Square, Square, Option<PieceKind>)>,
+    #[serde(skip)]
+    pub state_history: Vec<(Board, GameState, Status)>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -164,6 +166,7 @@ impl Game {
             status: Status::Ongoing,
             cached_legal_moves: None,
             move_history: Vec::new(),
+            state_history: Vec::new(),
         }
     }
 
@@ -627,6 +630,7 @@ impl Game {
                     status: self.status.clone(),
                     cached_legal_moves: None,
                     move_history: Vec::new(),
+                    state_history: Vec::new(),
                 };
 
                 if !next_game.king_in_check(army) {
@@ -716,6 +720,13 @@ impl Game {
                 self.board.remove_piece(target_army, target_kind, to);
             }
         }
+        
+        // Save state before move for undo
+        self.state_history.push((
+            self.board.clone(),
+            self.state.clone(),
+            self.status.clone(),
+        ));
 
         self.board.move_piece(army, piece_kind, from, to);
         if piece_kind == PieceKind::King {
@@ -756,6 +767,27 @@ impl Game {
                 break;
             }
         }
+    }
+    
+    pub fn undo(&mut self, count: usize) -> Result<usize, String> {
+        let available = self.state_history.len();
+        if available == 0 {
+            return Err("No moves to undo".to_string());
+        }
+        
+        let to_undo = count.min(available);
+        
+        for _ in 0..to_undo {
+            if let Some((board, state, status)) = self.state_history.pop() {
+                self.board = board;
+                self.state = state;
+                self.status = status;
+                self.move_history.pop();
+                self.clear_move_cache();
+            }
+        }
+        
+        Ok(to_undo)
     }
 
     fn piece_name(kind: PieceKind) -> &'static str {
