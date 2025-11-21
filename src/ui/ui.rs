@@ -228,6 +228,18 @@ fn build_status_lines(app: &App) -> Text {
         Style::default().fg(Color::Rgb(150, 150, 150)).bg(BG_COLOR),
     )));
 
+    // Last move indicator
+    if let Some((army, from, to)) = app.last_move {
+        let from_file = (b'a' + (from % 8)) as char;
+        let from_rank = (b'1' + (from / 8)) as char;
+        let to_file = (b'a' + (to % 8)) as char;
+        let to_rank = (b'1' + (to / 8)) as char;
+        lines.push(Line::from(Span::styled(
+            format!("Last: {} {}{}→{}{}", army.display_name(), from_file, from_rank, to_file, to_rank),
+            Style::default().fg(army_color(army)).bg(BG_COLOR),
+        )));
+    }
+
     let frozen: Vec<&str> = Army::ALL
         .iter()
         .filter(|&&army| app.game.army_is_frozen(army))

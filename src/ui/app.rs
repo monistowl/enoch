@@ -22,6 +22,7 @@ pub struct App {
     pub undo_stack: Vec<Game>,
     pub redo_stack: Vec<Game>,
     pub captured_pieces: HashMap<Army, Vec<PieceKind>>,
+    pub last_move: Option<(Army, Square, Square)>,
 }
 
 pub enum CurrentScreen {
@@ -84,6 +85,7 @@ impl App {
             undo_stack: Vec::new(),
             redo_stack: Vec::new(),
             captured_pieces: HashMap::new(),
+            last_move: None,
         }
     }
 
@@ -165,6 +167,7 @@ impl App {
                     
                     match self.game.apply_move(army, selected_sq, square, None) {
                         Ok(msg) => {
+                            self.last_move = Some((army, selected_sq, square));
                             self.move_history.push(format!("{}: {}->{}", 
                                 army.display_name(), 
                                 square_name(selected_sq), 
@@ -387,6 +390,7 @@ impl App {
                 self.undo_stack.clear();
                 self.redo_stack.clear();
                 self.captured_pieces.clear();
+                self.last_move = None;
                 self.selected_square = None;
                 self.selected_army = Some(self.game.current_army());
                 self.status_message = Some("Game restarted".to_string());
