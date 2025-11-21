@@ -40,9 +40,9 @@ fn check_size(terminal: &mut DefaultTerminal) -> Result<(), io::Error> {
                 }
                 Event::Key(key) => {
                     if key.kind == KeyEventKind::Press
-                        && key.code == KeyCode::Char('c')
-                        && key.modifiers.contains(event::KeyModifiers::CONTROL)
-                        || key.code == KeyCode::Esc
+                        && (key.code == KeyCode::Char('c')
+                            && key.modifiers.contains(event::KeyModifiers::CONTROL)
+                            || key.code == KeyCode::Esc)
                     {
                         ratatui::restore();
                         process::exit(0);
@@ -73,6 +73,13 @@ fn run(terminal: &mut DefaultTerminal, app: &mut App) -> io::Result<bool> {
         
         if let Event::Key(key) = event::read()? {
             if key.kind == KeyEventKind::Press {
+                // Handle Ctrl-C for immediate exit
+                if key.code == KeyCode::Char('c')
+                    && key.modifiers.contains(event::KeyModifiers::CONTROL)
+                {
+                    return Ok(true);
+                }
+                
                 match key.code {
                     KeyCode::Char(']') => {
                         app.cycle_array_direction(1);
