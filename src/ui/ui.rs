@@ -7,6 +7,8 @@ use ratatui::text::{Line, Span, Text};
 use ratatui::widgets::{Block, Borders, Paragraph, Wrap};
 use ratatui::Frame;
 
+const BG_COLOR: Color = Color::Rgb(30, 30, 30);
+
 pub fn render(frame: &mut Frame, app: &mut App) {
     // Capture frame for screenshots
     let size = frame.area();
@@ -46,7 +48,7 @@ fn render_help(frame: &mut Frame, app: &App) {
         .iter()
         .skip(app.help_scroll)
         .take(size.height.saturating_sub(4) as usize)
-        .map(|s| Line::from(Span::styled(s.as_str(), Style::default().fg(Color::White).bg(Color::Black))))
+        .map(|s| Line::from(Span::styled(s.as_str(), Style::default().fg(Color::White).bg(BG_COLOR))))
         .collect();
     
     let help_text = Paragraph::new(visible_lines)
@@ -54,9 +56,9 @@ fn render_help(frame: &mut Frame, app: &App) {
             Block::default()
                 .borders(Borders::ALL)
                 .title("Help - Enochian Chess Rules & Commands")
-                .style(Style::default().fg(Color::Cyan).bg(Color::Black)),
+                .style(Style::default().fg(Color::Cyan).bg(BG_COLOR)),
         )
-        .style(Style::default().bg(Color::Black))
+        .style(Style::default().bg(BG_COLOR))
         .wrap(Wrap { trim: false });
     
     frame.render_widget(help_text, size);
@@ -105,13 +107,13 @@ fn render_main(frame: &mut Frame, app: &mut App) {
         header_text,
         Style::default()
             .fg(Color::Yellow)
-            .bg(Color::Black)
+            .bg(BG_COLOR)
             .add_modifier(Modifier::BOLD),
     ))
     .block(Block::default()
         .borders(Borders::ALL)
         .title("Enochian Chess")
-        .style(Style::default().bg(Color::Black)));
+        .style(Style::default().bg(BG_COLOR)));
     frame.render_widget(header, layout[0]);
 
     let mid_chunks = if can_fit_side_panel {
@@ -133,8 +135,8 @@ fn render_main(frame: &mut Frame, app: &mut App) {
         .block(Block::default()
             .title("Enochian Board")
             .borders(Borders::ALL)
-            .style(Style::default().bg(Color::Black)))
-        .style(Style::default().bg(Color::Black))
+            .style(Style::default().bg(BG_COLOR)))
+        .style(Style::default().bg(BG_COLOR))
         .wrap(Wrap { trim: true });
     frame.render_widget(board, mid_chunks[0]);
 
@@ -148,8 +150,8 @@ fn render_main(frame: &mut Frame, app: &mut App) {
             .block(Block::default()
                 .title("Status")
                 .borders(Borders::ALL)
-                .style(Style::default().bg(Color::Black)))
-            .style(Style::default().bg(Color::Black))
+                .style(Style::default().bg(BG_COLOR)))
+            .style(Style::default().bg(BG_COLOR))
             .wrap(Wrap { trim: true });
         frame.render_widget(status, info_chunks[0]);
 
@@ -157,8 +159,8 @@ fn render_main(frame: &mut Frame, app: &mut App) {
             .block(Block::default()
                 .title("Arrays")
                 .borders(Borders::ALL)
-                .style(Style::default().bg(Color::Black)))
-            .style(Style::default().bg(Color::Black))
+                .style(Style::default().bg(BG_COLOR)))
+            .style(Style::default().bg(BG_COLOR))
             .wrap(Wrap { trim: true });
         frame.render_widget(arrays, info_chunks[1]);
     } else {
@@ -166,21 +168,21 @@ fn render_main(frame: &mut Frame, app: &mut App) {
             .block(Block::default()
                 .title("Status")
                 .borders(Borders::ALL)
-                .style(Style::default().bg(Color::Black)))
-            .style(Style::default().bg(Color::Black))
+                .style(Style::default().bg(BG_COLOR)))
+            .style(Style::default().bg(BG_COLOR))
             .wrap(Wrap { trim: true });
         frame.render_widget(status, mid_chunks[1]);
     }
 
     let input_line = Paragraph::new(Text::from(Line::from(vec![
-        Span::styled("> ", Style::default().fg(Color::Green).bg(Color::Black)),
-        Span::styled(app.input.clone(), Style::default().fg(Color::White).bg(Color::Black)),
+        Span::styled("> ", Style::default().fg(Color::Green).bg(BG_COLOR)),
+        Span::styled(app.input.clone(), Style::default().fg(Color::White).bg(BG_COLOR)),
     ])))
     .block(Block::default()
         .borders(Borders::ALL)
         .title("Command")
-        .style(Style::default().bg(Color::Black)))
-    .style(Style::default().bg(Color::Black));
+        .style(Style::default().bg(BG_COLOR)))
+    .style(Style::default().bg(BG_COLOR));
     frame.render_widget(input_line, layout[2]);
 }
 
@@ -190,13 +192,13 @@ pub fn render_size_error(frame: &mut Frame, min_width: u16, min_height: u16, siz
             "Terminal too small: {}x{} (minimum {}x{})",
             size.width, size.height, min_width, min_height
         ),
-        Style::default().fg(Color::Red).bg(Color::Black).add_modifier(Modifier::BOLD),
+        Style::default().fg(Color::Red).bg(BG_COLOR).add_modifier(Modifier::BOLD),
     )])]))
     .block(Block::default()
         .borders(Borders::ALL)
         .title("Size Error")
-        .style(Style::default().bg(Color::Black)))
-    .style(Style::default().bg(Color::Black));
+        .style(Style::default().bg(BG_COLOR)))
+    .style(Style::default().bg(BG_COLOR));
     frame.render_widget(warning, size);
 }
 
@@ -211,13 +213,13 @@ fn build_status_lines(app: &App) -> Text {
         format!("Turn: {}{}", current_army.display_name(), check_indicator),
         Style::default()
             .fg(if in_check { Color::Red } else { Color::LightBlue })
-            .bg(Color::Black)
+            .bg(BG_COLOR)
             .add_modifier(if in_check { Modifier::BOLD } else { Modifier::empty() }),
     )]));
 
     lines.push(Line::from(Span::styled(
         format!("Array: {}", app.selected_array),
-        Style::default().fg(Color::White).bg(Color::Black),
+        Style::default().fg(Color::White).bg(BG_COLOR),
     )));
 
     let frozen: Vec<&str> = Army::ALL
@@ -228,7 +230,7 @@ fn build_status_lines(app: &App) -> Text {
     if !frozen.is_empty() {
         lines.push(Line::from(Span::styled(
             format!("❄ Frozen: {}", frozen.join(", ")),
-            Style::default().fg(Color::Cyan).bg(Color::Black),
+            Style::default().fg(Color::Cyan).bg(BG_COLOR),
         )));
     }
 
@@ -240,7 +242,7 @@ fn build_status_lines(app: &App) -> Text {
     if !stalemated.is_empty() {
         lines.push(Line::from(Span::styled(
             format!("⊗ Stalemated: {}", stalemated.join(", ")),
-            Style::default().fg(Color::Gray).bg(Color::Black),
+            Style::default().fg(Color::Gray).bg(BG_COLOR),
         )));
     }
 
@@ -249,7 +251,7 @@ fn build_status_lines(app: &App) -> Text {
             format!("🏆 {} TEAM WINS!", team.name().to_uppercase()),
             Style::default()
                 .fg(Color::Green)
-                .bg(Color::Black)
+                .bg(BG_COLOR)
                 .add_modifier(Modifier::BOLD),
         )));
     } else if app.game.draw_condition() {
@@ -257,7 +259,7 @@ fn build_status_lines(app: &App) -> Text {
             "⚖ DRAW",
             Style::default()
                 .fg(Color::Yellow)
-                .bg(Color::Black)
+                .bg(BG_COLOR)
                 .add_modifier(Modifier::BOLD),
         )));
     }
@@ -265,14 +267,14 @@ fn build_status_lines(app: &App) -> Text {
     if let Some(ref msg) = app.status_message {
         lines.push(Line::from(Span::styled(
             format!("✓ {}", msg),
-            Style::default().fg(Color::Green).bg(Color::Black),
+            Style::default().fg(Color::Green).bg(BG_COLOR),
         )));
     }
 
     if let Some(ref err) = app.error_message {
         lines.push(Line::from(Span::styled(
             format!("✗ {}", err),
-            Style::default().fg(Color::Red).bg(Color::Black),
+            Style::default().fg(Color::Red).bg(BG_COLOR),
         )));
     }
 
@@ -280,7 +282,7 @@ fn build_status_lines(app: &App) -> Text {
     if !history.is_empty() {
         lines.push(Line::from(Span::styled(
             format!("History: {}", history.join(", ")),
-            Style::default().fg(Color::DarkGray).bg(Color::Black),
+            Style::default().fg(Color::DarkGray).bg(BG_COLOR),
         )));
     }
 
@@ -288,7 +290,7 @@ fn build_status_lines(app: &App) -> Text {
 
     lines.push(Line::from(Span::styled(
         command_help(),
-        Style::default().fg(Color::Rgb(120, 120, 200)).bg(Color::Black),
+        Style::default().fg(Color::Rgb(120, 120, 200)).bg(BG_COLOR),
     )));
 
     Text::from(lines)
@@ -301,10 +303,10 @@ fn array_list_text(app: &App) -> Text {
         let style = if name == app.selected_array {
             Style::default()
                 .fg(Color::LightGreen)
-                .bg(Color::Black)
+                .bg(BG_COLOR)
                 .add_modifier(Modifier::BOLD)
         } else {
-            Style::default().fg(Color::White).bg(Color::Black)
+            Style::default().fg(Color::White).bg(BG_COLOR)
         };
         let order = spec
             .turn_order
@@ -324,7 +326,7 @@ fn army_status_lines(app: &App) -> Vec<Line> {
     let mut lines = Vec::new();
     lines.push(Line::from(Span::styled(
         "─── Armies ───",
-        Style::default().fg(Color::DarkGray).bg(Color::Black),
+        Style::default().fg(Color::DarkGray).bg(BG_COLOR),
     )));
     
     for &army in Army::ALL.iter() {
@@ -344,10 +346,10 @@ fn army_status_lines(app: &App) -> Vec<Line> {
         status_parts.push(controller);
         
         let style = match army {
-            Army::Blue => Style::default().fg(Color::Blue).bg(Color::Black),
-            Army::Black => Style::default().fg(Color::White).bg(Color::Black),
-            Army::Red => Style::default().fg(Color::Red).bg(Color::Black),
-            Army::Yellow => Style::default().fg(Color::Yellow).bg(Color::Black),
+            Army::Blue => Style::default().fg(Color::Blue).bg(BG_COLOR),
+            Army::Black => Style::default().fg(Color::White).bg(BG_COLOR),
+            Army::Red => Style::default().fg(Color::Red).bg(BG_COLOR),
+            Army::Yellow => Style::default().fg(Color::Yellow).bg(BG_COLOR),
         };
         
         let current = app.game.current_army();
@@ -382,7 +384,7 @@ fn text_from_board_scaled(app: &App, square_size: Option<u16>) -> Text {
         format!("▶ {} to move", current_army.display_name()),
         Style::default()
             .fg(army_color(current_army))
-            .bg(Color::Black)
+            .bg(BG_COLOR)
             .add_modifier(Modifier::BOLD),
     )));
     
@@ -395,10 +397,10 @@ fn text_from_board_scaled(app: &App, square_size: Option<u16>) -> Text {
             if row == square_height / 2 {
                 spans.push(Span::styled(
                     format!("{} ", rank + 1),
-                    Style::default().fg(Color::White).bg(Color::Black),
+                    Style::default().fg(Color::White).bg(BG_COLOR),
                 ));
             } else {
-                spans.push(Span::styled("  ", Style::default().bg(Color::Black)));
+                spans.push(Span::styled("  ", Style::default().bg(BG_COLOR)));
             }
             
             for file in 0..8 {
@@ -419,10 +421,10 @@ fn text_from_board_scaled(app: &App, square_size: Option<u16>) -> Text {
     }
     
     // File labels
-    let mut file_spans = vec![Span::styled("  ", Style::default().bg(Color::Black))];
+    let mut file_spans = vec![Span::styled("  ", Style::default().bg(BG_COLOR))];
     for f in b'a'..=b'h' {
         let label = format!("{:^width$}", (f as char).to_ascii_uppercase(), width = square_width);
-        file_spans.push(Span::styled(label, Style::default().fg(Color::Gray).bg(Color::Black)));
+        file_spans.push(Span::styled(label, Style::default().fg(Color::Gray).bg(BG_COLOR)));
     }
     lines.push(Line::from(file_spans));
     
