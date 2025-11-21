@@ -12,6 +12,7 @@ The game is based on the ancient Indian game Chaturanga, adapted for four player
 
 ## Features
 
+### Game Rules
 - **Four-Army Gameplay**: Blue, Black, Red, and Yellow armies on an 8×8 board
 - **Team-Based Victory**: Air team (Blue + Black) vs Earth team (Red + Yellow)
 - **Unique Piece Movements**:
@@ -25,8 +26,27 @@ The game is based on the ancient Indian game Chaturanga, adapted for four player
   - Privileged pawn promotion rules
   - Stalemate with turn skipping
 - **Multiple Starting Arrays**: Eight different board configurations from the Zalewski text
+
+### User Interface
 - **Terminal UI**: Full-featured TUI with color-coded armies and visual indicators
+- **Colorblind Mode**: Army symbols for accessibility
+- **Move Highlighting**: Visual feedback for selected pieces and legal moves
+- **Captured Pieces Display**: Track all captures by army
+- **Last Move Indicator**: See opponent's previous move
 - **Built-in Help System**: Comprehensive in-game reference guide
+
+### AI & Automation
+- **AI Opponent**: Single-player mode with capture-preferring strategy
+- **Auto-Play**: Watch AI vs AI games
+- **Headless Mode**: Non-interactive CLI for scripting and automation
+
+### Engine Tools
+- **Move Validation**: Check move legality without applying (`--validate`)
+- **Position Analysis**: Inspect squares and legal moves (`--analyze`)
+- **Rules Lookup**: Query game rules interactively (`--query`)
+- **Custom Positions**: Generate positions from notation (`--generate`)
+- **Performance Testing**: Benchmark with perft (`--perft`)
+- **Format Conversion**: Transform between JSON, ASCII, and compact formats (`--convert`)
 - **Save/Load Games**: JSON-based game state persistence
 
 ## Installation
@@ -54,6 +74,48 @@ cargo run --release -- --help
 - **Status**: `/status` for game state
 - **Save/Load**: `/save <file>` and `/load <file>`
 - **Cycle Arrays**: `[` and `]` keys
+- **AI Control**: `/ai <army>` to enable AI for an army
+- **Colorblind Mode**: `/colorblind` to toggle army symbols
+
+### CLI Tools (Headless Mode)
+
+The engine can be used non-interactively for analysis, testing, and automation:
+
+```bash
+# Validate a move without applying it
+enoch --headless --validate "blue: e2-e3"
+
+# Analyze a square (show piece info and legal moves)
+enoch --headless --analyze e2
+
+# Query rules
+enoch --headless --query "can queen capture queen"
+enoch --headless --query "promotion"
+
+# Generate custom positions
+enoch --headless --generate "Ke1,Qd1:blue Ke8:red" --show
+enoch --headless --generate "Ke1:blue Ke8:red" --state position.json
+
+# Performance testing (count positions at depth N)
+enoch --headless --perft 4
+
+# Convert between formats
+enoch --headless --convert ascii
+enoch --headless --convert compact
+enoch --headless --convert json
+enoch --headless --state game.json --convert compact
+
+# Make moves and save state
+enoch --headless --move "blue: e2-e3" --state game.json --show
+
+# AI play
+enoch --headless --ai blue,red --auto-play
+enoch --headless --state game.json --ai blue --move "blue: e2-e3"
+
+# Query game status
+enoch --headless --state game.json --status
+enoch --headless --state game.json --legal-moves blue
+```
 
 ## Game Rules Summary
 
@@ -109,7 +171,7 @@ cargo run --release -- --help
 cargo test
 ```
 
-Current test coverage: 29 tests covering move generation, game rules, and serialization.
+Current test coverage: 54 tests (29 game tests + 8 UI tests + 17 integration tests) covering move generation, game rules, serialization, and complete game scenarios.
 
 ### Project Structure
 
@@ -121,11 +183,12 @@ src/
 │   ├── game.rs      # Game state and move application
 │   ├── moves.rs     # Move generation
 │   ├── types.rs     # Core types (Army, Piece, etc.)
-│   └── piece_kind.rs # Piece-specific logic
+│   ├── piece_kind.rs # Piece-specific logic
+│   └── ai.rs        # AI strategies
 ├── ui/              # Terminal UI
 │   ├── app.rs       # Application state
 │   └── ui.rs        # Rendering
-└── main.rs          # Entry point
+└── main.rs          # Entry point and CLI
 
 docs/
 ├── enochian-rules.md      # Complete rules specification
@@ -136,7 +199,9 @@ docs/
 tests/
 ├── enoch_moves.rs         # Move generation tests
 ├── enoch_rules.rs         # Game rule tests
-└── enoch_serialization.rs # Save/load tests
+├── enoch_serialization.rs # Save/load tests
+├── integration.rs         # End-to-end game tests
+└── ui_rendering.rs        # UI rendering tests
 ```
 
 ## References
