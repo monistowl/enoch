@@ -30,106 +30,140 @@ use std::{env, io, process};
 #[command(name = "enoch")]
 #[command(version)]
 #[command(about = "Enochian Chess - Four-player chess variant", long_about = None)]
+#[command(after_help = "EXAMPLES:
+    # Start interactive game
+    enoch
+
+    # Validate a move
+    enoch --headless --validate \"blue: e2-e3\"
+
+    # Make moves and save
+    enoch --headless --move \"blue: e2-e3\" --state game.json
+
+    # Interactive analysis
+    enoch --headless --interactive --state game.json
+
+    # Export to PGN
+    enoch --headless --state game.json --export-pgn game.pgn
+
+    # Run batch commands
+    enoch --headless --batch commands.txt --state game.json
+
+For more information, see README.md or visit https://github.com/monistowl/enoch")]
 struct Args {
     /// Run in headless mode (no TUI)
     #[arg(long)]
     headless: bool,
     
     /// Game state file
-    #[arg(long)]
+    #[arg(long, value_name = "FILE")]
     state: Option<String>,
     
-    /// Make a move
-    #[arg(long, name = "move")]
+    // === Move Operations ===
+    
+    /// Make a move (format: "army: from-to")
+    #[arg(long, value_name = "MOVE")]
     move_cmd: Option<String>,
     
     /// Validate a move without applying it
-    #[arg(long)]
+    #[arg(long, value_name = "MOVE")]
     validate: Option<String>,
     
+    /// Undo last N moves (default 1)
+    #[arg(long, value_name = "N")]
+    undo: Option<usize>,
+    
+    // === Analysis Tools ===
+    
     /// Analyze a square (show piece info and legal moves)
-    #[arg(long)]
+    #[arg(long, value_name = "SQUARE")]
     analyze: Option<String>,
     
-    /// Query rules (e.g., "queen capture queen", "promotion", "check")
-    #[arg(long)]
+    /// Query rules (e.g., "queen capture queen", "promotion")
+    #[arg(long, value_name = "QUERY")]
     query: Option<String>,
-    
-    /// Generate custom position (format: "Kb1,Qc2,Pd3:blue Ke8:red")
-    #[arg(long)]
-    generate: Option<String>,
-    
-    /// Performance test: count positions at depth N
-    #[arg(long)]
-    perft: Option<u8>,
-    
-    /// Convert format (json, ascii, compact)
-    #[arg(long)]
-    convert: Option<String>,
-    
-    /// List all available starting arrays
-    #[arg(long)]
-    list_arrays: bool,
-    
-    /// Start with specific array (use --list-arrays to see options)
-    #[arg(long)]
-    array: Option<String>,
-    
-    /// Show move history
-    #[arg(long)]
-    history: bool,
     
     /// Evaluate position (material, mobility, status)
     #[arg(long)]
     evaluate: bool,
     
-    /// Interactive REPL mode
-    #[arg(long)]
-    interactive: bool,
-    
-    /// Undo last N moves (default 1)
-    #[arg(long)]
-    undo: Option<usize>,
-    
-    /// Execute commands from file
-    #[arg(long)]
-    batch: Option<String>,
-    
     /// Show game statistics
     #[arg(long)]
     stats: bool,
     
-    /// Export game in PGN-like format
+    /// Show legal moves for army
+    #[arg(long, value_name = "ARMY")]
+    legal_moves: Option<String>,
+    
+    // === Position Setup ===
+    
+    /// Generate custom position (format: "Kb1,Qc2:blue Ke8:red")
+    #[arg(long, value_name = "POSITION")]
+    generate: Option<String>,
+    
+    /// List all available starting arrays
     #[arg(long)]
+    list_arrays: bool,
+    
+    /// Start with specific array
+    #[arg(long, value_name = "NAME")]
+    array: Option<String>,
+    
+    // === Game I/O ===
+    
+    /// Export game in PGN-like format
+    #[arg(long, value_name = "FILE")]
     export_pgn: Option<String>,
     
     /// Import game from PGN format
-    #[arg(long)]
+    #[arg(long, value_name = "FILE")]
     import_pgn: Option<String>,
     
-    /// Suppress non-essential output
-    #[arg(long, short)]
-    quiet: bool,
+    /// Convert format (json, ascii, compact)
+    #[arg(long, value_name = "FORMAT")]
+    convert: Option<String>,
     
-    /// Show board
+    // === Modes ===
+    
+    /// Interactive REPL mode
     #[arg(long)]
-    show: bool,
+    interactive: bool,
+    
+    /// Execute commands from file
+    #[arg(long, value_name = "FILE")]
+    batch: Option<String>,
+    
+    // === AI & Automation ===
     
     /// Enable AI for armies (comma-separated)
-    #[arg(long)]
+    #[arg(long, value_name = "ARMIES")]
     ai: Option<String>,
     
     /// Auto-play until game ends
     #[arg(long)]
     auto_play: bool,
     
-    /// Show legal moves for army
+    /// Performance test: count positions at depth N
+    #[arg(long, value_name = "DEPTH")]
+    perft: Option<u8>,
+    
+    // === Display ===
+    
+    /// Show board
     #[arg(long)]
-    legal_moves: Option<String>,
+    show: bool,
+    
+    /// Show move history
+    #[arg(long)]
+    history: bool,
     
     /// Show game status
     #[arg(long)]
     status: bool,
+    
+    /// Suppress non-essential output
+    #[arg(long, short)]
+    quiet: bool,
 }
 
 pub const MIN_WIDTH: u16 = 80;
