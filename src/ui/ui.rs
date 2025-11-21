@@ -456,11 +456,10 @@ fn army_color(army: Army) -> Color {
 }
 
 fn board_square_info(app: &App, square: u8, current_army: Army) -> (char, Style) {
-    let base_color = if (square / 8 + square % 8) % 2 == 0 {
-        Color::Rgb(80, 80, 80)
-    } else {
-        Color::Rgb(40, 40, 40)
-    };
+    // Checkerboard pattern - light and dark squares
+    let is_light_square = (square / 8 + square % 8) % 2 == 0;
+    let light_square = Color::Rgb(240, 217, 181);  // Wheat color
+    let dark_square = Color::Rgb(181, 136, 99);    // Brown color
     
     let is_selected = app.selected_square == Some(square);
     let is_legal_move = if let Some(from_sq) = app.selected_square {
@@ -473,9 +472,9 @@ fn board_square_info(app: &App, square: u8, current_army: Army) -> (char, Style)
         false
     };
     
-    let throne_bg = Color::Rgb(120, 70, 30);
-    let selected_bg = Color::Rgb(100, 100, 50);
-    let legal_move_bg = Color::Rgb(50, 80, 50);
+    let throne_bg = Color::Rgb(200, 150, 100);     // Golden throne
+    let selected_bg = Color::Rgb(255, 255, 100);   // Bright yellow
+    let legal_move_bg = Color::Rgb(144, 238, 144); // Light green
     
     let throne = app.game.board.throne_owner(square);
     let bg = if is_selected {
@@ -484,12 +483,25 @@ fn board_square_info(app: &App, square: u8, current_army: Army) -> (char, Style)
         legal_move_bg
     } else if throne.is_some() {
         throne_bg
+    } else if is_light_square {
+        light_square
     } else {
-        base_color
+        dark_square
     };
     
     if let Some((army, kind)) = app.game.board.piece_at(square) {
-        let fg = army_color(army);
+        // Use darker colors for pieces on light squares, lighter on dark
+        let fg = if is_light_square || is_selected || is_legal_move {
+            match army {
+                Army::Blue => Color::Rgb(0, 0, 200),      // Dark blue
+                Army::Black => Color::Rgb(40, 40, 40),    // Dark gray
+                Army::Red => Color::Rgb(200, 0, 0),       // Dark red
+                Army::Yellow => Color::Rgb(180, 140, 0),  // Dark yellow/gold
+            }
+        } else {
+            army_color(army)  // Bright colors on dark squares
+        };
+        
         let mut style = Style::default().fg(fg).bg(bg);
         if army == current_army || is_selected {
             style = style.add_modifier(Modifier::BOLD);
@@ -499,7 +511,7 @@ fn board_square_info(app: &App, square: u8, current_army: Army) -> (char, Style)
             style,
         )
     } else if throne.is_some() {
-        ('◆', Style::default().fg(Color::Rgb(220, 160, 80)).bg(bg))
+        ('◆', Style::default().fg(Color::Rgb(139, 90, 43)).bg(bg))
     } else {
         ('.', Style::default().fg(Color::Rgb(120, 120, 120)).bg(bg))
     }
