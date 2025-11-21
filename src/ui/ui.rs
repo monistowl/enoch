@@ -93,7 +93,8 @@ fn render_main(frame: &mut Frame, app: &mut App) {
             .split(layout[1])
     };
 
-    let board = Paragraph::new(text_from_board(app))
+    let board_height = mid_chunks[0].height;
+    let board = Paragraph::new(text_from_board_scaled(app, Some(board_height)))
         .block(
             Block::default()
                 .title("Enochian Board")
@@ -315,9 +316,21 @@ fn army_status_lines(app: &App) -> Vec<Line> {
     lines
 }
 
-fn text_from_board(app: &App) -> Text {
+fn text_from_board_scaled(app: &App, available_height: Option<u16>) -> Text {
     let mut lines = Vec::new();
     let current_army = app.game.current_army();
+    
+    // Determine square size based on available space
+    // Minimum: 1x1 (3 chars wide: " X ")
+    // Medium: 2x2 (5 chars wide: "  X  ")
+    // Large: 3x3 (7 chars wide: "   X   ")
+    let square_height = if let Some(h) = available_height {
+        if h >= 35 { 3 } else if h >= 25 { 2 } else { 1 }
+    } else {
+        1
+    };
+    
+    let square_width = square_height * 2 + 1; // Maintain aspect ratio
     
     // Add turn indicator at top
     lines.push(Line::from(Span::styled(
@@ -327,27 +340,46 @@ fn text_from_board(app: &App) -> Text {
             .add_modifier(Modifier::BOLD),
     )));
     
+    // Render board with scaled squares
     for rank in (0..8).rev() {
-        let mut spans = Vec::new();
-        spans.push(Span::styled(
-            format!("{} ", rank + 1),
-            Style::default().fg(Color::White),
-        ));
-        for file in 0..8 {
-            let square = rank * 8 + file;
-            let (chr, style) = board_square_info(app, square, current_army);
-            spans.push(Span::styled(format!(" {} ", chr), style));
+        for row in 0..square_height {
+            let mut spans = Vec::new();
+            
+            // Rank label on first row of square
+            if row == square_height / 2 {
+                spans.push(Span::styled(
+                    format!("{} ", rank + 1),
+                    Style::default().fg(Color::White),
+                ));
+            } else {
+                spans.push(Span::raw("  "));
+            }
+            
+            for file in 0..8 {
+                let square = rank * 8 + file;
+                let (chr, style) = board_square_info(app, square, current_army);
+                
+                // Center piece character in the middle row
+                let content = if row == square_height / 2 {
+                    format!("{:^width$}", chr, width = square_width)
+                } else {
+                    " ".repeat(square_width)
+                };
+                
+                spans.push(Span::styled(content, style));
+            }
+            lines.push(Line::from(spans));
         }
-        lines.push(Line::from(spans));
     }
-    let files_line = (b'a'..=b'h')
-        .map(|f| format!(" {} ", (f as char).to_ascii_uppercase()))
-        .collect::<Vec<_>>()
-        .join("");
-    lines.push(Line::from(Span::styled(
-        format!("  {}", files_line),
-        Style::default().fg(Color::Gray),
-    )));
+    
+    // File labels
+    let mut file_spans = vec![Span::raw("  ")];
+    for f in b'a'..=b'h' {
+        let label = format!("{:^width$}", (f as char).to_ascii_uppercase(), width = square_width);
+        file_spans.push(Span::styled(label, Style::default().fg(Color::Gray)));
+    }
+    lines.push(Line::from(file_spans));
+    
     Text::from(lines)
 }
 
