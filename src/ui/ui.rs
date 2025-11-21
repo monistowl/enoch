@@ -7,7 +7,7 @@ use ratatui::text::{Line, Span, Text};
 use ratatui::widgets::{Block, Borders, Paragraph, Wrap};
 use ratatui::Frame;
 
-const BG_COLOR: Color = Color::Rgb(30, 30, 30);
+const BG_COLOR: Color = Color::Black;
 
 pub fn render(frame: &mut Frame, app: &mut App) {
     // Capture frame for screenshots
