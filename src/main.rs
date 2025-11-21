@@ -46,6 +46,10 @@ struct Args {
     #[arg(long)]
     validate: Option<String>,
     
+    /// Analyze a square (show piece info and legal moves)
+    #[arg(long)]
+    analyze: Option<String>,
+    
     /// Show board
     #[arg(long)]
     show: bool,
@@ -252,6 +256,12 @@ fn run_headless(args: Args) {
         return;
     }
     
+    // Analyze square if provided
+    if let Some(square_str) = &args.analyze {
+        analyze_square(&mut game, square_str);
+        return;
+    }
+    
     // Execute move if provided
     if let Some(move_cmd) = &args.move_cmd {
         if let Err(e) = execute_headless_move(&mut game, move_cmd, &args) {
@@ -422,6 +432,59 @@ fn show_status(game: &Game) {
 fn show_board(game: &Game) {
     for row in game.board.ascii_rows() {
         println!("{}", row);
+    }
+}
+
+fn analyze_square(game: &mut Game, square_str: &str) {
+    let square = match parse_square_headless(square_str.trim()) {
+        Ok(sq) => sq,
+        Err(e) => {
+            println!("❌ Invalid square: {}", e);
+            process::exit(1);
+        }
+    };
+    
+    let file = (b'a' + (square % 8)) as char;
+    let rank = (b'1' + (square / 8)) as char;
+    
+    println!("Analyzing {}{}", file, rank);
+    println!();
+    
+    if let Some((army, kind)) = game.board.piece_at(square) {
+        println!("Piece: {} {}", army.display_name(), kind.name());
+        
+        // Show if frozen
+        if game.army_is_frozen(army) {
+            println!("Status: Frozen");
+        } else if game.king_in_check(army) && kind == crate::engine::types::PieceKind::King {
+            println!("Status: In Check");
+        } else {
+            println!("Status: Active");
+        }
+        
+        // Show legal moves from this square
+        let all_moves = game.legal_moves(army).to_vec();
+        let moves: Vec<_> = all_moves.iter()
+            .filter(|m| m.from == square)
+            .collect();
+        
+        if moves.is_empty() {
+            println!("\nNo legal moves from this square");
+        } else {
+            println!("\nLegal moves ({}):", moves.len());
+            for mv in moves {
+                let to_file = (b'a' + (mv.to % 8)) as char;
+                let to_rank = (b'1' + (mv.to / 8)) as char;
+                
+                if let Some((target_army, target_kind)) = game.board.piece_at(mv.to) {
+                    println!("  {}{} (captures {} {})", to_file, to_rank, target_army.display_name(), target_kind.name());
+                } else {
+                    println!("  {}{}", to_file, to_rank);
+                }
+            }
+        }
+    } else {
+        println!("Empty square");
     }
 }
 
