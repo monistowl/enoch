@@ -2,6 +2,14 @@
 
 This document summarizes the rules of Enochian Chess as derived from the Golden Dawn / Zalewski texts, serving as a single source of truth for the game's implementation.
 
+## Historical Context
+
+Enochian chess' fascinating history begins in the late 1800s, when occultists Wynn Westcott and MacGregor Mathers updated the Enochian system of magic for the Hermetic Order of the Golden Dawn. The game was originally dubbed Rosicrucian chess, later renamed Enochian chess due to its derivation from the Enochian Tablets of Dr. John Dee.
+
+The game is based on the ancient Indian game Chaturanga (circa 6th-7th century), which itself used dice to determine which pieces could move. In Chaturanga, the pieces were a rajah (king), elephant (castle/rook), horse (knight), ship (bishop), and four pawns for each corner section of the board in red, green, yellow, and black.
+
+Chris Zalewski spent 14 years researching and codifying the Enochian chess system for practical play, acknowledged by the late Israel Regardie as taking the game to an area quite beyond him.
+
 ## 0.1 – Rules Spec
 
 ### Board & Players
