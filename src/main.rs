@@ -521,16 +521,17 @@ fn execute_headless_move(game: &mut Game, move_cmd: &str, args: &Args) -> Result
     // Parse move command (format: "blue: e2-e4")
     let parts: Vec<&str> = move_cmd.split(':').collect();
     if parts.len() != 2 {
-        return Err("Move must follow format 'army: e2-e4'".to_string());
+        return Err("Move must follow format 'army: e2-e4' (e.g., 'blue: e2-e3')".to_string());
     }
     
-    let army = Army::from_str(parts[0].trim())
-        .ok_or_else(|| "Unknown army".to_string())?;
+    let army_str = parts[0].trim();
+    let army = Army::from_str(army_str)
+        .ok_or_else(|| format!("Unknown army '{}'. {}", army_str, Army::suggest_army(army_str)))?;
     
     let move_part = parts[1].trim().replace('x', "-");
     let coords: Vec<&str> = move_part.split('-').collect();
     if coords.len() != 2 {
-        return Err("Move must contain source and destination".to_string());
+        return Err("Move must contain source and destination (e.g., e2-e4)".to_string());
     }
     
     let from = parse_square_headless(coords[0].trim())?;
@@ -548,14 +549,19 @@ fn execute_headless_move(game: &mut Game, move_cmd: &str, args: &Args) -> Result
 fn parse_square_headless(s: &str) -> Result<u8, String> {
     let chars: Vec<char> = s.chars().collect();
     if chars.len() != 2 {
-        return Err("Invalid square".to_string());
+        return Err(format!("Invalid square '{}'. Expected format: a1-h8 (e.g., e2, d4)", s));
     }
-    let file = chars[0].to_ascii_lowercase() as u8 - b'a';
-    let rank = chars[1] as u8 - b'1';
-    if file > 7 || rank > 7 {
-        return Err("Square out of bounds".to_string());
+    let file = chars[0].to_ascii_lowercase() as u8;
+    let rank = chars[1] as u8;
+    
+    if file < b'a' || file > b'h' {
+        return Err(format!("Invalid file '{}'. Must be a-h", chars[0]));
     }
-    Ok(rank * 8 + file)
+    if rank < b'1' || rank > b'8' {
+        return Err(format!("Invalid rank '{}'. Must be 1-8", chars[1]));
+    }
+    
+    Ok((rank - b'1') * 8 + (file - b'a'))
 }
 
 fn make_ai_moves(game: &mut Game, ai_armies: &[Army], args: &Args) {

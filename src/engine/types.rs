@@ -33,6 +33,25 @@ impl Army {
             Army::Yellow => "Yellow",
         }
     }
+    
+    pub fn suggest_army(s: &str) -> String {
+        let lower = s.to_lowercase();
+        if lower.starts_with('b') && lower.len() > 1 {
+            if lower.starts_with("bl") {
+                "Did you mean 'blue' or 'black'?".to_string()
+            } else {
+                "Did you mean 'blue'?".to_string()
+            }
+        } else if lower.starts_with('r') {
+            "Did you mean 'red'?".to_string()
+        } else if lower.starts_with('y') {
+            "Did you mean 'yellow'?".to_string()
+        } else if lower.starts_with('k') {
+            "Did you mean 'black'?".to_string()
+        } else {
+            "Valid armies: blue, red, black, yellow".to_string()
+        }
+    }
 }
 
 impl Army {
