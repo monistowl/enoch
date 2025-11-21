@@ -54,6 +54,10 @@ struct Args {
     #[arg(long)]
     query: Option<String>,
     
+    /// Generate custom position (format: "Kb1,Qc2,Pd3:blue Ke8:red")
+    #[arg(long)]
+    generate: Option<String>,
+    
     /// Show board
     #[arg(long)]
     show: bool,
@@ -233,6 +237,12 @@ fn run_headless(args: Args) {
     use crate::engine::arrays::{default_array, find_array_by_name};
     use crate::engine::ai;
     use std::fs;
+    
+    // Handle generate command first (doesn't need existing game)
+    if let Some(gen_str) = &args.generate {
+        generate_position(gen_str, &args);
+        return;
+    }
     
     // Load or create game
     let mut game = if let Some(state_file) = &args.state {
@@ -442,6 +452,88 @@ fn show_status(game: &Game) {
 fn show_board(game: &Game) {
     for row in game.board.ascii_rows() {
         println!("{}", row);
+    }
+}
+
+fn generate_position(gen_str: &str, args: &Args) {
+    use crate::engine::board::Board;
+    use crate::engine::game::Game;
+    use crate::engine::types::{Army, PieceKind, Piece};
+    use std::fs;
+    
+    let mut placements = Vec::new();
+    
+    // Parse format: "Kb1,Qc2:blue Ke8:red"
+    for army_spec in gen_str.split_whitespace() {
+        let parts: Vec<&str> = army_spec.split(':').collect();
+        if parts.len() != 2 {
+            eprintln!("❌ Invalid format. Use: 'Kb1,Qc2:blue Ke8:red'");
+            process::exit(1);
+        }
+        
+        let army = match Army::from_str(parts[1].trim()) {
+            Some(a) => a,
+            None => {
+                eprintln!("❌ Unknown army: {}", parts[1]);
+                process::exit(1);
+            }
+        };
+        
+        for piece_spec in parts[0].split(',') {
+            let piece_spec = piece_spec.trim();
+            if piece_spec.len() < 2 {
+                eprintln!("❌ Invalid piece spec: {}", piece_spec);
+                process::exit(1);
+            }
+            
+            let kind = match piece_spec.chars().next().unwrap() {
+                'K' => PieceKind::King,
+                'Q' => PieceKind::Queen,
+                'B' => PieceKind::Bishop,
+                'N' => PieceKind::Knight,
+                'R' => PieceKind::Rook,
+                'P' => PieceKind::Pawn,
+                c => {
+                    eprintln!("❌ Unknown piece: {}", c);
+                    process::exit(1);
+                }
+            };
+            
+            let square_str = &piece_spec[1..];
+            let square = match parse_square_headless(square_str) {
+                Ok(sq) => sq,
+                Err(e) => {
+                    eprintln!("❌ Invalid square {}: {}", square_str, e);
+                    process::exit(1);
+                }
+            };
+            
+            placements.push((army, Piece { army, kind, pawn_type: None }, 1u64 << square));
+        }
+    }
+    
+    if placements.is_empty() {
+        eprintln!("❌ No pieces specified");
+        process::exit(1);
+    }
+    
+    let board = Board::new(&placements);
+    let game = Game::new(board);
+    
+    println!("✓ Generated position with {} pieces", placements.len());
+    
+    if args.show {
+        println!();
+        for row in game.board.ascii_rows() {
+            println!("{}", row);
+        }
+    }
+    
+    if let Some(save_file) = &args.state {
+        if let Ok(json) = game.to_json() {
+            fs::write(save_file, json).ok();
+            println!("✓ Saved to {}", save_file);
+        }
     }
 }
 
