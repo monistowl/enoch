@@ -20,6 +20,8 @@ pub struct Game {
     pub config: GameConfig,
     pub state: GameState,
     pub status: Status,
+    #[serde(skip)]
+    cached_legal_moves: Option<(Army, Vec<Move>)>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -158,6 +160,7 @@ impl Game {
             config,
             state,
             status: Status::Ongoing,
+            cached_legal_moves: None,
         }
     }
 
@@ -166,6 +169,7 @@ impl Game {
     pub fn refresh_after_load(&mut self) {
         self.board.refresh_occupancy();
         self.state.sync_with_board(&self.board);
+        self.cached_legal_moves = None;
     }
 
     pub fn to_json(&self) -> Result<String, serde_json::Error> {
@@ -618,6 +622,7 @@ impl Game {
                     config: self.config.clone(),
                     state: next_state,
                     status: self.status.clone(),
+                    cached_legal_moves: None,
                 };
 
                 if !next_game.king_in_check(army) {
@@ -645,9 +650,28 @@ impl Game {
         legal_moves
     }
 
-    pub fn is_legal_move(&self, army: Army, from: Square, to: Square) -> bool {
-        let legal_moves = self.generate_legal_moves(army);
-        legal_moves.iter().any(|m| m.from == from && m.to == to)
+    /// Get legal moves for an army, using cache if available
+    pub fn legal_moves(&mut self, army: Army) -> &[Move] {
+        // Check if cache is valid
+        if let Some((cached_army, _)) = &self.cached_legal_moves {
+            if *cached_army == army {
+                return &self.cached_legal_moves.as_ref().unwrap().1;
+            }
+        }
+        
+        // Generate and cache
+        let moves = self.generate_legal_moves(army);
+        self.cached_legal_moves = Some((army, moves));
+        &self.cached_legal_moves.as_ref().unwrap().1
+    }
+    
+    /// Clear the move cache (call after any move is made)
+    fn clear_move_cache(&mut self) {
+        self.cached_legal_moves = None;
+    }
+
+    pub fn is_legal_move(&mut self, army: Army, from: Square, to: Square) -> bool {
+        self.legal_moves(army).iter().any(|m| m.from == from && m.to == to)
     }
 
     pub fn apply_move(
@@ -701,6 +725,7 @@ impl Game {
             self.update_stalemate_status(other);
         }
         self.advance_to_next_army();
+        self.clear_move_cache();
 
         Ok(format!(
             "{} moved {} to {}",

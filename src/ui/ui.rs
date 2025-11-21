@@ -387,7 +387,7 @@ fn army_status_lines(app: &App) -> Vec<Line> {
     lines
 }
 
-fn text_from_board_scaled(app: &App, square_size: Option<u16>) -> Text {
+fn text_from_board_scaled(app: &mut App, square_size: Option<u16>) -> Text {
     let mut lines = Vec::new();
     let current_army = app.game.current_army();
     
@@ -455,7 +455,7 @@ fn army_color(army: Army) -> Color {
     }
 }
 
-fn board_square_info(app: &App, square: u8, current_army: Army) -> (char, Style) {
+fn board_square_info(app: &mut App, square: u8, current_army: Army) -> (char, Style) {
     // Checkerboard pattern - light and dark squares
     let is_light_square = (square / 8 + square % 8) % 2 == 0;
     let light_square = Color::Rgb(240, 217, 181);  // Wheat color
