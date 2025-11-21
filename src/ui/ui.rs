@@ -1,6 +1,6 @@
 use crate::engine::arrays::available_arrays;
 use crate::engine::types::{Army, PieceKind, PlayerId, Team};
-use crate::ui::app::App;
+use crate::ui::app::{App, CurrentScreen};
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span, Text};
@@ -8,6 +8,36 @@ use ratatui::widgets::{Block, Borders, Paragraph, Wrap};
 use ratatui::Frame;
 
 pub fn render(frame: &mut Frame, app: &mut App) {
+    match app.current_screen {
+        CurrentScreen::Help => render_help(frame, app),
+        _ => render_main(frame, app),
+    }
+}
+
+fn render_help(frame: &mut Frame, app: &App) {
+    let size = frame.area();
+    let help_lines = App::get_help_text();
+    
+    let visible_lines: Vec<Line> = help_lines
+        .iter()
+        .skip(app.help_scroll)
+        .take(size.height.saturating_sub(4) as usize)
+        .map(|s| Line::from(s.as_str()))
+        .collect();
+    
+    let help_text = Paragraph::new(visible_lines)
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title("Help - Enochian Chess Rules & Commands")
+                .style(Style::default().fg(Color::Cyan)),
+        )
+        .wrap(Wrap { trim: false });
+    
+    frame.render_widget(help_text, size);
+}
+
+fn render_main(frame: &mut Frame, app: &mut App) {
     let size = frame.area();
     let layout = Layout::default()
         .direction(Direction::Vertical)
@@ -22,7 +52,7 @@ pub fn render(frame: &mut Frame, app: &mut App) {
         .split(size);
 
     let header = Paragraph::new(Span::styled(
-        "Enochian Chess - Four-Army Variant | Move: army: e2-e4 | Commands: /arrays /status /array /exchange /save /load | [/] cycle arrays",
+        "Enochian Chess | Move: army: e2-e4 | Commands: /arrays /status /array /exchange /save /load | ? for help",
         Style::default()
             .fg(Color::Yellow)
             .add_modifier(Modifier::BOLD),

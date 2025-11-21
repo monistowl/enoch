@@ -81,6 +81,13 @@ fn run(terminal: &mut DefaultTerminal, app: &mut App) -> io::Result<bool> {
                         app.cycle_array_direction(-1);
                         continue;
                     }
+                    KeyCode::Char('?') | KeyCode::F(1) => {
+                        if matches!(app.current_screen, CurrentScreen::Main) {
+                            app.current_screen = CurrentScreen::Help;
+                            app.help_scroll = 0;
+                        }
+                        continue;
+                    }
                     _ => {}
                 }
                 match app.current_screen {
@@ -91,6 +98,24 @@ fn run(terminal: &mut DefaultTerminal, app: &mut App) -> io::Result<bool> {
                         KeyCode::Enter => app.submit_command(),
                         _ => {}
                     },
+                    CurrentScreen::Help => match key.code {
+                        KeyCode::Esc | KeyCode::Char('q') => {
+                            app.current_screen = CurrentScreen::Main;
+                        }
+                        KeyCode::Up | KeyCode::Char('k') => {
+                            app.scroll_help(-1);
+                        }
+                        KeyCode::Down | KeyCode::Char('j') => {
+                            app.scroll_help(1);
+                        }
+                        KeyCode::PageUp => {
+                            app.scroll_help(-10);
+                        }
+                        KeyCode::PageDown => {
+                            app.scroll_help(10);
+                        }
+                        _ => {}
+                    },
                     CurrentScreen::Exiting => match key.code {
                         KeyCode::Char('y') => return Ok(true),
                         KeyCode::Char('n') => {
@@ -98,7 +123,6 @@ fn run(terminal: &mut DefaultTerminal, app: &mut App) -> io::Result<bool> {
                         }
                         _ => {}
                     },
-                    _ => {}
                 }
             }
         }

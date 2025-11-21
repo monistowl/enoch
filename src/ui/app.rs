@@ -13,10 +13,12 @@ pub struct App {
     pub command_history: Vec<String>,
     pub selected_array: String,
     pub array_index: usize,
+    pub help_scroll: usize,
 }
 
 pub enum CurrentScreen {
     Main,
+    Help,
     Exiting,
 }
 
@@ -59,6 +61,7 @@ impl App {
             command_history: Vec::new(),
             selected_array: spec.name.to_string(),
             array_index: 0,
+            help_scroll: 0,
         }
     }
 
@@ -251,6 +254,97 @@ impl App {
 
     pub fn cycle_array_direction(&mut self, direction: isize) {
         self.cycle_array(direction);
+    }
+
+    pub fn scroll_help(&mut self, delta: isize) {
+        if delta > 0 {
+            self.help_scroll = self.help_scroll.saturating_add(delta as usize);
+        } else {
+            self.help_scroll = self.help_scroll.saturating_sub((-delta) as usize);
+        }
+    }
+
+    pub fn get_help_text() -> Vec<String> {
+        vec![
+            "═══════════════════════════════════════════════════════════════════".to_string(),
+            "                    ENOCHIAN CHESS - QUICK REFERENCE".to_string(),
+            "═══════════════════════════════════════════════════════════════════".to_string(),
+            "".to_string(),
+            "GAME BASICS".to_string(),
+            "───────────".to_string(),
+            "• Four armies: Blue, Black, Red, Yellow".to_string(),
+            "• Teams: Air (Blue + Black) vs Earth (Red + Yellow)".to_string(),
+            "• Turn order: Blue → Red → Black → Yellow (default array)".to_string(),
+            "• Goal: Capture enemy kings to freeze their armies".to_string(),
+            "".to_string(),
+            "PIECE MOVEMENTS".to_string(),
+            "───────────────".to_string(),
+            "• King: 1 square in any direction".to_string(),
+            "• Queen: Leaps exactly 2 squares (orthogonal or diagonal)".to_string(),
+            "• Rook: Slides any distance orthogonally".to_string(),
+            "• Bishop: Slides any distance diagonally".to_string(),
+            "• Knight: L-shape (2+1 squares)".to_string(),
+            "• Pawn: 1 square forward, captures diagonally".to_string(),
+            "".to_string(),
+            "SPECIAL RULES".to_string(),
+            "──────────────".to_string(),
+            "• Queens CANNOT capture queens".to_string(),
+            "• Bishops CANNOT capture bishops".to_string(),
+            "• Queens CAN capture bishops, bishops CAN capture queens".to_string(),
+            "• Bishops/queens use different diagonal systems (Aries/Cancer)".to_string(),
+            "".to_string(),
+            "CHECK & KING CAPTURE".to_string(),
+            "────────────────────".to_string(),
+            "• No checkmate - kings are CAPTURED".to_string(),
+            "• If in check with legal king moves: MUST move king".to_string(),
+            "• If in check with no king moves: may move other pieces".to_string(),
+            "• Captured king = army becomes FROZEN (cannot move/attack)".to_string(),
+            "".to_string(),
+            "THRONE SQUARES".to_string(),
+            "──────────────".to_string(),
+            "• Each army has a throne square (king's starting position)".to_string(),
+            "• Moving your king onto ally's throne = gain control of that army".to_string(),
+            "• Frozen pieces revive when you control their throne".to_string(),
+            "".to_string(),
+            "PROMOTION".to_string(),
+            "──────────".to_string(),
+            "• Blue pawns promote on rank 8 (north)".to_string(),
+            "• Red pawns promote on rank 1 (south)".to_string(),
+            "• Black pawns promote on file h (east)".to_string(),
+            "• Yellow pawns promote on file a (west)".to_string(),
+            "• Privileged pawn: with only K+Q+P or K+B+P, pawn can promote to any piece".to_string(),
+            "".to_string(),
+            "STALEMATE & DRAWS".to_string(),
+            "─────────────────".to_string(),
+            "• Stalemate: King not in check but no legal moves → skip turns".to_string(),
+            "• Draw: Both allied kings bare, or four bare kings".to_string(),
+            "".to_string(),
+            "COMMANDS".to_string(),
+            "────────".to_string(),
+            "• Move: blue: e2-e4 or blue: e2xe4".to_string(),
+            "• Promote: blue: e7-e8=Q".to_string(),
+            "• /arrays - List available starting arrays".to_string(),
+            "• /array <name> - Load specific array".to_string(),
+            "• /array next - Cycle to next array".to_string(),
+            "• /array prev - Cycle to previous array".to_string(),
+            "• /status - Show game status".to_string(),
+            "• /exchange <army> - Exchange prisoners with army".to_string(),
+            "• /save <file> - Save game to file".to_string(),
+            "• /load <file> - Load game from file".to_string(),
+            "• [ ] - Cycle arrays with bracket keys".to_string(),
+            "• ? or F1 - Toggle this help screen".to_string(),
+            "• ESC - Exit help or quit game".to_string(),
+            "".to_string(),
+            "TIPS".to_string(),
+            "────".to_string(),
+            "• Watch for frozen armies (❄) - they can't move!".to_string(),
+            "• Check indicator (⚠) shows when king is in danger".to_string(),
+            "• Throne squares have bronze background (◆ when empty)".to_string(),
+            "• Current army's pieces shown in BOLD".to_string(),
+            "• Teams matter for victory - capture both enemy kings to win!".to_string(),
+            "".to_string(),
+            "Press ↑/↓ or PgUp/PgDn to scroll • ESC to close help".to_string(),
+        ]
     }
 }
 
