@@ -22,12 +22,12 @@ pub fn render(frame: &mut Frame, app: &mut App) {
         .split(size);
 
     let header = Paragraph::new(Span::styled(
-        "Enochian Chess (type /arrays, /status, army: e2-e4)",
+        "Enochian Chess - Four-Army Variant | Move: army: e2-e4 | Commands: /arrays /status /array /exchange /save /load | [/] cycle arrays",
         Style::default()
             .fg(Color::Yellow)
             .add_modifier(Modifier::BOLD),
     ))
-    .block(Block::default().borders(Borders::ALL).title("Help"));
+    .block(Block::default().borders(Borders::ALL).title("Enochian Chess"));
     frame.render_widget(header, layout[0]);
 
     let mid_chunks = Layout::default()
@@ -83,9 +83,16 @@ pub fn render_size_error(frame: &mut Frame, min_width: u16, min_height: u16, siz
 fn build_status_lines(app: &App) -> Text {
     let mut lines = Vec::new();
     let current_army = app.game.state.current_army(&app.game.config);
+    
+    // Check if current army is in check
+    let in_check = app.game.king_in_check(current_army);
+    let check_indicator = if in_check { " ⚠ CHECK" } else { "" };
+    
     lines.push(Line::from(vec![Span::styled(
-        format!("Turn: {}", current_army.display_name()),
-        Style::default().fg(Color::LightBlue),
+        format!("Turn: {}{}", current_army.display_name(), check_indicator),
+        Style::default()
+            .fg(if in_check { Color::Red } else { Color::LightBlue })
+            .add_modifier(if in_check { Modifier::BOLD } else { Modifier::empty() }),
     )]));
 
     lines.push(Line::from(Span::raw(format!(
@@ -99,10 +106,10 @@ fn build_status_lines(app: &App) -> Text {
         .map(|army| army.display_name())
         .collect();
     if !frozen.is_empty() {
-        lines.push(Line::from(Span::raw(format!(
-            "Frozen armies: {}",
-            frozen.join(", ")
-        ))));
+        lines.push(Line::from(Span::styled(
+            format!("❄ Frozen: {}", frozen.join(", ")),
+            Style::default().fg(Color::Cyan),
+        )));
     }
 
     let stalemated: Vec<&str> = Army::ALL
@@ -111,22 +118,39 @@ fn build_status_lines(app: &App) -> Text {
         .map(|army| army.display_name())
         .collect();
     if !stalemated.is_empty() {
-        lines.push(Line::from(Span::raw(format!(
-            "Stalemated: {}",
-            stalemated.join(", ")
-        ))));
+        lines.push(Line::from(Span::styled(
+            format!("⊗ Stalemated: {}", stalemated.join(", ")),
+            Style::default().fg(Color::Gray),
+        )));
+    }
+
+    // Check for game outcome
+    if let Some(team) = app.game.winning_team() {
+        lines.push(Line::from(Span::styled(
+            format!("🏆 {} TEAM WINS!", team.name().to_uppercase()),
+            Style::default()
+                .fg(Color::Green)
+                .add_modifier(Modifier::BOLD),
+        )));
+    } else if app.game.draw_condition() {
+        lines.push(Line::from(Span::styled(
+            "⚖ DRAW",
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        )));
     }
 
     if let Some(ref msg) = app.status_message {
         lines.push(Line::from(Span::styled(
-            format!("Status: {}", msg),
-            Style::default().fg(Color::White),
+            format!("✓ {}", msg),
+            Style::default().fg(Color::Green),
         )));
     }
 
     if let Some(ref err) = app.error_message {
         lines.push(Line::from(Span::styled(
-            format!("Error: {}", err),
+            format!("✗ {}", err),
             Style::default().fg(Color::Red),
         )));
     }
@@ -134,8 +158,8 @@ fn build_status_lines(app: &App) -> Text {
     let history = app.history_lines();
     if !history.is_empty() {
         lines.push(Line::from(Span::styled(
-            format!("Last commands: {}", history.join(", ")),
-            Style::default().fg(Color::Gray),
+            format!("History: {}", history.join(", ")),
+            Style::default().fg(Color::DarkGray),
         )));
     }
 
@@ -176,28 +200,47 @@ fn array_list_text(app: &App) -> Text {
 
 fn army_status_lines(app: &App) -> Vec<Line> {
     let mut lines = Vec::new();
+    lines.push(Line::from(Span::styled(
+        "─── Armies ───",
+        Style::default().fg(Color::DarkGray),
+    )));
+    
     for &army in Army::ALL.iter() {
-        let status = if app.game.army_is_frozen(army) {
-            "Frozen"
+        let mut status_parts = Vec::new();
+        
+        if app.game.army_is_frozen(army) {
+            status_parts.push("❄ Frozen");
         } else if app.game.state.is_stalemated(army) {
-            "Stalemated"
+            status_parts.push("⊗ Stalemate");
+        } else if app.game.king_in_check(army) {
+            status_parts.push("⚠ Check");
         } else {
-            "Active"
-        };
+            status_parts.push("✓ Active");
+        }
+        
+        let controller = controller_label(app.game.board.controller_for(army));
+        status_parts.push(controller);
+        
         let style = match army {
             Army::Blue => Style::default().fg(Color::Blue),
             Army::Black => Style::default().fg(Color::White),
             Army::Red => Style::default().fg(Color::Red),
             Army::Yellow => Style::default().fg(Color::Yellow),
         };
-        let controller = controller_label(app.game.board.controller_for(army));
+        
+        let current = app.game.current_army();
+        let style = if army == current {
+            style.add_modifier(Modifier::BOLD | Modifier::UNDERLINED)
+        } else {
+            style
+        };
+        
         lines.push(Line::from(Span::styled(
             format!(
-                "{} ({}) - {} - {}",
+                "{:8} ({:4}) {}",
                 army.display_name(),
                 army.team().name(),
-                status,
-                controller
+                status_parts.join(" • ")
             ),
             style,
         )));
@@ -208,6 +251,15 @@ fn army_status_lines(app: &App) -> Vec<Line> {
 fn text_from_board(app: &App) -> Text {
     let mut lines = Vec::new();
     let current_army = app.game.current_army();
+    
+    // Add turn indicator at top
+    lines.push(Line::from(Span::styled(
+        format!("▶ {} to move", current_army.display_name()),
+        Style::default()
+            .fg(army_color(current_army))
+            .add_modifier(Modifier::BOLD),
+    )));
+    
     for rank in (0..8).rev() {
         let mut spans = Vec::new();
         spans.push(Span::styled(
@@ -232,6 +284,15 @@ fn text_from_board(app: &App) -> Text {
     Text::from(lines)
 }
 
+fn army_color(army: Army) -> Color {
+    match army {
+        Army::Blue => Color::Blue,
+        Army::Black => Color::White,
+        Army::Red => Color::Red,
+        Army::Yellow => Color::Yellow,
+    }
+}
+
 fn board_square_info(app: &App, square: u8, current_army: Army) -> (char, Style) {
     let base_color = if (square / 8 + square % 8) % 2 == 0 {
         Color::Rgb(30, 30, 30)
@@ -246,12 +307,7 @@ fn board_square_info(app: &App, square: u8, current_army: Army) -> (char, Style)
         base_color
     };
     if let Some((army, kind)) = app.game.board.piece_at(square) {
-        let fg = match army {
-            Army::Blue => Color::Blue,
-            Army::Black => Color::White,
-            Army::Red => Color::Red,
-            Army::Yellow => Color::Yellow,
-        };
+        let fg = army_color(army);
         let mut style = Style::default().fg(fg).bg(bg);
         if army == current_army {
             style = style.add_modifier(Modifier::BOLD);
@@ -260,6 +316,9 @@ fn board_square_info(app: &App, square: u8, current_army: Army) -> (char, Style)
             piece_character(army, kind),
             style,
         )
+    } else if throne.is_some() {
+        // Show throne marker on empty throne squares
+        ('◆', Style::default().fg(Color::Rgb(150, 100, 50)).bg(bg))
     } else {
         ('.', Style::default().fg(Color::Gray).bg(bg))
     }
@@ -290,5 +349,5 @@ fn controller_label(id: PlayerId) -> &'static str {
 }
 
 fn command_help() -> String {
-    "/arrays  /status  army: e2-e4  /array <name|next|prev>  /exchange <army>".to_string()
+    "Commands: blue: e2-e4 | /arrays | /status | /array <name|next|prev> | /exchange <army> | /save <file> | /load <file> | [ ] to cycle".to_string()
 }

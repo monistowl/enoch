@@ -440,32 +440,6 @@ impl Game {
         self.state.current_army(&self.config)
     }
 
-    fn piece_moves(&self, army: Army, kind: PieceKind) -> u64 {
-        match kind {
-            PieceKind::King => compute_king_moves(&self.board, army),
-            PieceKind::Queen => compute_queens_moves(&self.board, army),
-            PieceKind::Rook => compute_rooks_moves(&self.board, army),
-            PieceKind::Bishop => compute_bishops_moves(&self.board, army),
-            PieceKind::Knight => compute_knights_moves(&self.board, army),
-            PieceKind::Pawn => {
-                let (forward_moves_bitboard, diagonal_attack_squares_bitboard) =
-                    compute_pawns_moves(&self.board, army);
-
-                let mut legal_pawn_moves = 0u64;
-
-                // Add forward moves (only if empty)
-                legal_pawn_moves |= forward_moves_bitboard & self.board.free;
-
-                // Add diagonal capture moves (only if enemy piece is present)
-                let enemy_occupancy =
-                    self.board.all_occupancy & !self.board.occupancy_by_army[army.index()];
-                legal_pawn_moves |= diagonal_attack_squares_bitboard & enemy_occupancy;
-
-                legal_pawn_moves
-            }
-        }
-    }
-
     fn piece_moves_from(&self, army: Army, kind: PieceKind, from_sq: Square) -> u64 {
         use crate::engine::moves::*;
         
