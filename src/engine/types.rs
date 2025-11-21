@@ -120,6 +120,17 @@ impl PieceKind {
     pub const fn index(self) -> usize {
         self as usize
     }
+
+    pub const fn name(self) -> &'static str {
+        match self {
+            PieceKind::King => "King",
+            PieceKind::Queen => "Queen",
+            PieceKind::Bishop => "Bishop",
+            PieceKind::Knight => "Knight",
+            PieceKind::Rook => "Rook",
+            PieceKind::Pawn => "Pawn",
+        }
+    }
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug, Hash, Serialize, Deserialize)]

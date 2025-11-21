@@ -27,6 +27,7 @@ pub struct GameConfig {
     pub armies: [Army; ARMY_COUNT],
     pub turn_order: [Army; ARMY_COUNT],
     pub controller_map: [PlayerId; ARMY_COUNT],
+    pub divination_mode: bool,
 }
 
 impl Default for GameConfig {
@@ -40,6 +41,7 @@ impl Default for GameConfig {
                 PlayerId::PLAYER_ONE,
                 PlayerId::PLAYER_TWO,
             ],
+            divination_mode: false,
         }
     }
 }
@@ -438,6 +440,44 @@ impl Game {
 
     pub fn current_army(&self) -> Army {
         self.state.current_army(&self.config)
+    }
+
+    /// Roll a die for divination mode (1-6)
+    pub fn roll_die() -> u8 {
+        use std::time::{SystemTime, UNIX_EPOCH};
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .subsec_nanos();
+        (nanos % 6) as u8 + 1
+    }
+
+    /// Convert die roll to piece kind for divination mode
+    /// 1: King or Pawn, 2: Knight, 3: Bishop, 4: Queen, 5: Rook, 6: Pawn
+    pub fn die_to_piece_kind(roll: u8) -> Vec<PieceKind> {
+        match roll {
+            1 => vec![PieceKind::King, PieceKind::Pawn],
+            2 => vec![PieceKind::Knight],
+            3 => vec![PieceKind::Bishop],
+            4 => vec![PieceKind::Queen],
+            5 => vec![PieceKind::Rook],
+            6 => vec![PieceKind::Pawn],
+            _ => vec![],
+        }
+    }
+
+    /// Generate legal moves filtered by divination die roll
+    pub fn generate_divination_moves(&self, army: Army, roll: u8) -> Vec<Move> {
+        let allowed_kinds = Self::die_to_piece_kind(roll);
+        if allowed_kinds.is_empty() {
+            return vec![];
+        }
+
+        let all_moves = self.generate_legal_moves(army);
+        all_moves
+            .into_iter()
+            .filter(|m| allowed_kinds.contains(&m.kind))
+            .collect()
     }
 
     fn piece_moves_from(&self, army: Army, kind: PieceKind, from_sq: Square) -> u64 {

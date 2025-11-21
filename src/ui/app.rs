@@ -38,6 +38,8 @@ pub enum UiCommand {
     Exchange(Army),
     Save(String),
     Load(String),
+    ToggleDivination,
+    RollDie,
 }
 
 #[derive(Debug)]
@@ -188,6 +190,43 @@ impl App {
                     self.error_message = Some(format!("Failed to read file: {}", e));
                 }
             },
+            UiCommand::ToggleDivination => {
+                self.game.config.divination_mode = !self.game.config.divination_mode;
+                let mode = if self.game.config.divination_mode {
+                    "enabled"
+                } else {
+                    "disabled"
+                };
+                self.status_message = Some(format!("Divination mode {}", mode));
+                self.error_message = None;
+            }
+            UiCommand::RollDie => {
+                if !self.game.config.divination_mode {
+                    self.error_message = Some("Divination mode not enabled. Use /divination to enable.".into());
+                    return;
+                }
+                let roll = Game::roll_die();
+                let kinds = Game::die_to_piece_kind(roll);
+                let kind_names: Vec<&str> = kinds.iter().map(|k| k.name()).collect();
+                let army = self.game.current_army();
+                let moves = self.game.generate_divination_moves(army, roll);
+                
+                if moves.is_empty() {
+                    self.status_message = Some(format!(
+                        "🎲 Rolled {}: {} - No moves available (recorded as 'No Move')",
+                        roll,
+                        kind_names.join(" or ")
+                    ));
+                } else {
+                    self.status_message = Some(format!(
+                        "🎲 Rolled {}: {} - {} legal moves available",
+                        roll,
+                        kind_names.join(" or "),
+                        moves.len()
+                    ));
+                }
+                self.error_message = None;
+            }
         }
         if self.status_message.is_some() {
             self.error_message = None;
@@ -197,6 +236,11 @@ impl App {
     fn build_status_message(&self) -> String {
         let army = self.game.state.current_army(&self.game.config);
         let mut parts = vec![format!("Turn: {}", army.display_name())];
+        
+        if self.game.config.divination_mode {
+            parts.push("🎲 Divination".to_string());
+        }
+        
         let frozen: Vec<&str> = Army::ALL
             .iter()
             .filter(|&&a| self.game.army_is_frozen(a))
@@ -319,6 +363,14 @@ impl App {
             "• Stalemate: King not in check but no legal moves → skip turns".to_string(),
             "• Draw: Both allied kings bare, or four bare kings".to_string(),
             "".to_string(),
+            "DIVINATION MODE".to_string(),
+            "───────────────".to_string(),
+            "• Ancient mode using dice to select pieces (like Chaturanga)".to_string(),
+            "• Roll 1: King or Pawn | 2: Knight | 3: Bishop".to_string(),
+            "• Roll 4: Queen | 5: Rook | 6: Pawn".to_string(),
+            "• Must move the piece type rolled (if legal moves exist)".to_string(),
+            "• 'No Move' recorded if no legal moves for rolled piece".to_string(),
+            "".to_string(),
             "COMMANDS".to_string(),
             "────────".to_string(),
             "• Move: blue: e2-e4 or blue: e2xe4".to_string(),
@@ -328,6 +380,8 @@ impl App {
             "• /array next - Cycle to next array".to_string(),
             "• /array prev - Cycle to previous array".to_string(),
             "• /status - Show game status".to_string(),
+            "• /divination - Toggle divination mode (dice-based play)".to_string(),
+            "• /roll - Roll die for divination mode".to_string(),
             "• /exchange <army> - Exchange prisoners with army".to_string(),
             "• /save <file> - Save game to file".to_string(),
             "• /load <file> - Load game from file".to_string(),
@@ -355,6 +409,8 @@ fn parse_ui_command(input: &str) -> Result<UiCommand, CommandParseError> {
             match cmd.to_lowercase().as_str() {
                 "arrays" => Ok(UiCommand::ArraysList),
                 "status" => Ok(UiCommand::Status),
+                "divination" | "div" => Ok(UiCommand::ToggleDivination),
+                "roll" | "dice" => Ok(UiCommand::RollDie),
                 "array" => {
                     if let Some(arg) = parts.next() {
                         match arg.to_lowercase().as_str() {
