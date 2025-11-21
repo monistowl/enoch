@@ -94,6 +94,10 @@ struct Args {
     #[arg(long)]
     batch: Option<String>,
     
+    /// Show game statistics
+    #[arg(long)]
+    stats: bool,
+    
     /// Show board
     #[arg(long)]
     show: bool,
@@ -425,6 +429,10 @@ fn run_headless(args: Args) {
     
     if args.evaluate {
         evaluate_position(&mut game);
+    }
+    
+    if args.stats {
+        show_stats(&game);
     }
     
     if args.status {
@@ -807,6 +815,65 @@ fn run_interactive(game: &mut Game, ai_armies: &[Army], args: &Args) {
             std::fs::write(save_file, json).ok();
             println!("Game saved to {}", save_file);
         }
+    }
+}
+
+fn show_stats(game: &Game) {
+    use crate::engine::types::{Army, PieceKind};
+    
+    println!("Game Statistics\n");
+    
+    // Move count
+    println!("Moves played: {}", game.move_history.len());
+    
+    // Captures (inferred from missing pieces)
+    println!("\nCaptures:");
+    let initial_counts: [(PieceKind, usize); 6] = [
+        (PieceKind::King, 1),
+        (PieceKind::Queen, 1),
+        (PieceKind::Rook, 2),
+        (PieceKind::Bishop, 2),
+        (PieceKind::Knight, 2),
+        (PieceKind::Pawn, 8),
+    ];
+    
+    for &army in Army::ALL.iter() {
+        let counts = game.board.piece_counts(army);
+        let mut captured = Vec::new();
+        let mut total_captured = 0;
+        
+        for &(kind, initial) in &initial_counts {
+            let current = counts[kind.index()] as usize;
+            let lost = initial.saturating_sub(current);
+            if lost > 0 {
+                captured.push(format!("{}×{}", lost, kind.name()));
+                total_captured += lost;
+            }
+        }
+        
+        if total_captured > 0 {
+            println!("  {} lost: {} ({})", army.display_name(), total_captured, captured.join(", "));
+        } else {
+            println!("  {} lost: 0", army.display_name());
+        }
+    }
+    
+    // Army status
+    println!("\nArmy Status:");
+    for &army in Army::ALL.iter() {
+        let status = if game.army_is_frozen(army) {
+            "Frozen"
+        } else if game.king_in_check(army) {
+            "In Check"
+        } else {
+            "Active"
+        };
+        println!("  {}: {}", army.display_name(), status);
+    }
+    
+    // Winner
+    if let Some(team) = game.winning_team() {
+        println!("\n🏆 Winner: {} team", team.name());
     }
 }
 
