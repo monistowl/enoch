@@ -39,20 +39,35 @@ fn render_help(frame: &mut Frame, app: &App) {
 
 fn render_main(frame: &mut Frame, app: &mut App) {
     let size = frame.area();
+    
+    // Responsive layout based on terminal size
+    let (header_height, input_height) = if size.height < 30 {
+        (1, 1) // Minimal for small terminals
+    } else {
+        (3, 3) // Full size for larger terminals
+    };
+    
     let layout = Layout::default()
         .direction(Direction::Vertical)
         .constraints(
             [
-                Constraint::Length(3),
+                Constraint::Length(header_height),
                 Constraint::Min(10),
-                Constraint::Length(3),
+                Constraint::Length(input_height),
             ]
             .as_ref(),
         )
         .split(size);
 
+    // Compact header for small terminals
+    let header_text = if size.width < 100 {
+        "Enochian Chess | ? for help"
+    } else {
+        "Enochian Chess | Move: army: e2-e4 | Commands: /arrays /status /array /exchange /save /load | ? for help"
+    };
+    
     let header = Paragraph::new(Span::styled(
-        "Enochian Chess | Move: army: e2-e4 | Commands: /arrays /status /array /exchange /save /load | ? for help",
+        header_text,
         Style::default()
             .fg(Color::Yellow)
             .add_modifier(Modifier::BOLD),
@@ -60,10 +75,23 @@ fn render_main(frame: &mut Frame, app: &mut App) {
     .block(Block::default().borders(Borders::ALL).title("Enochian Chess"));
     frame.render_widget(header, layout[0]);
 
-    let mid_chunks = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([Constraint::Percentage(65), Constraint::Percentage(35)].as_ref())
-        .split(layout[1]);
+    // Responsive board/info split
+    let board_pct = if size.width < 100 { 100 } else { 65 };
+    let info_pct = 100 - board_pct;
+    
+    let mid_chunks = if size.width < 100 {
+        // Stack vertically for narrow terminals
+        Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Percentage(70), Constraint::Percentage(30)].as_ref())
+            .split(layout[1])
+    } else {
+        // Side by side for wide terminals
+        Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([Constraint::Percentage(board_pct), Constraint::Percentage(info_pct)].as_ref())
+            .split(layout[1])
+    };
 
     let board = Paragraph::new(text_from_board(app))
         .block(
@@ -74,21 +102,30 @@ fn render_main(frame: &mut Frame, app: &mut App) {
         .wrap(Wrap { trim: true });
     frame.render_widget(board, mid_chunks[0]);
 
-    let info_chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([Constraint::Min(7), Constraint::Length(6)].as_ref())
-        .split(mid_chunks[1]);
+    // Only show info panel if there's space
+    if size.width >= 100 {
+        let info_chunks = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Min(7), Constraint::Length(6)].as_ref())
+            .split(mid_chunks[1]);
 
-    let status = Paragraph::new(build_status_lines(app))
-        .block(Block::default().title("Status").borders(Borders::ALL))
-        .wrap(Wrap { trim: true });
-    frame.render_widget(status, info_chunks[0]);
+        let status = Paragraph::new(build_status_lines(app))
+            .block(Block::default().title("Status").borders(Borders::ALL))
+            .wrap(Wrap { trim: true });
+        frame.render_widget(status, info_chunks[0]);
 
-    let array_text = array_list_text(app);
-    let arrays = Paragraph::new(array_text)
-        .block(Block::default().title("Arrays").borders(Borders::ALL))
-        .wrap(Wrap { trim: true });
-    frame.render_widget(arrays, info_chunks[1]);
+        let array_text = array_list_text(app);
+        let arrays = Paragraph::new(array_text)
+            .block(Block::default().title("Arrays").borders(Borders::ALL))
+            .wrap(Wrap { trim: true });
+        frame.render_widget(arrays, info_chunks[1]);
+    } else {
+        // Compact status in bottom panel for narrow terminals
+        let status = Paragraph::new(build_status_lines(app))
+            .block(Block::default().title("Status").borders(Borders::ALL))
+            .wrap(Wrap { trim: true });
+        frame.render_widget(status, mid_chunks[1]);
+    }
 
     let input_line = Paragraph::new(Text::from(Line::from(vec![
         Span::styled("> ", Style::default().fg(Color::Green)),

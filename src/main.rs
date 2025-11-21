@@ -21,8 +21,8 @@ use ratatui::{DefaultTerminal, Frame, Terminal};
 use std::io::{stdout, Error, ErrorKind, Stdout};
 use std::{env, io, process};
 
-pub const MIN_WIDTH: u16 = 132;
-pub const MIN_HEIGHT: u16 = 46;
+pub const MIN_WIDTH: u16 = 80;
+pub const MIN_HEIGHT: u16 = 24;
 
 fn check_size(terminal: &mut DefaultTerminal) -> Result<(), io::Error> {
     let size = terminal.size()?;
