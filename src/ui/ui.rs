@@ -431,21 +431,20 @@ fn text_from_board_scaled(app: &App, square_size: Option<u16>) -> Text {
 
 fn army_color(army: Army) -> Color {
     match army {
-        Army::Blue => Color::Blue,
-        Army::Black => Color::White,
-        Army::Red => Color::Red,
-        Army::Yellow => Color::Yellow,
+        Army::Blue => Color::Rgb(100, 150, 255),    // Brighter blue
+        Army::Black => Color::Rgb(220, 220, 220),   // Light gray (not pure white)
+        Army::Red => Color::Rgb(255, 100, 100),     // Brighter red
+        Army::Yellow => Color::Rgb(255, 220, 100),  // Brighter yellow
     }
 }
 
 fn board_square_info(app: &App, square: u8, current_army: Army) -> (char, Style) {
-    // Use more distinct colors for light/dark squares
     let base_color = if (square / 8 + square % 8) % 2 == 0 {
-        Color::Rgb(50, 50, 50)  // Light squares - medium gray
+        Color::Rgb(80, 80, 80)  // Light squares - brighter gray
     } else {
-        Color::Rgb(25, 25, 25)  // Dark squares - darker gray
+        Color::Rgb(40, 40, 40)  // Dark squares - medium gray
     };
-    let throne_bg = Color::Rgb(90, 50, 20);  // Brighter throne color
+    let throne_bg = Color::Rgb(120, 70, 30);  // Brighter throne
     let throne = app.game.board.throne_owner(square);
     let bg = if throne.is_some() {
         throne_bg
@@ -463,10 +462,9 @@ fn board_square_info(app: &App, square: u8, current_army: Army) -> (char, Style)
             style,
         )
     } else if throne.is_some() {
-        // Show throne marker on empty throne squares
-        ('◆', Style::default().fg(Color::Rgb(180, 120, 60)).bg(bg))
+        ('◆', Style::default().fg(Color::Rgb(220, 160, 80)).bg(bg))
     } else {
-        ('.', Style::default().fg(Color::Rgb(80, 80, 80)).bg(bg))
+        ('.', Style::default().fg(Color::Rgb(120, 120, 120)).bg(bg))
     }
 }
 
