@@ -78,6 +78,10 @@ struct Args {
     #[arg(long)]
     history: bool,
     
+    /// Evaluate position (material, mobility, status)
+    #[arg(long)]
+    evaluate: bool,
+    
     /// Show board
     #[arg(long)]
     show: bool,
@@ -376,6 +380,10 @@ fn run_headless(args: Args) {
         show_history(&game);
     }
     
+    if args.evaluate {
+        evaluate_position(&mut game);
+    }
+    
     if args.status {
         show_status(&game);
     }
@@ -498,6 +506,68 @@ fn show_legal_moves(game: &mut Game, army: Army) {
         let to_file = (b'a' + (mv.to % 8)) as char;
         let to_rank = (b'1' + (mv.to / 8)) as char;
         println!("  {}{} -> {}{}", from_file, from_rank, to_file, to_rank);
+    }
+}
+
+fn evaluate_position(game: &mut Game) {
+    use crate::engine::types::{Army, PieceKind};
+    
+    println!("Position Evaluation\n");
+    
+    // Material count
+    println!("Material:");
+    let piece_values = [
+        (PieceKind::King, 0),
+        (PieceKind::Queen, 9),
+        (PieceKind::Rook, 5),
+        (PieceKind::Bishop, 3),
+        (PieceKind::Knight, 3),
+        (PieceKind::Pawn, 1),
+    ];
+    
+    for &army in Army::ALL.iter() {
+        let mut total = 0;
+        let mut pieces = Vec::new();
+        let counts = game.board.piece_counts(army);
+        
+        for &(kind, value) in &piece_values {
+            let count = counts[kind.index()] as usize;
+            if count > 0 {
+                total += count * value;
+                pieces.push(format!("{}×{}", count, kind.name()));
+            }
+        }
+        
+        println!("  {}: {} ({})", army.display_name(), total, pieces.join(", "));
+    }
+    
+    // Mobility (legal moves)
+    println!("\nMobility:");
+    for &army in Army::ALL.iter() {
+        if game.army_is_frozen(army) {
+            println!("  {}: Frozen", army.display_name());
+        } else {
+            let moves = game.legal_moves(army).len();
+            println!("  {}: {} legal moves", army.display_name(), moves);
+        }
+    }
+    
+    // Status
+    println!("\nStatus:");
+    for &army in Army::ALL.iter() {
+        let status = if game.army_is_frozen(army) {
+            "Frozen"
+        } else if game.king_in_check(army) {
+            "In Check"
+        } else {
+            "Active"
+        };
+        println!("  {}: {}", army.display_name(), status);
+    }
+    
+    // Winner
+    if let Some(team) = game.winning_team() {
+        println!("\n🏆 Winner: {} team", team.name());
     }
 }
 
