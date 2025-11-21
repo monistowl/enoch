@@ -8,10 +8,34 @@ use ratatui::widgets::{Block, Borders, Paragraph, Wrap};
 use ratatui::Frame;
 
 pub fn render(frame: &mut Frame, app: &mut App) {
+    // Capture frame for screenshots
+    let size = frame.area();
+    let mut capture = format!("Terminal: {}x{}\n", size.width, size.height);
+    capture.push_str("═".repeat(size.width as usize).as_str());
+    capture.push('\n');
+    
     match app.current_screen {
-        CurrentScreen::Help => render_help(frame, app),
-        _ => render_main(frame, app),
+        CurrentScreen::Help => {
+            render_help(frame, app);
+            capture.push_str("Help Screen\n");
+        }
+        _ => {
+            render_main(frame, app);
+            // Capture board state
+            capture.push_str(&format!("Turn: {}\n", app.game.current_army().display_name()));
+            capture.push_str(&format!("Array: {}\n", app.selected_array));
+            if app.game.config.divination_mode {
+                capture.push_str("Mode: Divination 🎲\n");
+            }
+            capture.push_str("\nBoard:\n");
+            for row in app.board_rows() {
+                capture.push_str(&row);
+                capture.push('\n');
+            }
+        }
     }
+    
+    app.last_frame = Some(capture);
 }
 
 fn render_help(frame: &mut Frame, app: &App) {
@@ -22,7 +46,7 @@ fn render_help(frame: &mut Frame, app: &App) {
         .iter()
         .skip(app.help_scroll)
         .take(size.height.saturating_sub(4) as usize)
-        .map(|s| Line::from(s.as_str()))
+        .map(|s| Line::from(Span::styled(s.as_str(), Style::default().fg(Color::White).bg(Color::Black))))
         .collect();
     
     let help_text = Paragraph::new(visible_lines)
@@ -30,8 +54,9 @@ fn render_help(frame: &mut Frame, app: &App) {
             Block::default()
                 .borders(Borders::ALL)
                 .title("Help - Enochian Chess Rules & Commands")
-                .style(Style::default().fg(Color::Cyan)),
+                .style(Style::default().fg(Color::Cyan).bg(Color::Black)),
         )
+        .style(Style::default().bg(Color::Black))
         .wrap(Wrap { trim: false });
     
     frame.render_widget(help_text, size);
@@ -40,26 +65,36 @@ fn render_help(frame: &mut Frame, app: &App) {
 fn render_main(frame: &mut Frame, app: &mut App) {
     let size = frame.area();
     
-    // Responsive layout based on terminal size
-    let (header_height, input_height) = if size.height < 30 {
-        (1, 1) // Minimal for small terminals
-    } else {
-        (3, 3) // Full size for larger terminals
-    };
+    // Calculate optimal board size (8x8 board + borders + labels)
+    // Each square needs: width chars × height lines
+    // We need to fit: 2 (rank labels) + 8*square_width + 1 (file labels)
+    let available_height = size.height.saturating_sub(6); // Reserve for header + input
+    let available_width = size.width.saturating_sub(4); // Reserve for borders
+    
+    // Calculate max square size that fits
+    let max_square_height = available_height / 9; // 8 ranks + 1 label row
+    let max_square_width = available_width / 10; // 2 label + 8 files
+    let square_size = max_square_height.min(max_square_width / 2).max(1).min(3);
+    
+    // Calculate actual board dimensions
+    let board_width = 2 + (square_size * 2 + 1) * 8 + 2; // labels + squares + borders
+    let board_height = 1 + square_size * 8 + 1 + 2; // turn + squares + labels + borders
+    
+    // Determine if we can fit info panel beside board
+    let info_width = 35;
+    let can_fit_side_panel = size.width >= board_width + info_width + 2;
+    
+    let (header_height, input_height) = if size.height < 30 { (1, 1) } else { (3, 3) };
     
     let layout = Layout::default()
         .direction(Direction::Vertical)
-        .constraints(
-            [
-                Constraint::Length(header_height),
-                Constraint::Min(10),
-                Constraint::Length(input_height),
-            ]
-            .as_ref(),
-        )
+        .constraints([
+            Constraint::Length(header_height),
+            Constraint::Min(10),
+            Constraint::Length(input_height),
+        ])
         .split(size);
 
-    // Compact header for small terminals
     let header_text = if size.width < 100 {
         "Enochian Chess | ? for help"
     } else {
@@ -70,69 +105,82 @@ fn render_main(frame: &mut Frame, app: &mut App) {
         header_text,
         Style::default()
             .fg(Color::Yellow)
+            .bg(Color::Black)
             .add_modifier(Modifier::BOLD),
     ))
-    .block(Block::default().borders(Borders::ALL).title("Enochian Chess"));
+    .block(Block::default()
+        .borders(Borders::ALL)
+        .title("Enochian Chess")
+        .style(Style::default().bg(Color::Black)));
     frame.render_widget(header, layout[0]);
 
-    // Responsive board/info split
-    let board_pct = if size.width < 100 { 100 } else { 65 };
-    let info_pct = 100 - board_pct;
-    
-    let mid_chunks = if size.width < 100 {
-        // Stack vertically for narrow terminals
-        Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([Constraint::Percentage(70), Constraint::Percentage(30)].as_ref())
-            .split(layout[1])
-    } else {
-        // Side by side for wide terminals
+    let mid_chunks = if can_fit_side_panel {
         Layout::default()
             .direction(Direction::Horizontal)
-            .constraints([Constraint::Percentage(board_pct), Constraint::Percentage(info_pct)].as_ref())
+            .constraints([
+                Constraint::Length(board_width),
+                Constraint::Min(info_width),
+            ])
+            .split(layout[1])
+    } else {
+        Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Min(board_height), Constraint::Min(5)])
             .split(layout[1])
     };
 
-    let board_height = mid_chunks[0].height;
-    let board = Paragraph::new(text_from_board_scaled(app, Some(board_height)))
-        .block(
-            Block::default()
-                .title("Enochian Board")
-                .borders(Borders::ALL),
-        )
+    let board = Paragraph::new(text_from_board_scaled(app, Some(square_size)))
+        .block(Block::default()
+            .title("Enochian Board")
+            .borders(Borders::ALL)
+            .style(Style::default().bg(Color::Black)))
+        .style(Style::default().bg(Color::Black))
         .wrap(Wrap { trim: true });
     frame.render_widget(board, mid_chunks[0]);
 
-    // Only show info panel if there's space
-    if size.width >= 100 {
+    if can_fit_side_panel {
         let info_chunks = Layout::default()
             .direction(Direction::Vertical)
-            .constraints([Constraint::Min(7), Constraint::Length(6)].as_ref())
+            .constraints([Constraint::Min(7), Constraint::Length(6)])
             .split(mid_chunks[1]);
 
         let status = Paragraph::new(build_status_lines(app))
-            .block(Block::default().title("Status").borders(Borders::ALL))
+            .block(Block::default()
+                .title("Status")
+                .borders(Borders::ALL)
+                .style(Style::default().bg(Color::Black)))
+            .style(Style::default().bg(Color::Black))
             .wrap(Wrap { trim: true });
         frame.render_widget(status, info_chunks[0]);
 
-        let array_text = array_list_text(app);
-        let arrays = Paragraph::new(array_text)
-            .block(Block::default().title("Arrays").borders(Borders::ALL))
+        let arrays = Paragraph::new(array_list_text(app))
+            .block(Block::default()
+                .title("Arrays")
+                .borders(Borders::ALL)
+                .style(Style::default().bg(Color::Black)))
+            .style(Style::default().bg(Color::Black))
             .wrap(Wrap { trim: true });
         frame.render_widget(arrays, info_chunks[1]);
     } else {
-        // Compact status in bottom panel for narrow terminals
         let status = Paragraph::new(build_status_lines(app))
-            .block(Block::default().title("Status").borders(Borders::ALL))
+            .block(Block::default()
+                .title("Status")
+                .borders(Borders::ALL)
+                .style(Style::default().bg(Color::Black)))
+            .style(Style::default().bg(Color::Black))
             .wrap(Wrap { trim: true });
         frame.render_widget(status, mid_chunks[1]);
     }
 
     let input_line = Paragraph::new(Text::from(Line::from(vec![
-        Span::styled("> ", Style::default().fg(Color::Green)),
-        Span::raw(app.input.clone()),
+        Span::styled("> ", Style::default().fg(Color::Green).bg(Color::Black)),
+        Span::styled(app.input.clone(), Style::default().fg(Color::White).bg(Color::Black)),
     ])))
-    .block(Block::default().borders(Borders::ALL).title("Command"));
+    .block(Block::default()
+        .borders(Borders::ALL)
+        .title("Command")
+        .style(Style::default().bg(Color::Black)))
+    .style(Style::default().bg(Color::Black));
     frame.render_widget(input_line, layout[2]);
 }
 
@@ -142,9 +190,13 @@ pub fn render_size_error(frame: &mut Frame, min_width: u16, min_height: u16, siz
             "Terminal too small: {}x{} (minimum {}x{})",
             size.width, size.height, min_width, min_height
         ),
-        Style::default().fg(Color::Red).add_modifier(Modifier::BOLD),
+        Style::default().fg(Color::Red).bg(Color::Black).add_modifier(Modifier::BOLD),
     )])]))
-    .block(Block::default().borders(Borders::ALL).title("Size Error"));
+    .block(Block::default()
+        .borders(Borders::ALL)
+        .title("Size Error")
+        .style(Style::default().bg(Color::Black)))
+    .style(Style::default().bg(Color::Black));
     frame.render_widget(warning, size);
 }
 
@@ -152,7 +204,6 @@ fn build_status_lines(app: &App) -> Text {
     let mut lines = Vec::new();
     let current_army = app.game.state.current_army(&app.game.config);
     
-    // Check if current army is in check
     let in_check = app.game.king_in_check(current_army);
     let check_indicator = if in_check { " ⚠ CHECK" } else { "" };
     
@@ -160,13 +211,14 @@ fn build_status_lines(app: &App) -> Text {
         format!("Turn: {}{}", current_army.display_name(), check_indicator),
         Style::default()
             .fg(if in_check { Color::Red } else { Color::LightBlue })
+            .bg(Color::Black)
             .add_modifier(if in_check { Modifier::BOLD } else { Modifier::empty() }),
     )]));
 
-    lines.push(Line::from(Span::raw(format!(
-        "Array: {}",
-        app.selected_array
-    ))));
+    lines.push(Line::from(Span::styled(
+        format!("Array: {}", app.selected_array),
+        Style::default().fg(Color::White).bg(Color::Black),
+    )));
 
     let frozen: Vec<&str> = Army::ALL
         .iter()
@@ -176,7 +228,7 @@ fn build_status_lines(app: &App) -> Text {
     if !frozen.is_empty() {
         lines.push(Line::from(Span::styled(
             format!("❄ Frozen: {}", frozen.join(", ")),
-            Style::default().fg(Color::Cyan),
+            Style::default().fg(Color::Cyan).bg(Color::Black),
         )));
     }
 
@@ -188,16 +240,16 @@ fn build_status_lines(app: &App) -> Text {
     if !stalemated.is_empty() {
         lines.push(Line::from(Span::styled(
             format!("⊗ Stalemated: {}", stalemated.join(", ")),
-            Style::default().fg(Color::Gray),
+            Style::default().fg(Color::Gray).bg(Color::Black),
         )));
     }
 
-    // Check for game outcome
     if let Some(team) = app.game.winning_team() {
         lines.push(Line::from(Span::styled(
             format!("🏆 {} TEAM WINS!", team.name().to_uppercase()),
             Style::default()
                 .fg(Color::Green)
+                .bg(Color::Black)
                 .add_modifier(Modifier::BOLD),
         )));
     } else if app.game.draw_condition() {
@@ -205,6 +257,7 @@ fn build_status_lines(app: &App) -> Text {
             "⚖ DRAW",
             Style::default()
                 .fg(Color::Yellow)
+                .bg(Color::Black)
                 .add_modifier(Modifier::BOLD),
         )));
     }
@@ -212,14 +265,14 @@ fn build_status_lines(app: &App) -> Text {
     if let Some(ref msg) = app.status_message {
         lines.push(Line::from(Span::styled(
             format!("✓ {}", msg),
-            Style::default().fg(Color::Green),
+            Style::default().fg(Color::Green).bg(Color::Black),
         )));
     }
 
     if let Some(ref err) = app.error_message {
         lines.push(Line::from(Span::styled(
             format!("✗ {}", err),
-            Style::default().fg(Color::Red),
+            Style::default().fg(Color::Red).bg(Color::Black),
         )));
     }
 
@@ -227,7 +280,7 @@ fn build_status_lines(app: &App) -> Text {
     if !history.is_empty() {
         lines.push(Line::from(Span::styled(
             format!("History: {}", history.join(", ")),
-            Style::default().fg(Color::DarkGray),
+            Style::default().fg(Color::DarkGray).bg(Color::Black),
         )));
     }
 
@@ -235,7 +288,7 @@ fn build_status_lines(app: &App) -> Text {
 
     lines.push(Line::from(Span::styled(
         command_help(),
-        Style::default().fg(Color::Rgb(120, 120, 200)),
+        Style::default().fg(Color::Rgb(120, 120, 200)).bg(Color::Black),
     )));
 
     Text::from(lines)
@@ -248,9 +301,10 @@ fn array_list_text(app: &App) -> Text {
         let style = if name == app.selected_array {
             Style::default()
                 .fg(Color::LightGreen)
+                .bg(Color::Black)
                 .add_modifier(Modifier::BOLD)
         } else {
-            Style::default()
+            Style::default().fg(Color::White).bg(Color::Black)
         };
         let order = spec
             .turn_order
@@ -270,7 +324,7 @@ fn army_status_lines(app: &App) -> Vec<Line> {
     let mut lines = Vec::new();
     lines.push(Line::from(Span::styled(
         "─── Armies ───",
-        Style::default().fg(Color::DarkGray),
+        Style::default().fg(Color::DarkGray).bg(Color::Black),
     )));
     
     for &army in Army::ALL.iter() {
@@ -290,10 +344,10 @@ fn army_status_lines(app: &App) -> Vec<Line> {
         status_parts.push(controller);
         
         let style = match army {
-            Army::Blue => Style::default().fg(Color::Blue),
-            Army::Black => Style::default().fg(Color::White),
-            Army::Red => Style::default().fg(Color::Red),
-            Army::Yellow => Style::default().fg(Color::Yellow),
+            Army::Blue => Style::default().fg(Color::Blue).bg(Color::Black),
+            Army::Black => Style::default().fg(Color::White).bg(Color::Black),
+            Army::Red => Style::default().fg(Color::Red).bg(Color::Black),
+            Army::Yellow => Style::default().fg(Color::Yellow).bg(Color::Black),
         };
         
         let current = app.game.current_army();
@@ -316,27 +370,19 @@ fn army_status_lines(app: &App) -> Vec<Line> {
     lines
 }
 
-fn text_from_board_scaled(app: &App, available_height: Option<u16>) -> Text {
+fn text_from_board_scaled(app: &App, square_size: Option<u16>) -> Text {
     let mut lines = Vec::new();
     let current_army = app.game.current_army();
     
-    // Determine square size based on available space
-    // Minimum: 1x1 (3 chars wide: " X ")
-    // Medium: 2x2 (5 chars wide: "  X  ")
-    // Large: 3x3 (7 chars wide: "   X   ")
-    let square_height = if let Some(h) = available_height {
-        if h >= 35 { 3 } else if h >= 25 { 2 } else { 1 }
-    } else {
-        1
-    };
-    
-    let square_width = square_height * 2 + 1; // Maintain aspect ratio
+    let square_height = square_size.unwrap_or(1);
+    let square_width = (square_height * 2 + 1) as usize; // Convert to usize for formatting
     
     // Add turn indicator at top
     lines.push(Line::from(Span::styled(
         format!("▶ {} to move", current_army.display_name()),
         Style::default()
             .fg(army_color(current_army))
+            .bg(Color::Black)
             .add_modifier(Modifier::BOLD),
     )));
     
@@ -349,10 +395,10 @@ fn text_from_board_scaled(app: &App, available_height: Option<u16>) -> Text {
             if row == square_height / 2 {
                 spans.push(Span::styled(
                     format!("{} ", rank + 1),
-                    Style::default().fg(Color::White),
+                    Style::default().fg(Color::White).bg(Color::Black),
                 ));
             } else {
-                spans.push(Span::raw("  "));
+                spans.push(Span::styled("  ", Style::default().bg(Color::Black)));
             }
             
             for file in 0..8 {
@@ -373,10 +419,10 @@ fn text_from_board_scaled(app: &App, available_height: Option<u16>) -> Text {
     }
     
     // File labels
-    let mut file_spans = vec![Span::raw("  ")];
+    let mut file_spans = vec![Span::styled("  ", Style::default().bg(Color::Black))];
     for f in b'a'..=b'h' {
         let label = format!("{:^width$}", (f as char).to_ascii_uppercase(), width = square_width);
-        file_spans.push(Span::styled(label, Style::default().fg(Color::Gray)));
+        file_spans.push(Span::styled(label, Style::default().fg(Color::Gray).bg(Color::Black)));
     }
     lines.push(Line::from(file_spans));
     
@@ -393,12 +439,13 @@ fn army_color(army: Army) -> Color {
 }
 
 fn board_square_info(app: &App, square: u8, current_army: Army) -> (char, Style) {
+    // Use more distinct colors for light/dark squares
     let base_color = if (square / 8 + square % 8) % 2 == 0 {
-        Color::Rgb(30, 30, 30)
+        Color::Rgb(50, 50, 50)  // Light squares - medium gray
     } else {
-        Color::Rgb(20, 20, 20)
+        Color::Rgb(25, 25, 25)  // Dark squares - darker gray
     };
-    let throne_bg = Color::Rgb(80, 45, 15);
+    let throne_bg = Color::Rgb(90, 50, 20);  // Brighter throne color
     let throne = app.game.board.throne_owner(square);
     let bg = if throne.is_some() {
         throne_bg
@@ -417,9 +464,9 @@ fn board_square_info(app: &App, square: u8, current_army: Army) -> (char, Style)
         )
     } else if throne.is_some() {
         // Show throne marker on empty throne squares
-        ('◆', Style::default().fg(Color::Rgb(150, 100, 50)).bg(bg))
+        ('◆', Style::default().fg(Color::Rgb(180, 120, 60)).bg(bg))
     } else {
-        ('.', Style::default().fg(Color::Gray).bg(bg))
+        ('.', Style::default().fg(Color::Rgb(80, 80, 80)).bg(bg))
     }
 }
 
