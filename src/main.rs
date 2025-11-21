@@ -109,6 +109,12 @@ fn run(terminal: &mut DefaultTerminal, app: &mut App) -> io::Result<bool> {
                                 app.current_screen = CurrentScreen::Exiting;
                             }
                         }
+                        KeyCode::Char('u') if key.modifiers.contains(event::KeyModifiers::CONTROL) => {
+                            app.undo();
+                        }
+                        KeyCode::Char('r') if key.modifiers.contains(event::KeyModifiers::CONTROL) => {
+                            app.redo();
+                        }
                         KeyCode::Char('1') => app.select_army(Army::Blue),
                         KeyCode::Char('2') => app.select_army(Army::Red),
                         KeyCode::Char('3') => app.select_army(Army::Black),

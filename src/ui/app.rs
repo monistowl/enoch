@@ -18,6 +18,8 @@ pub struct App {
     pub selected_army: Option<Army>,
     pub selected_square: Option<u8>,
     pub move_history: Vec<String>,
+    pub undo_stack: Vec<Game>,
+    pub redo_stack: Vec<Game>,
 }
 
 pub enum CurrentScreen {
@@ -74,6 +76,8 @@ impl App {
             selected_army: Some(current_army),
             selected_square: None,
             move_history: Vec::new(),
+            undo_stack: Vec::new(),
+            redo_stack: Vec::new(),
         }
     }
 
@@ -106,11 +110,44 @@ impl App {
         self.selected_square = None;
     }
 
+    pub fn undo(&mut self) {
+        if let Some(prev_state) = self.undo_stack.pop() {
+            self.redo_stack.push(self.game.clone());
+            self.game = prev_state;
+            if !self.move_history.is_empty() {
+                self.move_history.pop();
+            }
+            self.selected_square = None;
+            self.selected_army = Some(self.game.current_army());
+            self.status_message = Some("Undone".to_string());
+            self.error_message = None;
+        } else {
+            self.error_message = Some("Nothing to undo".to_string());
+        }
+    }
+
+    pub fn redo(&mut self) {
+        if let Some(next_state) = self.redo_stack.pop() {
+            self.undo_stack.push(self.game.clone());
+            self.game = next_state;
+            self.selected_square = None;
+            self.selected_army = Some(self.game.current_army());
+            self.status_message = Some("Redone".to_string());
+            self.error_message = None;
+        } else {
+            self.error_message = Some("Nothing to redo".to_string());
+        }
+    }
+
     pub fn try_select_square(&mut self, input: &str) -> bool {
         if let Some(square) = parse_square(input) {
             if let Some(selected_sq) = self.selected_square {
                 // Second square - try to move
                 if let Some(army) = self.selected_army {
+                    // Save state for undo
+                    self.undo_stack.push(self.game.clone());
+                    self.redo_stack.clear();
+                    
                     match self.game.apply_move(army, selected_sq, square, None) {
                         Ok(msg) => {
                             self.move_history.push(format!("{}: {}->{}", 
@@ -124,7 +161,10 @@ impl App {
                             return true;
                         }
                         Err(err) => {
-                            self.error_message = Some(err);
+                            // Restore state on error
+                            self.game = self.undo_stack.pop().unwrap();
+                            self.error_message = Some(format!("{} (from {} to {})", 
+                                err, square_name(selected_sq), square_name(square)));
                             self.selected_square = None;
                             return false;
                         }
@@ -133,18 +173,26 @@ impl App {
             } else {
                 // First square - select piece
                 if let Some(army) = self.selected_army {
-                    if let Some((piece_army, _)) = self.game.board.piece_at(square) {
+                    if let Some((piece_army, kind)) = self.game.board.piece_at(square) {
                         if piece_army == army {
-                            self.selected_square = Some(square);
-                            self.status_message = Some(format!("Selected {} at {}", 
-                                army.display_name(), square_name(square)));
-                            return true;
+                            let legal_moves = self.game.generate_legal_moves(army);
+                            let can_move = legal_moves.iter().any(|m| m.from == square);
+                            if can_move {
+                                self.selected_square = Some(square);
+                                self.status_message = Some(format!("Selected {} {} at {}", 
+                                    army.display_name(), kind.name(), square_name(square)));
+                                return true;
+                            } else {
+                                self.error_message = Some(format!("{} at {} has no legal moves", 
+                                    kind.name(), square_name(square)));
+                                return false;
+                            }
                         } else {
                             self.error_message = Some(format!("That's {}'s piece", piece_army.display_name()));
                             return false;
                         }
                     } else {
-                        self.error_message = Some("No piece at that square".to_string());
+                        self.error_message = Some(format!("No piece at {}", square_name(square)));
                         return false;
                     }
                 }

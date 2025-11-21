@@ -283,12 +283,19 @@ fn build_status_lines(app: &App) -> Text {
         )));
     }
 
-    let history = app.history_lines();
-    if !history.is_empty() {
+    // Move history
+    if !app.move_history.is_empty() {
         lines.push(Line::from(Span::styled(
-            format!("History: {}", history.join(", ")),
+            "─── Moves ───",
             Style::default().fg(Color::DarkGray).bg(BG_COLOR),
         )));
+        for (i, mv) in app.move_history.iter().rev().take(5).enumerate() {
+            let move_num = app.move_history.len() - i;
+            lines.push(Line::from(Span::styled(
+                format!("{}. {}", move_num, mv),
+                Style::default().fg(Color::Rgb(180, 180, 180)).bg(BG_COLOR),
+            )));
+        }
     }
 
     lines.extend(army_status_lines(app));
