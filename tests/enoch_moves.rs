@@ -90,3 +90,97 @@ fn pawns_move_in_army_direction() {
     let (yellow_moves, _) = moves::compute_pawns_moves(&board, Army::Yellow);
     assert_eq!(yellow_moves, bit(square('a', 5)));
 }
+
+#[test]
+fn rook_sliding_moves() {
+    let mut board = Board::new(&[]);
+    board.place_piece(Army::Blue, PieceKind::Rook, square('d', 4));
+    
+    let moves = moves::compute_rooks_moves(&board, Army::Blue);
+    
+    // Should move along rank and file
+    assert!(moves & bit(square('d', 1)) != 0);
+    assert!(moves & bit(square('d', 8)) != 0);
+    assert!(moves & bit(square('a', 4)) != 0);
+    assert!(moves & bit(square('h', 4)) != 0);
+}
+
+#[test]
+fn rook_blocked_by_own_piece() {
+    let mut board = Board::new(&[]);
+    board.place_piece(Army::Blue, PieceKind::Rook, square('d', 4));
+    board.place_piece(Army::Blue, PieceKind::Pawn, square('d', 6));
+    
+    let moves = moves::compute_rooks_moves(&board, Army::Blue);
+    
+    // Should not move through own piece
+    assert!(moves & bit(square('d', 6)) == 0);
+    assert!(moves & bit(square('d', 7)) == 0);
+    assert!(moves & bit(square('d', 8)) == 0);
+    // But should move up to the blocker
+    assert!(moves & bit(square('d', 5)) != 0);
+}
+
+#[test]
+fn knight_moves_l_shape() {
+    let mut board = Board::new(&[]);
+    board.place_piece(Army::Blue, PieceKind::Knight, square('e', 4));
+    
+    let moves = moves::compute_knights_moves(&board, Army::Blue);
+    
+    // All 8 L-shaped moves from e4
+    assert!(moves & bit(square('d', 6)) != 0);
+    assert!(moves & bit(square('f', 6)) != 0);
+    assert!(moves & bit(square('g', 5)) != 0);
+    assert!(moves & bit(square('g', 3)) != 0);
+    assert!(moves & bit(square('f', 2)) != 0);
+    assert!(moves & bit(square('d', 2)) != 0);
+    assert!(moves & bit(square('c', 3)) != 0);
+    assert!(moves & bit(square('c', 5)) != 0);
+}
+
+#[test]
+fn king_moves_one_square() {
+    let mut board = Board::new(&[]);
+    board.place_piece(Army::Blue, PieceKind::King, square('e', 4));
+    
+    let moves = moves::compute_king_moves(&board, Army::Blue);
+    
+    // All 8 adjacent squares
+    assert!(moves & bit(square('d', 5)) != 0);
+    assert!(moves & bit(square('e', 5)) != 0);
+    assert!(moves & bit(square('f', 5)) != 0);
+    assert!(moves & bit(square('f', 4)) != 0);
+    assert!(moves & bit(square('f', 3)) != 0);
+    assert!(moves & bit(square('e', 3)) != 0);
+    assert!(moves & bit(square('d', 3)) != 0);
+    assert!(moves & bit(square('d', 4)) != 0);
+}
+
+#[test]
+fn queen_blocked_by_bishop_same_diagonal() {
+    let mut board = Board::new(&[]);
+    board.place_piece(Army::Blue, PieceKind::Queen, square('e', 4));
+    board.place_piece(Army::Blue, PieceKind::Bishop, square('c', 6));
+    
+    let moves = moves::compute_queens_moves(&board, Army::Blue);
+    
+    // Queen on e4 can leap to c6 (2 squares diagonally)
+    // But c6 has a bishop on same diagonal system (Aries)
+    // So the leap should be blocked (can only move to empty squares)
+    assert!(moves & bit(square('c', 6)) == 0);
+}
+
+#[test]
+fn pawn_diagonal_captures() {
+    let mut board = Board::new(&[]);
+    board.place_piece(Army::Blue, PieceKind::Pawn, square('e', 4));
+    board.place_piece(Army::Red, PieceKind::Pawn, square('d', 5));
+    board.place_piece(Army::Red, PieceKind::Pawn, square('f', 5));
+    
+    let (_, attacks) = moves::compute_pawns_moves(&board, Army::Blue);
+    
+    // Blue pawn should attack diagonally forward
+    assert!(attacks & bit(square('d', 5)) != 0);
+    assert!(attacks & bit(square('f', 5)) != 0);
+}
