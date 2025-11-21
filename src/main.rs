@@ -82,6 +82,10 @@ struct Args {
     #[arg(long)]
     evaluate: bool,
     
+    /// Interactive REPL mode
+    #[arg(long)]
+    interactive: bool,
+    
     /// Show board
     #[arg(long)]
     show: bool,
@@ -323,6 +327,12 @@ fn run_headless(args: Args) {
         Vec::new()
     };
     
+    // Interactive mode
+    if args.interactive {
+        run_interactive(&mut game, &ai_armies, &args);
+        return;
+    }
+    
     // Validate move if provided
     if let Some(validate_cmd) = &args.validate {
         validate_move(&mut game, validate_cmd);
@@ -506,6 +516,170 @@ fn show_legal_moves(game: &mut Game, army: Army) {
         let to_file = (b'a' + (mv.to % 8)) as char;
         let to_rank = (b'1' + (mv.to / 8)) as char;
         println!("  {}{} -> {}{}", from_file, from_rank, to_file, to_rank);
+    }
+}
+
+fn run_interactive(game: &mut Game, ai_armies: &[Army], args: &Args) {
+    use std::io::{self, Write};
+    
+    println!("Enochian Chess Interactive Mode");
+    println!("Type 'help' for commands, 'quit' to exit\n");
+    
+    loop {
+        print!("> ");
+        io::stdout().flush().unwrap();
+        
+        let mut input = String::new();
+        if io::stdin().read_line(&mut input).is_err() {
+            break;
+        }
+        
+        let input = input.trim();
+        if input.is_empty() {
+            continue;
+        }
+        
+        let parts: Vec<&str> = input.split_whitespace().collect();
+        let cmd = parts[0];
+        
+        match cmd {
+            "quit" | "exit" | "q" => break,
+            "help" | "h" => {
+                println!("Commands:");
+                println!("  show              - Display board");
+                println!("  status            - Show game status");
+                println!("  history           - Show move history");
+                println!("  evaluate          - Evaluate position");
+                println!("  analyze <square>  - Analyze a square");
+                println!("  validate <move>   - Validate a move");
+                println!("  move <move>       - Make a move (e.g., 'move blue: e2-e3')");
+                println!("  legal <army>      - Show legal moves for army");
+                println!("  quit              - Exit interactive mode");
+            }
+            "show" | "board" => {
+                for row in game.board.ascii_rows() {
+                    println!("{}", row);
+                }
+            }
+            "status" => show_status(game),
+            "history" => show_history(game),
+            "evaluate" | "eval" => evaluate_position(game),
+            "analyze" => {
+                if parts.len() < 2 {
+                    println!("Usage: analyze <square>");
+                } else {
+                    let square_str = parts[1];
+                    if let Ok(square) = parse_square_headless(square_str) {
+                        // Inline analyze logic
+                        if let Some((piece_army, piece_kind)) = game.board.piece_at(square) {
+                            println!("Square {}: {} {}", square_str, piece_army.display_name(), piece_kind.name());
+                            let all_moves = game.legal_moves(piece_army).to_vec();
+                            let moves: Vec<_> = all_moves.iter().filter(|m| m.from == square).collect();
+                            if moves.is_empty() {
+                                println!("No legal moves from this square");
+                            } else {
+                                println!("Legal moves:");
+                                for mv in moves {
+                                    let to_file = (b'a' + (mv.to % 8)) as char;
+                                    let to_rank = (b'1' + (mv.to / 8)) as char;
+                                    println!("  {}{}", to_file, to_rank);
+                                }
+                            }
+                        } else {
+                            println!("Empty square");
+                        }
+                    } else {
+                        println!("Invalid square");
+                    }
+                }
+            }
+            "validate" => {
+                if parts.len() < 2 {
+                    println!("Usage: validate <move>");
+                } else {
+                    let move_str = parts[1..].join(" ");
+                    // Parse and validate
+                    let move_parts: Vec<&str> = move_str.split(':').collect();
+                    if move_parts.len() == 2 {
+                        if let Some(army) = Army::from_str(move_parts[0].trim()) {
+                            let coords = move_parts[1].trim().replace('x', "-");
+                            let coord_parts: Vec<&str> = coords.split('-').collect();
+                            if coord_parts.len() == 2 {
+                                if let (Ok(from), Ok(to)) = (
+                                    parse_square_headless(coord_parts[0].trim()),
+                                    parse_square_headless(coord_parts[1].trim())
+                                ) {
+                                    if game.is_legal_move(army, from, to) {
+                                        println!("✓ Valid move");
+                                    } else {
+                                        println!("❌ Invalid move");
+                                    }
+                                } else {
+                                    println!("Invalid square notation");
+                                }
+                            } else {
+                                println!("Invalid move format");
+                            }
+                        } else {
+                            println!("Unknown army");
+                        }
+                    } else {
+                        println!("Format: army: from-to");
+                    }
+                }
+            }
+            "move" | "m" => {
+                if parts.len() < 2 {
+                    println!("Usage: move <army: from-to>");
+                } else {
+                    let move_str = parts[1..].join(" ");
+                    let move_parts: Vec<&str> = move_str.split(':').collect();
+                    if move_parts.len() == 2 {
+                        if let Some(army) = Army::from_str(move_parts[0].trim()) {
+                            let coords = move_parts[1].trim().replace('x', "-");
+                            let coord_parts: Vec<&str> = coords.split('-').collect();
+                            if coord_parts.len() == 2 {
+                                if let (Ok(from), Ok(to)) = (
+                                    parse_square_headless(coord_parts[0].trim()),
+                                    parse_square_headless(coord_parts[1].trim())
+                                ) {
+                                    match game.apply_move(army, from, to, None) {
+                                        Ok(msg) => println!("✓ {}", msg),
+                                        Err(e) => println!("❌ {}", e),
+                                    }
+                                } else {
+                                    println!("Invalid square notation");
+                                }
+                            } else {
+                                println!("Invalid move format");
+                            }
+                        } else {
+                            println!("Unknown army");
+                        }
+                    } else {
+                        println!("Format: army: from-to");
+                    }
+                }
+            }
+            "legal" => {
+                if parts.len() < 2 {
+                    println!("Usage: legal <army>");
+                } else if let Some(army) = Army::from_str(parts[1]) {
+                    show_legal_moves(game, army);
+                } else {
+                    println!("Unknown army");
+                }
+            }
+            _ => println!("Unknown command. Type 'help' for commands."),
+        }
+    }
+    
+    // Save state if specified
+    if let Some(save_file) = &args.state {
+        if let Ok(json) = game.to_json() {
+            std::fs::write(save_file, json).ok();
+            println!("Game saved to {}", save_file);
+        }
     }
 }
 
