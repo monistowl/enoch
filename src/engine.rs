@@ -5,3 +5,4 @@ pub mod macros;
 pub mod moves;
 pub mod piece_kind;
 pub mod types;
+pub mod ai;

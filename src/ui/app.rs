@@ -1,6 +1,7 @@
 use crate::engine::arrays::{available_arrays, default_array, find_array_by_name};
 use crate::engine::game::Game;
 use crate::engine::types::{Army, PieceKind, Square};
+use crate::engine::ai;
 use std::fmt;
 use std::fs;
 use std::collections::HashMap;
@@ -24,6 +25,7 @@ pub struct App {
     pub captured_pieces: HashMap<Army, Vec<PieceKind>>,
     pub last_move: Option<(Army, Square, Square)>,
     pub colorblind_mode: bool,
+    pub ai_armies: Vec<Army>,
 }
 
 pub enum CurrentScreen {
@@ -55,6 +57,7 @@ pub enum UiCommand {
     Undo,
     Redo,
     ToggleColorblind,
+    ToggleAI(Army),
 }
 
 #[derive(Debug)]
@@ -89,6 +92,7 @@ impl App {
             captured_pieces: HashMap::new(),
             last_move: None,
             colorblind_mode: false,
+            ai_armies: Vec::new(),
         }
     }
 
@@ -179,6 +183,10 @@ impl App {
                             self.error_message = None;
                             self.selected_square = None;
                             self.selected_army = Some(self.game.current_army());
+                            
+                            // Check if AI should move next
+                            self.try_ai_move();
+                            
                             return true;
                         }
                         Err(err) => {
@@ -237,6 +245,27 @@ impl App {
             }
             Err(err) => {
                 self.error_message = Some(err.to_string());
+            }
+        }
+        
+        // Check if AI should move
+        self.try_ai_move();
+    }
+    
+    pub fn try_ai_move(&mut self) {
+        let current = self.game.current_army();
+        if self.ai_armies.contains(&current) {
+            if let Some(mv) = ai::capture_preferring_move(&mut self.game, current) {
+                let _ = self.game.apply_move(current, mv.from, mv.to, None);
+                self.last_move = Some((current, mv.from, mv.to));
+                self.move_history.push(format!("{}: {}->{} (AI)", 
+                    current.display_name(),
+                    square_name(mv.from),
+                    square_name(mv.to)));
+                self.selected_army = Some(self.game.current_army());
+                
+                // Recursively check if next army is also AI
+                self.try_ai_move();
             }
         }
     }
@@ -418,6 +447,16 @@ impl App {
                 self.status_message = Some(format!("Colorblind mode {}", mode));
                 self.error_message = None;
             }
+            UiCommand::ToggleAI(army) => {
+                if self.ai_armies.contains(&army) {
+                    self.ai_armies.retain(|&a| a != army);
+                    self.status_message = Some(format!("{} AI disabled", army.display_name()));
+                } else {
+                    self.ai_armies.push(army);
+                    self.status_message = Some(format!("{} AI enabled", army.display_name()));
+                }
+                self.error_message = None;
+            }
         }
         if self.status_message.is_some() {
             self.error_message = None;
@@ -581,6 +620,7 @@ impl App {
             "• /undo or Ctrl-U - Undo last move".to_string(),
             "• /redo or Ctrl-R - Redo move".to_string(),
             "• /colorblind - Toggle colorblind mode (adds symbols)".to_string(),
+            "• /ai <army> - Toggle AI for army (blue/red/black/yellow)".to_string(),
             "• [ ] - Cycle arrays with bracket keys".to_string(),
             "• ? or F1 - Toggle this help screen".to_string(),
             "• ESC - Exit help or quit game".to_string(),
@@ -653,6 +693,16 @@ fn parse_ui_command(input: &str) -> Result<UiCommand, CommandParseError> {
                 "undo" | "u" => Ok(UiCommand::Undo),
                 "redo" | "r" => Ok(UiCommand::Redo),
                 "colorblind" | "cb" => Ok(UiCommand::ToggleColorblind),
+                "ai" => {
+                    if let Some(name) = parts.next() {
+                        match Army::from_str(name) {
+                            Some(army) => Ok(UiCommand::ToggleAI(army)),
+                            None => Err(CommandParseError("Unknown army".into())),
+                        }
+                    } else {
+                        Err(CommandParseError("Missing army name".into()))
+                    }
+                }
                 _ => Err(CommandParseError("Unknown command".into())),
             }
         } else {
