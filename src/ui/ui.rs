@@ -301,6 +301,35 @@ fn build_status_lines(app: &App) -> Text {
         }
     }
 
+    // Captured pieces
+    if !app.captured_pieces.is_empty() {
+        lines.push(Line::from(Span::styled(
+            "─── Captured ───",
+            Style::default().fg(Color::DarkGray).bg(BG_COLOR),
+        )));
+        for &army in Army::ALL.iter() {
+            if let Some(pieces) = app.captured_pieces.get(&army) {
+                if !pieces.is_empty() {
+                    let piece_str: String = pieces.iter()
+                        .map(|k| match k {
+                            PieceKind::Queen => "Q",
+                            PieceKind::Rook => "R",
+                            PieceKind::Bishop => "B",
+                            PieceKind::Knight => "N",
+                            PieceKind::Pawn => "P",
+                            PieceKind::King => "K",
+                        })
+                        .collect::<Vec<_>>()
+                        .join(" ");
+                    lines.push(Line::from(Span::styled(
+                        format!("{}: {}", army.display_name(), piece_str),
+                        Style::default().fg(army_color(army)).bg(BG_COLOR),
+                    )));
+                }
+            }
+        }
+    }
+
     lines.extend(army_status_lines(app));
 
     lines.push(Line::from(Span::styled(

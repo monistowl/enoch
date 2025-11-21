@@ -3,6 +3,7 @@ use crate::engine::game::Game;
 use crate::engine::types::{Army, PieceKind, Square};
 use std::fmt;
 use std::fs;
+use std::collections::HashMap;
 
 pub struct App {
     pub game: Game,
@@ -20,6 +21,7 @@ pub struct App {
     pub move_history: Vec<String>,
     pub undo_stack: Vec<Game>,
     pub redo_stack: Vec<Game>,
+    pub captured_pieces: HashMap<Army, Vec<PieceKind>>,
 }
 
 pub enum CurrentScreen {
@@ -81,6 +83,7 @@ impl App {
             move_history: Vec::new(),
             undo_stack: Vec::new(),
             redo_stack: Vec::new(),
+            captured_pieces: HashMap::new(),
         }
     }
 
@@ -150,6 +153,15 @@ impl App {
                     // Save state for undo
                     self.undo_stack.push(self.game.clone());
                     self.redo_stack.clear();
+                    
+                    // Check if there's a piece to capture
+                    if let Some((captured_army, captured_kind)) = self.game.board.piece_at(square) {
+                        if captured_army != army && captured_kind != PieceKind::King {
+                            self.captured_pieces.entry(captured_army)
+                                .or_insert_with(Vec::new)
+                                .push(captured_kind);
+                        }
+                    }
                     
                     match self.game.apply_move(army, selected_sq, square, None) {
                         Ok(msg) => {
@@ -374,6 +386,7 @@ impl App {
                 self.move_history.clear();
                 self.undo_stack.clear();
                 self.redo_stack.clear();
+                self.captured_pieces.clear();
                 self.selected_square = None;
                 self.selected_army = Some(self.game.current_army());
                 self.status_message = Some("Game restarted".to_string());
