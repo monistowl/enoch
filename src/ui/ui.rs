@@ -92,15 +92,16 @@ fn render_main(frame: &mut Frame, app: &mut App) {
         .direction(Direction::Vertical)
         .constraints([
             Constraint::Length(header_height),
+            Constraint::Length(1), // Army selector
             Constraint::Min(10),
             Constraint::Length(input_height),
         ])
         .split(size);
 
     let header_text = if size.width < 100 {
-        "Enochian Chess | ? for help"
+        "Enochian Chess | ? for help | 1-4: Select Army | Tab: Cycle"
     } else {
-        "Enochian Chess | Move: army: e2-e4 | Commands: /arrays /status /array /exchange /save /load | ? for help"
+        "Enochian Chess | 1-4 or Tab: Select Army | Enter square (e2) to select/move | ? for help"
     };
     
     let header = Paragraph::new(Span::styled(
@@ -116,6 +117,10 @@ fn render_main(frame: &mut Frame, app: &mut App) {
         .style(Style::default().bg(BG_COLOR)));
     frame.render_widget(header, layout[0]);
 
+    // Army selector bar
+    let army_selector = build_army_selector(app);
+    frame.render_widget(army_selector, layout[1]);
+
     let mid_chunks = if can_fit_side_panel {
         Layout::default()
             .direction(Direction::Horizontal)
@@ -123,12 +128,12 @@ fn render_main(frame: &mut Frame, app: &mut App) {
                 Constraint::Length(board_width),
                 Constraint::Min(info_width),
             ])
-            .split(layout[1])
+            .split(layout[2])
     } else {
         Layout::default()
             .direction(Direction::Vertical)
             .constraints([Constraint::Min(board_height), Constraint::Min(5)])
-            .split(layout[1])
+            .split(layout[2])
     };
 
     let board = Paragraph::new(text_from_board_scaled(app, Some(square_size)))
@@ -183,7 +188,7 @@ fn render_main(frame: &mut Frame, app: &mut App) {
         .title("Command")
         .style(Style::default().bg(BG_COLOR)))
     .style(Style::default().bg(BG_COLOR));
-    frame.render_widget(input_line, layout[2]);
+    frame.render_widget(input_line, layout[3]);
 }
 
 pub fn render_size_error(frame: &mut Frame, min_width: u16, min_height: u16, size: Rect) {
@@ -442,21 +447,41 @@ fn army_color(army: Army) -> Color {
 
 fn board_square_info(app: &App, square: u8, current_army: Army) -> (char, Style) {
     let base_color = if (square / 8 + square % 8) % 2 == 0 {
-        Color::Rgb(80, 80, 80)  // Light squares - brighter gray
+        Color::Rgb(80, 80, 80)
     } else {
-        Color::Rgb(40, 40, 40)  // Dark squares - medium gray
+        Color::Rgb(40, 40, 40)
     };
-    let throne_bg = Color::Rgb(120, 70, 30);  // Brighter throne
+    
+    let is_selected = app.selected_square == Some(square);
+    let is_legal_move = if let Some(from_sq) = app.selected_square {
+        if let Some(army) = app.selected_army {
+            app.game.is_legal_move(army, from_sq, square)
+        } else {
+            false
+        }
+    } else {
+        false
+    };
+    
+    let throne_bg = Color::Rgb(120, 70, 30);
+    let selected_bg = Color::Rgb(100, 100, 50);
+    let legal_move_bg = Color::Rgb(50, 80, 50);
+    
     let throne = app.game.board.throne_owner(square);
-    let bg = if throne.is_some() {
+    let bg = if is_selected {
+        selected_bg
+    } else if is_legal_move {
+        legal_move_bg
+    } else if throne.is_some() {
         throne_bg
     } else {
         base_color
     };
+    
     if let Some((army, kind)) = app.game.board.piece_at(square) {
         let fg = army_color(army);
         let mut style = Style::default().fg(fg).bg(bg);
-        if army == current_army {
+        if army == current_army || is_selected {
             style = style.add_modifier(Modifier::BOLD);
         }
         (
@@ -496,4 +521,39 @@ fn controller_label(id: PlayerId) -> &'static str {
 
 fn command_help() -> String {
     "Commands: blue: e2-e4 | /arrays | /status | /array <name|next|prev> | /exchange <army> | /save <file> | /load <file> | [ ] to cycle".to_string()
+}
+
+fn build_army_selector(app: &App) -> Paragraph {
+    let armies = [Army::Blue, Army::Red, Army::Black, Army::Yellow];
+    let mut spans = vec![Span::styled("Army: ", Style::default().fg(Color::White).bg(BG_COLOR))];
+    
+    for (i, &army) in armies.iter().enumerate() {
+        let is_selected = app.selected_army == Some(army);
+        let is_current = app.game.current_army() == army;
+        
+        let mut style = Style::default()
+            .fg(army_color(army))
+            .bg(if is_selected { Color::Rgb(60, 60, 60) } else { BG_COLOR });
+        
+        if is_selected {
+            style = style.add_modifier(Modifier::BOLD | Modifier::UNDERLINED);
+        } else if is_current {
+            style = style.add_modifier(Modifier::BOLD);
+        }
+        
+        let label = format!("[{}] {} ", i + 1, army.display_name());
+        spans.push(Span::styled(label, style));
+    }
+    
+    if let Some(sq) = app.selected_square {
+        let file = (b'a' + (sq % 8)) as char;
+        let rank = (b'1' + (sq / 8)) as char;
+        spans.push(Span::styled(
+            format!(" | Selected: {}{}", file, rank),
+            Style::default().fg(Color::Yellow).bg(BG_COLOR).add_modifier(Modifier::BOLD),
+        ));
+    }
+    
+    Paragraph::new(Line::from(spans))
+        .style(Style::default().bg(BG_COLOR))
 }

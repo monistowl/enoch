@@ -15,6 +15,9 @@ pub struct App {
     pub array_index: usize,
     pub help_scroll: usize,
     pub last_frame: Option<String>,
+    pub selected_army: Option<Army>,
+    pub selected_square: Option<u8>,
+    pub move_history: Vec<String>,
 }
 
 pub enum CurrentScreen {
@@ -56,6 +59,7 @@ impl fmt::Display for CommandParseError {
 impl App {
     pub fn new(_force_halfblocks: bool) -> Self {
         let spec = default_array();
+        let current_army = spec.turn_order[0];
         App {
             game: Game::from_array_spec(spec),
             current_screen: CurrentScreen::Main,
@@ -67,6 +71,9 @@ impl App {
             array_index: 0,
             help_scroll: 0,
             last_frame: None,
+            selected_army: Some(current_army),
+            selected_square: None,
+            move_history: Vec::new(),
         }
     }
 
@@ -80,6 +87,70 @@ impl App {
     pub fn delete_char(&mut self) {
         self.input.pop();
         self.error_message = None;
+    }
+
+    pub fn select_army(&mut self, army: Army) {
+        self.selected_army = Some(army);
+        self.selected_square = None;
+    }
+
+    pub fn cycle_selected_army(&mut self, direction: i8) {
+        let armies = [Army::Blue, Army::Red, Army::Black, Army::Yellow];
+        if let Some(current) = self.selected_army {
+            let idx = armies.iter().position(|&a| a == current).unwrap_or(0);
+            let new_idx = ((idx as i8 + direction).rem_euclid(4)) as usize;
+            self.selected_army = Some(armies[new_idx]);
+        } else {
+            self.selected_army = Some(self.game.current_army());
+        }
+        self.selected_square = None;
+    }
+
+    pub fn try_select_square(&mut self, input: &str) -> bool {
+        if let Some(square) = parse_square(input) {
+            if let Some(selected_sq) = self.selected_square {
+                // Second square - try to move
+                if let Some(army) = self.selected_army {
+                    match self.game.apply_move(army, selected_sq, square, None) {
+                        Ok(msg) => {
+                            self.move_history.push(format!("{}: {}->{}", 
+                                army.display_name(), 
+                                square_name(selected_sq), 
+                                square_name(square)));
+                            self.status_message = Some(msg);
+                            self.error_message = None;
+                            self.selected_square = None;
+                            self.selected_army = Some(self.game.current_army());
+                            return true;
+                        }
+                        Err(err) => {
+                            self.error_message = Some(err);
+                            self.selected_square = None;
+                            return false;
+                        }
+                    }
+                }
+            } else {
+                // First square - select piece
+                if let Some(army) = self.selected_army {
+                    if let Some((piece_army, _)) = self.game.board.piece_at(square) {
+                        if piece_army == army {
+                            self.selected_square = Some(square);
+                            self.status_message = Some(format!("Selected {} at {}", 
+                                army.display_name(), square_name(square)));
+                            return true;
+                        } else {
+                            self.error_message = Some(format!("That's {}'s piece", piece_army.display_name()));
+                            return false;
+                        }
+                    } else {
+                        self.error_message = Some("No piece at that square".to_string());
+                        return false;
+                    }
+                }
+            }
+        }
+        false
     }
 
     pub fn submit_command(&mut self) {
@@ -544,4 +615,10 @@ fn parse_square(token: &str) -> Option<Square> {
     let file = file_char as u8 - b'a';
     let rank = rank_char as u8 - b'1';
     Some(rank as Square * 8 + file as Square)
+}
+
+fn square_name(square: Square) -> String {
+    let file = (b'a' + (square % 8)) as char;
+    let rank = (b'1' + (square / 8)) as char;
+    format!("{}{}", file, rank)
 }

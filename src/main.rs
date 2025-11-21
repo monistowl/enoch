@@ -3,6 +3,7 @@
 mod engine;
 mod ui;
 
+use crate::engine::types::Army;
 use crate::ui::app::{App, CurrentScreen};
 use crate::ui::ui::{render, render_size_error};
 use crossterm::event::{self, DisableMouseCapture, Event, KeyCode, KeyEventKind};
@@ -100,10 +101,31 @@ fn run(terminal: &mut DefaultTerminal, app: &mut App) -> io::Result<bool> {
                 }
                 match app.current_screen {
                     CurrentScreen::Main => match key.code {
-                        KeyCode::Esc => app.current_screen = CurrentScreen::Exiting,
-                        KeyCode::Char(to_insert) => app.add_char(to_insert),
+                        KeyCode::Esc => {
+                            if app.selected_square.is_some() {
+                                app.selected_square = None;
+                                app.status_message = Some("Selection cleared".to_string());
+                            } else {
+                                app.current_screen = CurrentScreen::Exiting;
+                            }
+                        }
+                        KeyCode::Char('1') => app.select_army(Army::Blue),
+                        KeyCode::Char('2') => app.select_army(Army::Red),
+                        KeyCode::Char('3') => app.select_army(Army::Black),
+                        KeyCode::Char('4') => app.select_army(Army::Yellow),
+                        KeyCode::Tab => app.cycle_selected_army(1),
+                        KeyCode::BackTab => app.cycle_selected_army(-1),
+                        KeyCode::Char(to_insert) => {
+                            app.add_char(to_insert);
+                        }
                         KeyCode::Backspace => app.delete_char(),
-                        KeyCode::Enter => app.submit_command(),
+                        KeyCode::Enter => {
+                            let input = app.input.trim().to_string();
+                            if !app.try_select_square(&input) {
+                                app.submit_command();
+                            }
+                            app.input.clear();
+                        }
                         _ => {}
                     },
                     CurrentScreen::Help => match key.code {

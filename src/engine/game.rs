@@ -645,6 +645,11 @@ impl Game {
         legal_moves
     }
 
+    pub fn is_legal_move(&self, army: Army, from: Square, to: Square) -> bool {
+        let legal_moves = self.generate_legal_moves(army);
+        legal_moves.iter().any(|m| m.from == from && m.to == to)
+    }
+
     pub fn apply_move(
         &mut self,
         army: Army,
