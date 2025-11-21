@@ -518,7 +518,7 @@ fn run_headless(args: Args) {
 }
 
 fn execute_headless_move(game: &mut Game, move_cmd: &str, args: &Args) -> Result<(), String> {
-    // Parse move command (format: "blue: e2-e4")
+    // Parse move command (format: "blue: e2-e4" or "blue: e2e4")
     let parts: Vec<&str> = move_cmd.split(':').collect();
     if parts.len() != 2 {
         return Err("Move must follow format 'army: e2-e4' (e.g., 'blue: e2-e3')".to_string());
@@ -529,9 +529,19 @@ fn execute_headless_move(game: &mut Game, move_cmd: &str, args: &Args) -> Result
         .ok_or_else(|| format!("Unknown army '{}'. {}", army_str, Army::suggest_army(army_str)))?;
     
     let move_part = parts[1].trim().replace('x', "-");
-    let coords: Vec<&str> = move_part.split('-').collect();
+    
+    // Parse coordinates - support both "e2-e4" and "e2e4" formats
+    let coords: Vec<&str> = if move_part.contains('-') {
+        move_part.split('-').collect()
+    } else if move_part.len() == 4 {
+        // Compact notation: e2e4
+        vec![&move_part[0..2], &move_part[2..4]]
+    } else {
+        return Err("Move must be in format 'e2-e4' or 'e2e4'".to_string());
+    };
+    
     if coords.len() != 2 {
-        return Err("Move must contain source and destination (e.g., e2-e4)".to_string());
+        return Err("Move must contain source and destination (e.g., e2-e4 or e2e4)".to_string());
     }
     
     let from = parse_square_headless(coords[0].trim())?;
