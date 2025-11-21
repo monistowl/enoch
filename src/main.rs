@@ -90,6 +90,10 @@ struct Args {
     #[arg(long)]
     undo: Option<usize>,
     
+    /// Execute commands from file
+    #[arg(long)]
+    batch: Option<String>,
+    
     /// Show board
     #[arg(long)]
     show: bool,
@@ -337,6 +341,12 @@ fn run_headless(args: Args) {
         return;
     }
     
+    // Batch mode
+    if let Some(batch_file) = &args.batch {
+        run_batch(&mut game, batch_file, &args);
+        return;
+    }
+    
     // Validate move if provided
     if let Some(validate_cmd) = &args.validate {
         validate_move(&mut game, validate_cmd);
@@ -539,6 +549,88 @@ fn show_legal_moves(game: &mut Game, army: Army) {
         let to_file = (b'a' + (mv.to % 8)) as char;
         let to_rank = (b'1' + (mv.to / 8)) as char;
         println!("  {}{} -> {}{}", from_file, from_rank, to_file, to_rank);
+    }
+}
+
+fn run_batch(game: &mut Game, batch_file: &str, args: &Args) {
+    use std::fs;
+    
+    let contents = match fs::read_to_string(batch_file) {
+        Ok(c) => c,
+        Err(e) => {
+            eprintln!("Error reading batch file: {}", e);
+            process::exit(1);
+        }
+    };
+    
+    for (line_num, line) in contents.lines().enumerate() {
+        let line = line.trim();
+        
+        // Skip empty lines and comments
+        if line.is_empty() || line.starts_with('#') {
+            continue;
+        }
+        
+        println!("{}> {}", line_num + 1, line);
+        
+        let parts: Vec<&str> = line.split_whitespace().collect();
+        if parts.is_empty() {
+            continue;
+        }
+        
+        let cmd = parts[0];
+        
+        match cmd {
+            "show" | "board" => {
+                for row in game.board.ascii_rows() {
+                    println!("{}", row);
+                }
+            }
+            "status" => show_status(game),
+            "history" => show_history(game),
+            "evaluate" | "eval" => evaluate_position(game),
+            "move" => {
+                if parts.len() < 2 {
+                    eprintln!("Error: move requires argument");
+                    continue;
+                }
+                let move_str = parts[1..].join(" ");
+                let move_parts: Vec<&str> = move_str.split(':').collect();
+                if move_parts.len() == 2 {
+                    if let Some(army) = Army::from_str(move_parts[0].trim()) {
+                        let coords = move_parts[1].trim().replace('x', "-");
+                        let coord_parts: Vec<&str> = coords.split('-').collect();
+                        if coord_parts.len() == 2 {
+                            if let (Ok(from), Ok(to)) = (
+                                parse_square_headless(coord_parts[0].trim()),
+                                parse_square_headless(coord_parts[1].trim())
+                            ) {
+                                match game.apply_move(army, from, to, None) {
+                                    Ok(msg) => println!("  ✓ {}", msg),
+                                    Err(e) => eprintln!("  ❌ {}", e),
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            "legal" => {
+                if parts.len() < 2 {
+                    eprintln!("Error: legal requires army argument");
+                } else if let Some(army) = Army::from_str(parts[1]) {
+                    show_legal_moves(game, army);
+                }
+            }
+            _ => eprintln!("Unknown command: {}", cmd),
+        }
+    }
+    
+    // Save state if specified
+    if let Some(save_file) = &args.state {
+        if let Ok(json) = game.to_json() {
+            fs::write(save_file, json).ok();
+            println!("\nGame saved to {}", save_file);
+        }
     }
 }
 
