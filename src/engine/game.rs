@@ -653,16 +653,22 @@ impl Game {
     /// Get legal moves for an army, using cache if available
     pub fn legal_moves(&mut self, army: Army) -> &[Move] {
         // Check if cache is valid
-        if let Some((cached_army, _)) = &self.cached_legal_moves {
-            if *cached_army == army {
-                return &self.cached_legal_moves.as_ref().unwrap().1;
-            }
+        let needs_regenerate = match &self.cached_legal_moves {
+            Some((cached_army, _)) => *cached_army != army,
+            None => true,
+        };
+        
+        if needs_regenerate {
+            // Generate and cache
+            let moves = self.generate_legal_moves(army);
+            self.cached_legal_moves = Some((army, moves));
         }
         
-        // Generate and cache
-        let moves = self.generate_legal_moves(army);
-        self.cached_legal_moves = Some((army, moves));
-        &self.cached_legal_moves.as_ref().unwrap().1
+        // Safe: we just ensured it exists
+        match &self.cached_legal_moves {
+            Some((_, moves)) => moves,
+            None => &[],
+        }
     }
     
     /// Clear the move cache (call after any move is made)
@@ -691,11 +697,10 @@ impl Game {
         let legal_moves = self.generate_legal_moves(army);
         let current_move = legal_moves.iter().find(|m| m.from == from && m.to == to);
 
-        if current_move.is_none() {
-            return Err("Invalid move".to_string());
-        }
-
-        let piece_kind = current_move.unwrap().kind;
+        let piece_kind = match current_move {
+            Some(mv) => mv.kind,
+            None => return Err("Invalid move".to_string()),
+        };
 
         if let Some((target_army, target_kind)) = self.board.piece_at(to) {
             if target_army == army {

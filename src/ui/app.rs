@@ -182,8 +182,10 @@ impl App {
                             return true;
                         }
                         Err(err) => {
-                            // Restore state on error
-                            self.game = self.undo_stack.pop().unwrap();
+                            // Restore state on error - we just pushed it
+                            if let Some(prev) = self.undo_stack.pop() {
+                                self.game = prev;
+                            }
                             self.error_message = Some(format!("{} (from {} to {})", 
                                 err, square_name(selected_sq), square_name(square)));
                             self.selected_square = None;
@@ -386,8 +388,13 @@ impl App {
                 }
             }
             UiCommand::Restart => {
+                let arrays = available_arrays();
+                if arrays.is_empty() {
+                    self.error_message = Some("No arrays available".to_string());
+                    return;
+                }
                 let spec = find_array_by_name(&self.selected_array)
-                    .unwrap_or_else(|| available_arrays().first().unwrap());
+                    .unwrap_or_else(|| arrays.first().unwrap());
                 self.game = Game::from_array_spec(spec);
                 self.move_history.clear();
                 self.undo_stack.clear();

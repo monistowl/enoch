@@ -35,7 +35,7 @@ pub fn parse_move(cmd: &str) -> Result<ParsedMove, ParseError> {
     }
 
     let mut chars = cmd.chars();
-    let source = chars.next().unwrap();
+    let source = chars.next().ok_or(ParseError::InvalidLength)?;
     let piece = parse_source(source)?;
 
     match piece {
