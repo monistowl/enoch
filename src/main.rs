@@ -50,6 +50,10 @@ struct Args {
     #[arg(long)]
     analyze: Option<String>,
     
+    /// Query rules (e.g., "queen capture queen", "promotion", "check")
+    #[arg(long)]
+    query: Option<String>,
+    
     /// Show board
     #[arg(long)]
     show: bool,
@@ -262,6 +266,12 @@ fn run_headless(args: Args) {
         return;
     }
     
+    // Query rules if provided
+    if let Some(query_str) = &args.query {
+        query_rules(query_str);
+        return;
+    }
+    
     // Execute move if provided
     if let Some(move_cmd) = &args.move_cmd {
         if let Err(e) = execute_headless_move(&mut game, move_cmd, &args) {
@@ -432,6 +442,77 @@ fn show_status(game: &Game) {
 fn show_board(game: &Game) {
     for row in game.board.ascii_rows() {
         println!("{}", row);
+    }
+}
+
+fn query_rules(query: &str) {
+    let q = query.to_lowercase();
+    
+    if q.contains("queen") && q.contains("capture") && q.contains("queen") {
+        println!("Can queens capture queens?");
+        println!("❌ No - Queens cannot capture other queens");
+    } else if q.contains("bishop") && q.contains("capture") && q.contains("bishop") {
+        println!("Can bishops capture bishops?");
+        println!("❌ No - Bishops cannot capture other bishops");
+    } else if q.contains("queen") && q.contains("bishop") {
+        println!("Can queens and bishops capture each other?");
+        println!("✓ Yes - Queens can capture bishops, and bishops can capture queens");
+    } else if q.contains("check") {
+        println!("Check rules:");
+        println!("• No checkmate - kings are captured like other pieces");
+        println!("• If in check with legal king moves, you MUST move the king");
+        println!("• If in check with no legal king moves, you may move any piece");
+    } else if q.contains("promotion") || q.contains("promote") {
+        println!("Promotion rules:");
+        println!("• Blue pawns promote on rank 8 (north edge)");
+        println!("• Red pawns promote on rank 1 (south edge)");
+        println!("• Black pawns promote on file h (east edge)");
+        println!("• Yellow pawns promote on file a (west edge)");
+        println!("• Privileged pawn: With only K+Q+P, K+B+P, or K+P remaining,");
+        println!("  the pawn can promote to any piece type");
+    } else if q.contains("frozen") || q.contains("freeze") {
+        println!("Frozen army rules:");
+        println!("• When a king is captured, that army becomes frozen");
+        println!("• Frozen pieces cannot move or attack");
+        println!("• Frozen pieces act as blocking terrain");
+        println!("• An army can be revived by controlling its throne square");
+    } else if q.contains("throne") {
+        println!("Throne square rules:");
+        println!("• Each army has a throne (king's starting position)");
+        println!("• Moving your king onto an ally's throne = gain control");
+        println!("• Controlling a throne revives that frozen army");
+    } else if q.contains("team") || q.contains("victory") || q.contains("win") {
+        println!("Victory conditions:");
+        println!("• Teams: Air (Blue + Black) vs Earth (Red + Yellow)");
+        println!("• Win by capturing both enemy kings");
+        println!("• Frozen armies can be revived via throne control");
+    } else if q.contains("queen") && q.contains("move") {
+        println!("Queen movement:");
+        println!("• Leaps exactly 2 squares (orthogonal or diagonal)");
+        println!("• Ignores intervening pieces (like a knight)");
+        println!("• Cannot move 1 square or 3+ squares");
+    } else if q.contains("pawn") && (q.contains("move") || q.contains("capture")) {
+        println!("Pawn movement:");
+        println!("• Moves 1 square forward");
+        println!("• Captures 1 square diagonally");
+        println!("• No double-step initial move");
+        println!("• No en passant");
+    } else if q.contains("stalemate") {
+        println!("Stalemate rules:");
+        println!("• If an army has no legal moves, that turn is skipped");
+        println!("• Play continues with the next army");
+    } else {
+        println!("Unknown query. Try:");
+        println!("  --query 'queen capture queen'");
+        println!("  --query 'bishop capture bishop'");
+        println!("  --query 'check'");
+        println!("  --query 'promotion'");
+        println!("  --query 'frozen'");
+        println!("  --query 'throne'");
+        println!("  --query 'victory'");
+        println!("  --query 'queen move'");
+        println!("  --query 'pawn move'");
+        println!("  --query 'stalemate'");
     }
 }
 
