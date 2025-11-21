@@ -47,6 +47,9 @@ pub enum UiCommand {
     ToggleDivination,
     RollDie,
     Screenshot(String),
+    Restart,
+    Undo,
+    Redo,
 }
 
 #[derive(Debug)]
@@ -364,6 +367,24 @@ impl App {
                     self.error_message = Some("No frame captured yet".into());
                 }
             }
+            UiCommand::Restart => {
+                let spec = find_array_by_name(&self.selected_array)
+                    .unwrap_or_else(|| available_arrays().first().unwrap());
+                self.game = Game::from_array_spec(spec);
+                self.move_history.clear();
+                self.undo_stack.clear();
+                self.redo_stack.clear();
+                self.selected_square = None;
+                self.selected_army = Some(self.game.current_army());
+                self.status_message = Some("Game restarted".to_string());
+                self.error_message = None;
+            }
+            UiCommand::Undo => {
+                self.undo();
+            }
+            UiCommand::Redo => {
+                self.redo();
+            }
         }
         if self.status_message.is_some() {
             self.error_message = None;
@@ -523,6 +544,9 @@ impl App {
             "• /save <file> - Save game to file".to_string(),
             "• /load <file> - Load game from file".to_string(),
             "• /screenshot <file> - Capture terminal state to text file".to_string(),
+            "• /restart - Start a new game".to_string(),
+            "• /undo or Ctrl-U - Undo last move".to_string(),
+            "• /redo or Ctrl-R - Redo move".to_string(),
             "• [ ] - Cycle arrays with bracket keys".to_string(),
             "• ? or F1 - Toggle this help screen".to_string(),
             "• ESC - Exit help or quit game".to_string(),
@@ -591,6 +615,9 @@ fn parse_ui_command(input: &str) -> Result<UiCommand, CommandParseError> {
                         Err(CommandParseError("Missing filename".into()))
                     }
                 }
+                "restart" | "new" | "reset" => Ok(UiCommand::Restart),
+                "undo" | "u" => Ok(UiCommand::Undo),
+                "redo" | "r" => Ok(UiCommand::Redo),
                 _ => Err(CommandParseError("Unknown command".into())),
             }
         } else {

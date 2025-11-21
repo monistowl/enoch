@@ -99,9 +99,9 @@ fn render_main(frame: &mut Frame, app: &mut App) {
         .split(size);
 
     let header_text = if size.width < 100 {
-        "Enochian Chess | ? for help | 1-4: Select Army | Tab: Cycle"
+        "Enochian Chess | 1-4: Army | Ctrl-U: Undo | ? Help"
     } else {
-        "Enochian Chess | 1-4 or Tab: Select Army | Enter square (e2) to select/move | ? for help"
+        "Enochian Chess | 1-4: Select Army | Type square (e2) to select/move | Ctrl-U: Undo | Ctrl-R: Redo | ? Help"
     };
     
     let header = Paragraph::new(Span::styled(
@@ -214,17 +214,18 @@ fn build_status_lines(app: &App) -> Text {
     let in_check = app.game.king_in_check(current_army);
     let check_indicator = if in_check { " ⚠ CHECK" } else { "" };
     
+    // Prominent turn indicator
     lines.push(Line::from(vec![Span::styled(
-        format!("Turn: {}{}", current_army.display_name(), check_indicator),
+        format!("▶▶▶ {}'S TURN ◀◀◀{}", current_army.display_name().to_uppercase(), check_indicator),
         Style::default()
-            .fg(if in_check { Color::Red } else { Color::LightBlue })
+            .fg(if in_check { Color::Red } else { army_color(current_army) })
             .bg(BG_COLOR)
-            .add_modifier(if in_check { Modifier::BOLD } else { Modifier::empty() }),
+            .add_modifier(Modifier::BOLD),
     )]));
 
     lines.push(Line::from(Span::styled(
         format!("Array: {}", app.selected_array),
-        Style::default().fg(Color::White).bg(BG_COLOR),
+        Style::default().fg(Color::Rgb(150, 150, 150)).bg(BG_COLOR),
     )));
 
     let frozen: Vec<&str> = Army::ALL
@@ -285,8 +286,10 @@ fn build_status_lines(app: &App) -> Text {
 
     // Move history
     if !app.move_history.is_empty() {
+        let undo_indicator = if !app.undo_stack.is_empty() { " [Ctrl-U: Undo]" } else { "" };
+        let redo_indicator = if !app.redo_stack.is_empty() { " [Ctrl-R: Redo]" } else { "" };
         lines.push(Line::from(Span::styled(
-            "─── Moves ───",
+            format!("─── Moves ───{}{}", undo_indicator, redo_indicator),
             Style::default().fg(Color::DarkGray).bg(BG_COLOR),
         )));
         for (i, mv) in app.move_history.iter().rev().take(5).enumerate() {
