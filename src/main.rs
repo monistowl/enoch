@@ -66,6 +66,14 @@ struct Args {
     #[arg(long)]
     convert: Option<String>,
     
+    /// List all available starting arrays
+    #[arg(long)]
+    list_arrays: bool,
+    
+    /// Start with specific array (use --list-arrays to see options)
+    #[arg(long)]
+    array: Option<String>,
+    
     /// Show board
     #[arg(long)]
     show: bool,
@@ -242,9 +250,15 @@ fn run(terminal: &mut DefaultTerminal, app: &mut App) -> io::Result<bool> {
 
 fn run_headless(args: Args) {
     use crate::engine::game::Game;
-    use crate::engine::arrays::{default_array, find_array_by_name};
+    use crate::engine::arrays::{default_array, find_array_by_name, available_arrays};
     use crate::engine::ai;
     use std::fs;
+    
+    // Handle list-arrays command first (doesn't need game state)
+    if args.list_arrays {
+        list_arrays();
+        return;
+    }
     
     // Handle generate command first (doesn't need existing game)
     if let Some(gen_str) = &args.generate {
@@ -255,12 +269,41 @@ fn run_headless(args: Args) {
     // Load or create game
     let mut game = if let Some(state_file) = &args.state {
         if let Ok(json) = fs::read_to_string(state_file) {
-            Game::from_json(&json).unwrap_or_else(|_| Game::from_array_spec(default_array()))
+            Game::from_json(&json).unwrap_or_else(|_| {
+                let array = if let Some(array_name) = &args.array {
+                    find_array_by_name(array_name).unwrap_or_else(|| {
+                        eprintln!("❌ Unknown array: {}", array_name);
+                        eprintln!("Use --list-arrays to see available options");
+                        process::exit(1);
+                    })
+                } else {
+                    default_array()
+                };
+                Game::from_array_spec(array)
+            })
         } else {
-            Game::from_array_spec(default_array())
+            let array = if let Some(array_name) = &args.array {
+                find_array_by_name(array_name).unwrap_or_else(|| {
+                    eprintln!("❌ Unknown array: {}", array_name);
+                    eprintln!("Use --list-arrays to see available options");
+                    process::exit(1);
+                })
+            } else {
+                default_array()
+            };
+            Game::from_array_spec(array)
         }
     } else {
-        Game::from_array_spec(default_array())
+        let array = if let Some(array_name) = &args.array {
+            find_array_by_name(array_name).unwrap_or_else(|| {
+                eprintln!("❌ Unknown array: {}", array_name);
+                eprintln!("Use --list-arrays to see available options");
+                process::exit(1);
+            })
+        } else {
+            default_array()
+        };
+        Game::from_array_spec(array)
     };
     
     // Parse AI armies
@@ -472,6 +515,17 @@ fn show_status(game: &Game) {
 fn show_board(game: &Game) {
     for row in game.board.ascii_rows() {
         println!("{}", row);
+    }
+}
+
+fn list_arrays() {
+    use crate::engine::arrays::available_arrays;
+    
+    println!("Available starting arrays:\n");
+    for (i, array) in available_arrays().iter().enumerate() {
+        println!("{}. {}", i + 1, array.name);
+        println!("   {}", array.description);
+        println!();
     }
 }
 
