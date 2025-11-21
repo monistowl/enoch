@@ -1,4 +1,6 @@
-# Enoch - Enochian Chess Engine
+![image](./screenshot.png)
+
+# enoch - an Enochian Chess Engine
 
 A complete implementation of Enochian Chess (also known as Rosicrucian Chess), the four-handed chess variant developed by the Hermetic Order of the Golden Dawn in the late 1800s.
 
