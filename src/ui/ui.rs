@@ -461,11 +461,11 @@ fn text_from_board_scaled(app: &mut App, square_size: Option<u16>) -> Text {
             
             for file in 0..8 {
                 let square = rank * 8 + file;
-                let (chr, style) = board_square_info(app, square, current_army);
+                let (text, style) = board_square_info(app, square, current_army);
                 
                 // Center piece character in the middle row
                 let content = if row == square_height / 2 {
-                    format!("{:^width$}", chr, width = square_width)
+                    format!("{:^width$}", text, width = square_width)
                 } else {
                     " ".repeat(square_width)
                 };
@@ -496,7 +496,7 @@ fn army_color(army: Army) -> Color {
     }
 }
 
-fn board_square_info(app: &mut App, square: u8, current_army: Army) -> (char, Style) {
+fn board_square_info(app: &mut App, square: u8, current_army: Army) -> (String, Style) {
     // Checkerboard pattern - light and dark squares
     let is_light_square = (square / 8 + square % 8) % 2 == 0;
     let light_square = Color::Rgb(240, 217, 181);  // Wheat color
@@ -547,14 +547,18 @@ fn board_square_info(app: &mut App, square: u8, current_army: Army) -> (char, St
         if army == current_army || is_selected {
             style = style.add_modifier(Modifier::BOLD);
         }
-        (
-            piece_character(army, kind),
-            style,
-        )
+        
+        let text = if app.colorblind_mode {
+            format!("{}{}", army_symbol(army), piece_character(army, kind))
+        } else {
+            piece_character(army, kind).to_string()
+        };
+        
+        (text, style)
     } else if throne.is_some() {
-        ('◆', Style::default().fg(Color::Rgb(139, 90, 43)).bg(bg))
+        ("◆".to_string(), Style::default().fg(Color::Rgb(139, 90, 43)).bg(bg))
     } else {
-        ('.', Style::default().fg(Color::Rgb(120, 120, 120)).bg(bg))
+        (".".to_string(), Style::default().fg(Color::Rgb(120, 120, 120)).bg(bg))
     }
 }
 
@@ -571,6 +575,15 @@ fn piece_character(army: Army, kind: PieceKind) -> char {
         letter.to_ascii_lowercase()
     } else {
         letter
+    }
+}
+
+fn army_symbol(army: Army) -> &'static str {
+    match army {
+        Army::Blue => "▲",    // Triangle up
+        Army::Red => "▼",     // Triangle down
+        Army::Black => "◀",   // Triangle left
+        Army::Yellow => "▶",  // Triangle right
     }
 }
 

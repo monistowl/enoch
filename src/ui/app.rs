@@ -23,6 +23,7 @@ pub struct App {
     pub redo_stack: Vec<Game>,
     pub captured_pieces: HashMap<Army, Vec<PieceKind>>,
     pub last_move: Option<(Army, Square, Square)>,
+    pub colorblind_mode: bool,
 }
 
 pub enum CurrentScreen {
@@ -53,6 +54,7 @@ pub enum UiCommand {
     Restart,
     Undo,
     Redo,
+    ToggleColorblind,
 }
 
 #[derive(Debug)]
@@ -86,6 +88,7 @@ impl App {
             redo_stack: Vec::new(),
             captured_pieces: HashMap::new(),
             last_move: None,
+            colorblind_mode: false,
         }
     }
 
@@ -402,6 +405,12 @@ impl App {
             UiCommand::Redo => {
                 self.redo();
             }
+            UiCommand::ToggleColorblind => {
+                self.colorblind_mode = !self.colorblind_mode;
+                let mode = if self.colorblind_mode { "enabled" } else { "disabled" };
+                self.status_message = Some(format!("Colorblind mode {}", mode));
+                self.error_message = None;
+            }
         }
         if self.status_message.is_some() {
             self.error_message = None;
@@ -564,6 +573,7 @@ impl App {
             "• /restart - Start a new game".to_string(),
             "• /undo or Ctrl-U - Undo last move".to_string(),
             "• /redo or Ctrl-R - Redo move".to_string(),
+            "• /colorblind - Toggle colorblind mode (adds symbols)".to_string(),
             "• [ ] - Cycle arrays with bracket keys".to_string(),
             "• ? or F1 - Toggle this help screen".to_string(),
             "• ESC - Exit help or quit game".to_string(),
@@ -635,6 +645,7 @@ fn parse_ui_command(input: &str) -> Result<UiCommand, CommandParseError> {
                 "restart" | "new" | "reset" => Ok(UiCommand::Restart),
                 "undo" | "u" => Ok(UiCommand::Undo),
                 "redo" | "r" => Ok(UiCommand::Redo),
+                "colorblind" | "cb" => Ok(UiCommand::ToggleColorblind),
                 _ => Err(CommandParseError("Unknown command".into())),
             }
         } else {
