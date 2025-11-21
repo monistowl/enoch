@@ -62,6 +62,10 @@ struct Args {
     #[arg(long)]
     perft: Option<u8>,
     
+    /// Convert format (json, ascii, compact)
+    #[arg(long)]
+    convert: Option<String>,
+    
     /// Show board
     #[arg(long)]
     show: bool,
@@ -292,6 +296,12 @@ fn run_headless(args: Args) {
         return;
     }
     
+    // Convert format if provided
+    if let Some(format) = &args.convert {
+        convert_format(&game, format);
+        return;
+    }
+    
     // Execute move if provided
     if let Some(move_cmd) = &args.move_cmd {
         if let Err(e) = execute_headless_move(&mut game, move_cmd, &args) {
@@ -462,6 +472,55 @@ fn show_status(game: &Game) {
 fn show_board(game: &Game) {
     for row in game.board.ascii_rows() {
         println!("{}", row);
+    }
+}
+
+fn convert_format(game: &Game, format: &str) {
+    match format.to_lowercase().as_str() {
+        "json" => {
+            if let Ok(json) = game.to_json() {
+                println!("{}", json);
+            } else {
+                eprintln!("❌ Failed to convert to JSON");
+                process::exit(1);
+            }
+        }
+        "ascii" => {
+            for row in game.board.ascii_rows() {
+                println!("{}", row);
+            }
+        }
+        "compact" => {
+            // Compact notation: piece positions per army
+            for &army in crate::engine::types::Army::ALL.iter() {
+                let mut pieces = Vec::new();
+                for square in 0..64 {
+                    if let Some((piece_army, kind)) = game.board.piece_at(square) {
+                        if piece_army == army {
+                            let file = (b'a' + (square % 8)) as char;
+                            let rank = (b'1' + (square / 8)) as char;
+                            let piece_char = match kind {
+                                crate::engine::types::PieceKind::King => 'K',
+                                crate::engine::types::PieceKind::Queen => 'Q',
+                                crate::engine::types::PieceKind::Bishop => 'B',
+                                crate::engine::types::PieceKind::Knight => 'N',
+                                crate::engine::types::PieceKind::Rook => 'R',
+                                crate::engine::types::PieceKind::Pawn => 'P',
+                            };
+                            pieces.push(format!("{}{}{}", piece_char, file, rank));
+                        }
+                    }
+                }
+                if !pieces.is_empty() {
+                    println!("{}:{}", army.display_name().to_lowercase(), pieces.join(","));
+                }
+            }
+        }
+        _ => {
+            eprintln!("❌ Unknown format: {}", format);
+            eprintln!("Available formats: json, ascii, compact");
+            process::exit(1);
+        }
     }
 }
 
