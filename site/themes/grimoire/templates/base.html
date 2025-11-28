@@ -6,11 +6,34 @@
     <title>{% block title %}{{ config.title }}{% endblock %}</title>
     <meta name="description" content="{% block description %}{{ config.description }}{% endblock %}">
 
+    <!-- Favicon -->
+    <link rel="icon" href="{{ get_url(path="favicon.svg") }}" type="image/svg+xml">
+
+    <!-- Open Graph / Social Sharing -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="{% block og_title %}{{ config.title }}{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}{{ config.description }}{% endblock %}">
+    <meta property="og:url" content="{{ current_url | default(value=config.base_url) }}">
+    <meta property="og:site_name" content="{{ config.title }}">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="{% block twitter_title %}{{ config.title }}{% endblock %}">
+    <meta name="twitter:description" content="{% block twitter_description %}{{ config.description }}{% endblock %}">
+
+    <!-- Theme Color -->
+    <meta name="theme-color" content="#0a0a0f">
+
     <link rel="stylesheet" href="{{ get_url(path="style.css") }}">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
     {% block head_extra %}{% endblock %}
 </head>
 <body>
+    {% if current_path is defined %}{% set safe_path = current_path %}{% else %}{% set safe_path = "" %}{% endif %}
     <div class="site">
         {% block sidebar %}
         <aside class="sidebar" id="sidebar">
@@ -24,10 +47,10 @@
                     <li class="nav__section">
                         <ul class="nav__list">
                             <li class="nav__item">
-                                <a href="{{ get_url(path="/") }}" class="nav__link {% if current_path == "/" %}is-active{% endif %}">Home</a>
+                                <a href="{{ get_url(path="/") }}" class="nav__link {% if safe_path == "/" %}is-active{% endif %}">Home</a>
                             </li>
                             <li class="nav__item">
-                                <a href="{{ get_url(path="quick-start") }}" class="nav__link {% if current_path is starting_with("/quick-start") %}is-active{% endif %}">Quick Start</a>
+                                <a href="{{ get_url(path="quick-start") }}" class="nav__link {% if safe_path is starting_with("/quick-start") %}is-active{% endif %}">Quick Start</a>
                             </li>
                         </ul>
                     </li>
@@ -36,10 +59,10 @@
                         <span class="nav__section-title">Rules</span>
                         <ul class="nav__list">
                             <li class="nav__item">
-                                <a href="{{ get_url(path="rules") }}" class="nav__link {% if current_path == "/rules/" %}is-active{% endif %}">Full Rules</a>
+                                <a href="{{ get_url(path="rules") }}" class="nav__link {% if safe_path == "/rules/" %}is-active{% endif %}">Full Rules</a>
                             </li>
                             <li class="nav__item">
-                                <a href="{{ get_url(path="rules/pieces") }}" class="nav__link {% if current_path is starting_with("/rules/pieces") %}is-active{% endif %}">The Pieces</a>
+                                <a href="{{ get_url(path="rules/pieces") }}" class="nav__link {% if safe_path is starting_with("/rules/pieces") %}is-active{% endif %}">The Pieces</a>
                             </li>
                         </ul>
                     </li>
@@ -48,7 +71,10 @@
                         <span class="nav__section-title">Reference</span>
                         <ul class="nav__list">
                             <li class="nav__item">
-                                <a href="{{ get_url(path="arrays") }}" class="nav__link {% if current_path is starting_with("/arrays") %}is-active{% endif %}">Starting Arrays</a>
+                                <a href="{{ get_url(path="arrays") }}" class="nav__link {% if safe_path is starting_with("/arrays") %}is-active{% endif %}">Starting Arrays</a>
+                            </li>
+                            <li class="nav__item">
+                                <a href="{{ get_url(path="history") }}" class="nav__link {% if safe_path is starting_with("/history") %}is-active{% endif %}">History</a>
                             </li>
                         </ul>
                     </li>

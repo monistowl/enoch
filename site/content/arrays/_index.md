@@ -18,10 +18,10 @@ Historical sources document eight arrays, each associated with an elemental comb
 
 | Tablet | Element | Turn Order | Status |
 |--------|---------|------------|--------|
-| **Fire** | 🔥 Fire of Fire | Blue → Red → Black → Yellow | ✅ Implemented |
-| **Water** | 💧 Water of Water | Blue → Black → Yellow → Red | 🔄 Placeholder |
-| **Air** | 💨 Air of Air | Red → Yellow → Black → Blue | 🔄 Placeholder |
-| **Earth** | 🌍 Earth of Earth | Yellow → Blue → Red → Black | 🔄 Placeholder |
+| [**Fire**](/arrays/tablet-of-fire/) | 🔥 Fire of Fire | Blue → Red → Black → Yellow | ✅ Implemented |
+| [**Water**](/arrays/tablet-of-water/) | 💧 Water of Water | Blue → Black → Yellow → Red | 📝 Documented |
+| [**Air**](/arrays/tablet-of-air/) | 💨 Air of Air | Red → Yellow → Black → Blue | 📝 Documented |
+| [**Earth**](/arrays/tablet-of-earth/) | 🌍 Earth of Earth | Yellow → Blue → Red → Black | 📝 Documented |
 
 <div class="callout callout--note">
     <div class="callout__title">Work in Progress</div>
