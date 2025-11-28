@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enochian Chess</title>
+    <meta name="description" content="A four-army chess variant from the Victorian occult tradition">
+
+    <link rel="stylesheet" href="https://enochian-chess.org/style.css">
+
+    
+</head>
+<body>
+    <div class="site">
+        
+        <aside class="sidebar" id="sidebar">
+            <header class="sidebar__header">
+                <a href="https://enochian-chess.org" class="sidebar__title">Enochian Chess</a>
+                <p class="sidebar__subtitle">Four Armies. Two Teams. One Board.</p>
+            </header>
+
+            <nav>
+                <ul class="nav">
+                    <li class="nav__section">
+                        <ul class="nav__list">
+                            <li class="nav__item">
+                                <a href="https://enochian-chess.org" class="nav__link is-active">Home</a>
+                            </li>
+                            <li class="nav__item">
+                                <a href="https://enochian-chess.org/quick-start" class="nav__link ">Quick Start</a>
+                            </li>
+                        </ul>
+                    </li>
+
+                    <li class="nav__section">
+                        <span class="nav__section-title">Rules</span>
+                        <ul class="nav__list">
+                            <li class="nav__item">
+                                <a href="https://enochian-chess.org/rules" class="nav__link ">Full Rules</a>
+                            </li>
+                            <li class="nav__item">
+                                <a href="https://enochian-chess.org/rules/pieces" class="nav__link ">The Pieces</a>
+                            </li>
+                        </ul>
+                    </li>
+
+                    <li class="nav__section">
+                        <span class="nav__section-title">Reference</span>
+                        <ul class="nav__list">
+                            <li class="nav__item">
+                                <a href="https://enochian-chess.org/arrays" class="nav__link ">Starting Arrays</a>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+        
+
+        <div class="overlay" id="overlay"></div>
+
+        <header class="mobile-header">
+            <span class="mobile-header__title">Enochian Chess</span>
+            <button class="mobile-header__toggle" id="menu-toggle" aria-label="Toggle navigation">
+                ☰
+            </button>
+        </header>
+
+        <main class="main">
+            <div class="content">
+                
+<section class="hero">
+    <h1 class="hero__title">Enochian Chess</h1>
+    <p class="hero__subtitle">A four-army chess variant from the Victorian occult tradition</p>
+    <p class="hero__tagline">
+        Where Air battles Earth, and kings can fall. Master the elemental forces
+        on a board unlike any other.
+    </p>
+
+    <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+        <a href="https://enochian-chess.org/quick-start" class="btn btn--primary">Learn in 5 Minutes</a>
+        <a href="https://enochian-chess.org/rules" class="btn btn--secondary">Full Rules</a>
+    </div>
+</section>
+
+<hr>
+
+<h2>The Four Armies</h2>
+
+<p>
+    Enochian Chess is played by four players in two teams. <strong>Team Air</strong>
+    (Blue and Black) faces <strong>Team Earth</strong> (Red and Yellow) across an 8&times;8 board.
+    Unlike standard chess, kings can be <em>captured</em>&mdash;and when they fall,
+    their entire army freezes in place.
+</p>
+
+<div class="card-grid">
+    <a href="https://enochian-chess.org/quick-start" class="card card--air">
+        <div class="card__icon">⚡</div>
+        <h3 class="card__title">Quick Start</h3>
+        <p class="card__description">
+            Learn the basics in 5 minutes. Enough to start playing immediately.
+        </p>
+    </a>
+
+    <a href="https://enochian-chess.org/rules" class="card card--fire">
+        <div class="card__icon">📜</div>
+        <h3 class="card__title">Full Rules</h3>
+        <p class="card__description">
+            The complete rulebook: diagonal networks, frozen armies, throne mechanics, and more.
+        </p>
+    </a>
+
+    <a href="https://enochian-chess.org/rules/pieces" class="card card--earth">
+        <div class="card__icon">♛</div>
+        <h3 class="card__title">The Pieces</h3>
+        <p class="card__description">
+            Each piece has unique movement and capture rules. Learn what makes the Queen so unusual.
+        </p>
+    </a>
+</div>
+
+<hr>
+
+<h2>Origins</h2>
+
+<p>
+    Enochian Chess emerged from the Hermetic Order of the Golden Dawn in the late 19th century.
+    Documented by S.L. MacGregor Mathers and later expanded by Chris Zalewski, it was designed
+    as both a game of strategy and a tool for divination.
+</p>
+
+<p>
+    Today, it stands as one of the most intricate chess variants ever devised&mdash;a game where
+    four armies clash, alliances matter, and fallen kings leave frozen soldiers behind.
+</p>
+
+
+
+                <footer class="footer">
+                    <div class="footer__links">
+                        <a href="https:&#x2F;&#x2F;github.com&#x2F;monistowl&#x2F;enoch">GitHub</a>
+                    </div>
+                    <p>Enochian Chess &mdash; A game of elemental strategy</p>
+                </footer>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Mobile menu toggle
+        const toggle = document.getElementById('menu-toggle');
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('overlay');
+
+        if (toggle && sidebar && overlay) {
+            toggle.addEventListener('click', () => {
+                sidebar.classList.toggle('is-open');
+                overlay.classList.toggle('is-visible');
+            });
+
+            overlay.addEventListener('click', () => {
+                sidebar.classList.remove('is-open');
+                overlay.classList.remove('is-visible');
+            });
+        }
+    </script>
+
+    
+</body>
+</html>

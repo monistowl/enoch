@@ -1,0 +1,102 @@
+// Enochian Chess - Design System Variables
+// =========================================
+
+// Base Colors (Dark Neutral)
+$bg-deep: #0a0a0f;
+$bg-surface: #12121a;
+$bg-elevated: #1a1a24;
+$bg-hover: #22222e;
+
+$text-primary: #e8e4dc;
+$text-secondary: #b8b4ac;
+$text-muted: #8a8680;
+$text-faint: #5a5854;
+
+// Elemental Colors (Four Armies)
+$air-blue: #4a7cb8;
+$air-blue-dim: #3a5c88;
+$air-blue-glow: #6a9cd8;
+
+$water-black: #2d2d3a;
+$water-indigo: #4a4a6a;
+$water-deep: #1d1d2a;
+
+$fire-red: #c45a4a;
+$fire-red-dim: #943a2a;
+$fire-red-glow: #e47a6a;
+
+$earth-yellow: #c4a24a;
+$earth-yellow-dim: #94722a;
+$earth-yellow-glow: #e4c26a;
+
+// Accent gradient (all four elements)
+$elemental-gradient: linear-gradient(
+  90deg,
+  $air-blue 0%,
+  $water-indigo 25%,
+  $fire-red 75%,
+  $earth-yellow 100%
+);
+
+// Typography
+$font-display: 'Cormorant Garamond', 'Georgia', serif;
+$font-body: 'Cormorant Garamond', 'Georgia', serif;
+$font-mono: 'JetBrains Mono', 'Consolas', monospace;
+
+// Type Scale (1.25 ratio - Major Third)
+$text-xs: 0.64rem;
+$text-sm: 0.8rem;
+$text-base: 1rem;      // 18px
+$text-lg: 1.25rem;
+$text-xl: 1.563rem;
+$text-2xl: 1.953rem;
+$text-3xl: 2.441rem;
+$text-4xl: 3.052rem;
+
+// Font Weights
+$weight-regular: 400;
+$weight-medium: 500;
+$weight-semibold: 600;
+$weight-bold: 700;
+
+// Spacing Scale
+$space-1: 0.25rem;
+$space-2: 0.5rem;
+$space-3: 0.75rem;
+$space-4: 1rem;
+$space-5: 1.25rem;
+$space-6: 1.5rem;
+$space-8: 2rem;
+$space-10: 2.5rem;
+$space-12: 3rem;
+$space-16: 4rem;
+$space-20: 5rem;
+$space-24: 6rem;
+
+// Layout
+$content-width: 720px;
+$sidebar-width: 260px;
+$header-height: 60px;
+
+// Breakpoints
+$bp-sm: 640px;
+$bp-md: 768px;
+$bp-lg: 1024px;
+$bp-xl: 1280px;
+
+// Borders & Radius
+$border-thin: 1px solid $bg-elevated;
+$border-accent: 2px solid;
+$radius-sm: 4px;
+$radius-md: 8px;
+$radius-lg: 12px;
+
+// Transitions
+$transition-fast: 150ms ease;
+$transition-base: 250ms ease;
+$transition-slow: 400ms ease;
+
+// Shadows
+$shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+$shadow-md: 0 4px 6px rgba(0, 0, 0, 0.4);
+$shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.5);

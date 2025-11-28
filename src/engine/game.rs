@@ -160,6 +160,8 @@ impl Game {
         if self.army_is_frozen(army) {
             return 0;
         }
+        let own_pieces = self.board.occupancy_by_army[army as usize];
+        println!("  own_pieces in king_moves_bitboard: {:064b}", own_pieces);
         compute_king_moves(&self.board, army)
     }
 
@@ -312,7 +314,6 @@ impl Game {
         match (queen, bishop) {
             (1, 0) if no_secondary => true,
             (0, 1) if no_secondary => true,
-            (0, 0) if no_secondary => true,
             _ => false,
         }
     }

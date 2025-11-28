@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quick Start | Enochian Chess</title>
+    <meta name="description" content="Learn the essentials of Enochian Chess in just 5 minutes">
+
+    <link rel="stylesheet" href="https://enochian-chess.org/style.css">
+
+    
+</head>
+<body>
+    <div class="site">
+        
+        <aside class="sidebar" id="sidebar">
+            <header class="sidebar__header">
+                <a href="https://enochian-chess.org" class="sidebar__title">Enochian Chess</a>
+                <p class="sidebar__subtitle">Four Armies. Two Teams. One Board.</p>
+            </header>
+
+            <nav>
+                <ul class="nav">
+                    <li class="nav__section">
+                        <ul class="nav__list">
+                            <li class="nav__item">
+                                <a href="https://enochian-chess.org" class="nav__link ">Home</a>
+                            </li>
+                            <li class="nav__item">
+                                <a href="https://enochian-chess.org/quick-start" class="nav__link is-active">Quick Start</a>
+                            </li>
+                        </ul>
+                    </li>
+
+                    <li class="nav__section">
+                        <span class="nav__section-title">Rules</span>
+                        <ul class="nav__list">
+                            <li class="nav__item">
+                                <a href="https://enochian-chess.org/rules" class="nav__link ">Full Rules</a>
+                            </li>
+                            <li class="nav__item">
+                                <a href="https://enochian-chess.org/rules/pieces" class="nav__link ">The Pieces</a>
+                            </li>
+                        </ul>
+                    </li>
+
+                    <li class="nav__section">
+                        <span class="nav__section-title">Reference</span>
+                        <ul class="nav__list">
+                            <li class="nav__item">
+                                <a href="https://enochian-chess.org/arrays" class="nav__link ">Starting Arrays</a>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+        
+
+        <div class="overlay" id="overlay"></div>
+
+        <header class="mobile-header">
+            <span class="mobile-header__title">Enochian Chess</span>
+            <button class="mobile-header__toggle" id="menu-toggle" aria-label="Toggle navigation">
+                ☰
+            </button>
+        </header>
+
+        <main class="main">
+            <div class="content">
+                
+<article>
+    <header class="page-header">
+        <h1 class="page-header__title">Quick Start</h1>
+        
+        <p class="page-header__description">Learn the essentials of Enochian Chess in just 5 minutes</p>
+        
+    </header>
+
+    <p>Welcome to Enochian Chess. This guide will give you everything you need to start playing.</p>
+<h2 id="the-board-the-armies">The Board &amp; The Armies</h2>
+<p>Enochian Chess uses a standard 8×8 board, but with <strong>four armies</strong> instead of two:</p>
+<div class="team-indicator">
+    <div class="team team--air">
+        <span class="army-badge army-badge--blue">Blue</span>
+        <span>+</span>
+        <span class="army-badge army-badge--black">Black</span>
+        <span>= Team Air</span>
+    </div>
+    <div class="team team--earth">
+        <span class="army-badge army-badge--red">Red</span>
+        <span>+</span>
+        <span class="army-badge army-badge--yellow">Yellow</span>
+        <span>= Team Earth</span>
+    </div>
+</div>
+<p>Each army occupies one edge of the board:</p>
+<ul>
+<li><strong>Blue</strong> starts on the South edge (rank 1)</li>
+<li><strong>Red</strong> starts on the East edge (file h)</li>
+<li><strong>Black</strong> starts on the North edge (rank 8)</li>
+<li><strong>Yellow</strong> starts on the West edge (file a)</li>
+</ul>
+<h2 id="turn-order">Turn Order</h2>
+<p>Play proceeds <strong>clockwise</strong>: Blue → Red → Black → Yellow → Blue...</p>
+<p>This means you'll move, then your <em>opponent</em> moves, then your <em>ally</em> moves, then the other opponent. The rhythm takes getting used to!</p>
+<h2 id="how-pieces-move">How Pieces Move</h2>
+<p>Most pieces move as you'd expect from standard chess, with some notable exceptions:</p>
+<table><thead><tr><th>Piece</th><th>Movement</th></tr></thead><tbody>
+<tr><td><strong>King</strong></td><td>One square in any direction (no castling)</td></tr>
+<tr><td><strong>Queen</strong></td><td>Leaps exactly 2 squares in any direction (not a slider!)</td></tr>
+<tr><td><strong>Bishop</strong></td><td>Slides diagonally (restricted to its diagonal network)</td></tr>
+<tr><td><strong>Rook</strong></td><td>Slides horizontally and vertically</td></tr>
+<tr><td><strong>Knight</strong></td><td>L-shaped leap (2+1 squares)</td></tr>
+<tr><td><strong>Pawn</strong></td><td>One square forward only (no double-step, no en passant)</td></tr>
+</tbody></table>
+<div class="callout callout--important">
+    <div class="callout__title">The Queen is Different!</div>
+    <div class="callout__content">
+        Unlike standard chess, the Queen doesn't slide across the board. She <em>leaps</em>
+        exactly two squares—jumping over any piece in her way. This makes her both more
+        limited and surprisingly tricky.
+    </div>
+</div>
+<h2 id="how-to-win">How to Win</h2>
+<p><strong>Capture both enemy kings.</strong> That's it.</p>
+<p>There's no checkmate in Enochian Chess. Kings can be captured directly, just like any other piece.</p>
+<p>When a king is captured, something dramatic happens: that <strong>entire army freezes</strong>. The pieces remain on the board but cannot move, capture, or give check. They simply block squares like statues.</p>
+<div class="callout callout--tip">
+    <div class="callout__title">Teamwork Matters</div>
+    <div class="callout__content">
+        If your ally's king is captured, their army freezes—but <em>you</em> can still fight.
+        Move your king onto your ally's <strong>throne square</strong> to seize control of their
+        frozen army and bring them back to life.
+    </div>
+</div>
+<h2 id="one-special-rule-check-still-matters">One Special Rule: Check Still Matters</h2>
+<p>When your king is in check and has legal king moves available, you <strong>must</strong> move your king. You cannot block with another piece or capture the attacker with a non-king piece if the king itself can move.</p>
+<p>Only when the king has no legal moves can other pieces intervene.</p>
+<hr />
+<h2 id="you-re-ready">You're Ready!</h2>
+<p>That's enough to play your first game. As you play, you'll encounter more nuances:</p>
+<ul>
+<li><a href="/rules/pieces/bishop/">Diagonal networks</a> restrict which bishops can capture which queens</li>
+<li><a href="/rules/#thrones">Thrones</a> let you resurrect frozen allies</li>
+<li><a href="/rules/#privileged-pawn">Privileged pawns</a> can promote to anything when your army is depleted</li>
+</ul>
+<p>But for now, just play. The elegance of Enochian Chess reveals itself at the board.</p>
+<div style="margin-top: 2rem;">
+    <a href="/rules/" class="btn btn--primary">Read the Full Rules</a>
+</div>
+
+</article>
+
+
+                <footer class="footer">
+                    <div class="footer__links">
+                        <a href="https:&#x2F;&#x2F;github.com&#x2F;monistowl&#x2F;enoch">GitHub</a>
+                    </div>
+                    <p>Enochian Chess &mdash; A game of elemental strategy</p>
+                </footer>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Mobile menu toggle
+        const toggle = document.getElementById('menu-toggle');
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('overlay');
+
+        if (toggle && sidebar && overlay) {
+            toggle.addEventListener('click', () => {
+                sidebar.classList.toggle('is-open');
+                overlay.classList.toggle('is-visible');
+            });
+
+            overlay.addEventListener('click', () => {
+                sidebar.classList.remove('is-open');
+                overlay.classList.remove('is-visible');
+            });
+        }
+    </script>
+
+    
+</body>
+</html>

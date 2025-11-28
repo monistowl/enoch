@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Pieces | Enochian Chess</title>
+    <meta name="description" content="Movement and capture rules for each piece in Enochian Chess">
+
+    <link rel="stylesheet" href="https://enochian-chess.org/style.css">
+
+    
+</head>
+<body>
+    <div class="site">
+        
+        <aside class="sidebar" id="sidebar">
+            <header class="sidebar__header">
+                <a href="https://enochian-chess.org" class="sidebar__title">Enochian Chess</a>
+                <p class="sidebar__subtitle">Four Armies. Two Teams. One Board.</p>
+            </header>
+
+            <nav>
+                <ul class="nav">
+                    <li class="nav__section">
+                        <ul class="nav__list">
+                            <li class="nav__item">
+                                <a href="https://enochian-chess.org" class="nav__link ">Home</a>
+                            </li>
+                            <li class="nav__item">
+                                <a href="https://enochian-chess.org/quick-start" class="nav__link ">Quick Start</a>
+                            </li>
+                        </ul>
+                    </li>
+
+                    <li class="nav__section">
+                        <span class="nav__section-title">Rules</span>
+                        <ul class="nav__list">
+                            <li class="nav__item">
+                                <a href="https://enochian-chess.org/rules" class="nav__link ">Full Rules</a>
+                            </li>
+                            <li class="nav__item">
+                                <a href="https://enochian-chess.org/rules/pieces" class="nav__link is-active">The Pieces</a>
+                            </li>
+                        </ul>
+                    </li>
+
+                    <li class="nav__section">
+                        <span class="nav__section-title">Reference</span>
+                        <ul class="nav__list">
+                            <li class="nav__item">
+                                <a href="https://enochian-chess.org/arrays" class="nav__link ">Starting Arrays</a>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+        
+
+        <div class="overlay" id="overlay"></div>
+
+        <header class="mobile-header">
+            <span class="mobile-header__title">Enochian Chess</span>
+            <button class="mobile-header__toggle" id="menu-toggle" aria-label="Toggle navigation">
+                ☰
+            </button>
+        </header>
+
+        <main class="main">
+            <div class="content">
+                
+<article>
+    <header class="page-header">
+        <h1 class="page-header__title">The Pieces</h1>
+        
+        <p class="page-header__description">Movement and capture rules for each piece in Enochian Chess</p>
+        
+    </header>
+
+    <p>Enochian Chess uses the same six piece types as standard chess, but several behave quite differently. The most dramatic change is the <strong>Queen</strong>, which leaps rather than slides.</p>
+<div class="card-grid">
+    <a href="/rules/pieces/king/" class="piece-card piece-card--king">
+        <div class="piece-card__glyph">♔</div>
+        <div class="piece-card__content">
+            <div class="piece-card__name">King</div>
+            <div class="piece-card__summary">One square any direction. Can be captured.</div>
+        </div>
+    </a>
+    <a href="/rules/pieces/queen/" class="piece-card piece-card--queen">
+        <div class="piece-card__glyph">♕</div>
+        <div class="piece-card__content">
+            <div class="piece-card__name">Queen</div>
+            <div class="piece-card__summary">Leaps exactly 2 squares. Cannot capture queens.</div>
+        </div>
+    </a>
+    <a href="/rules/pieces/bishop/" class="piece-card piece-card--bishop">
+        <div class="piece-card__glyph">♗</div>
+        <div class="piece-card__content">
+            <div class="piece-card__name">Bishop</div>
+            <div class="piece-card__summary">Diagonal slider. Restricted to one network.</div>
+        </div>
+    </a>
+    <a href="/rules/pieces/rook/" class="piece-card piece-card--rook">
+        <div class="piece-card__glyph">♖</div>
+        <div class="piece-card__content">
+            <div class="piece-card__name">Rook</div>
+            <div class="piece-card__summary">Orthogonal slider. Standard chess movement.</div>
+        </div>
+    </a>
+    <a href="/rules/pieces/knight/" class="piece-card piece-card--knight">
+        <div class="piece-card__glyph">♘</div>
+        <div class="piece-card__content">
+            <div class="piece-card__name">Knight</div>
+            <div class="piece-card__summary">L-shaped leap. Standard chess movement.</div>
+        </div>
+    </a>
+    <a href="/rules/pieces/pawn/" class="piece-card piece-card--pawn">
+        <div class="piece-card__glyph">♙</div>
+        <div class="piece-card__content">
+            <div class="piece-card__name">Pawn</div>
+            <div class="piece-card__summary">One square forward only. No double-step.</div>
+        </div>
+    </a>
+</div>
+<h2 id="capture-restrictions">Capture Restrictions</h2>
+<p>The most unusual aspect of Enochian Chess pieces is the <strong>capture restrictions</strong> between Queens and Bishops:</p>
+<table><thead><tr><th>Attacker</th><th>Can Capture</th></tr></thead><tbody>
+<tr><td>Queen</td><td>Kings, Rooks, Knights, Pawns, Bishops (same network only)</td></tr>
+<tr><td>Bishop</td><td>Kings, Rooks, Knights, Pawns, Queens (same network only)</td></tr>
+</tbody></table>
+<p>Queens <strong>never</strong> capture other Queens. Bishops <strong>never</strong> capture other Bishops.</p>
+<p>This creates a fascinating dynamic where certain pieces are effectively invisible to each other, and network alignment becomes a strategic consideration.</p>
+
+
+    
+    <div class="card-grid">
+        
+        <a href="https:&#x2F;&#x2F;enochian-chess.org&#x2F;rules&#x2F;pieces&#x2F;king&#x2F;" class="card">
+            <h3 class="card__title">King</h3>
+            
+            <p class="card__description">The most important piece—and unlike standard chess, it can be captured</p>
+            
+        </a>
+        
+        <a href="https:&#x2F;&#x2F;enochian-chess.org&#x2F;rules&#x2F;pieces&#x2F;knight&#x2F;" class="card">
+            <h3 class="card__title">Knight</h3>
+            
+            <p class="card__description">The leaping piece—unchanged from standard chess</p>
+            
+        </a>
+        
+        <a href="https:&#x2F;&#x2F;enochian-chess.org&#x2F;rules&#x2F;pieces&#x2F;queen&#x2F;" class="card">
+            <h3 class="card__title">Queen</h3>
+            
+            <p class="card__description">The most unusual piece—a leaper, not a slider</p>
+            
+        </a>
+        
+        <a href="https:&#x2F;&#x2F;enochian-chess.org&#x2F;rules&#x2F;pieces&#x2F;rook&#x2F;" class="card">
+            <h3 class="card__title">Rook</h3>
+            
+            <p class="card__description">The straightforward piece—pure orthogonal power</p>
+            
+        </a>
+        
+        <a href="https:&#x2F;&#x2F;enochian-chess.org&#x2F;rules&#x2F;pieces&#x2F;bishop&#x2F;" class="card">
+            <h3 class="card__title">Bishop</h3>
+            
+            <p class="card__description">A diagonal slider bound to one of two mystical networks</p>
+            
+        </a>
+        
+        <a href="https:&#x2F;&#x2F;enochian-chess.org&#x2F;rules&#x2F;pieces&#x2F;pawn&#x2F;" class="card">
+            <h3 class="card__title">Pawn</h3>
+            
+            <p class="card__description">The foot soldier—simpler movement, unique promotion rules</p>
+            
+        </a>
+        
+    </div>
+    
+</article>
+
+
+                <footer class="footer">
+                    <div class="footer__links">
+                        <a href="https:&#x2F;&#x2F;github.com&#x2F;monistowl&#x2F;enoch">GitHub</a>
+                    </div>
+                    <p>Enochian Chess &mdash; A game of elemental strategy</p>
+                </footer>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Mobile menu toggle
+        const toggle = document.getElementById('menu-toggle');
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('overlay');
+
+        if (toggle && sidebar && overlay) {
+            toggle.addEventListener('click', () => {
+                sidebar.classList.toggle('is-open');
+                overlay.classList.toggle('is-visible');
+            });
+
+            overlay.addEventListener('click', () => {
+                sidebar.classList.remove('is-open');
+                overlay.classList.remove('is-visible');
+            });
+        }
+    </script>
+
+    
+</body>
+</html>

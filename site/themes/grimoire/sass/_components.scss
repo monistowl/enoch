@@ -1,0 +1,393 @@
+// Enochian Chess - Components
+// ===========================
+
+@import 'variables';
+
+// Hero Section (Home page)
+.hero {
+  text-align: center;
+  padding: $space-16 0;
+  position: relative;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(
+      circle,
+      rgba($air-blue, 0.1) 0%,
+      rgba($fire-red, 0.05) 50%,
+      transparent 70%
+    );
+    pointer-events: none;
+  }
+}
+
+.hero__title {
+  font-size: $text-4xl;
+  font-weight: $weight-bold;
+  margin-bottom: $space-4;
+  position: relative;
+
+  @media (min-width: $bp-md) {
+    font-size: 4rem;
+  }
+}
+
+.hero__subtitle {
+  font-size: $text-xl;
+  color: $text-secondary;
+  font-style: italic;
+  margin-bottom: $space-8;
+}
+
+.hero__tagline {
+  font-size: $text-lg;
+  color: $text-muted;
+  max-width: 500px;
+  margin: 0 auto $space-10;
+}
+
+// Card Grid
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: $space-6;
+  margin: $space-8 0;
+}
+
+// Cards
+.card {
+  background-color: $bg-surface;
+  border-radius: $radius-lg;
+  padding: $space-6;
+  border: 1px solid $bg-elevated;
+  transition: all $transition-base;
+  text-decoration: none;
+  display: block;
+
+  &:hover {
+    transform: translateY(-2px);
+    border-color: $air-blue;
+    box-shadow: $shadow-md;
+    text-decoration: none;
+  }
+
+  // Elemental border variants
+  &--air:hover { border-color: $air-blue; }
+  &--water:hover { border-color: $water-indigo; }
+  &--fire:hover { border-color: $fire-red; }
+  &--earth:hover { border-color: $earth-yellow; }
+}
+
+.card__icon {
+  font-size: $text-3xl;
+  margin-bottom: $space-4;
+}
+
+.card__title {
+  font-family: $font-display;
+  font-size: $text-xl;
+  font-weight: $weight-semibold;
+  color: $text-primary;
+  margin-bottom: $space-2;
+}
+
+.card__description {
+  color: $text-secondary;
+  font-size: $text-sm;
+  line-height: 1.6;
+}
+
+// Piece Cards (for pieces index)
+.piece-card {
+  background-color: $bg-surface;
+  border-radius: $radius-lg;
+  padding: $space-5;
+  border: 1px solid $bg-elevated;
+  transition: all $transition-base;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: $space-4;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: $shadow-md;
+    text-decoration: none;
+  }
+
+  &--king:hover { border-color: $earth-yellow; }
+  &--queen:hover { border-color: $fire-red; }
+  &--bishop:hover { border-color: $air-blue; }
+  &--rook:hover { border-color: $earth-yellow; }
+  &--knight:hover { border-color: $fire-red; }
+  &--pawn:hover { border-color: $air-blue; }
+}
+
+.piece-card__glyph {
+  font-size: 2.5rem;
+  line-height: 1;
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: $bg-elevated;
+  border-radius: $radius-md;
+}
+
+.piece-card__content {
+  flex: 1;
+}
+
+.piece-card__name {
+  font-family: $font-display;
+  font-size: $text-lg;
+  font-weight: $weight-semibold;
+  color: $text-primary;
+  margin-bottom: $space-1;
+}
+
+.piece-card__summary {
+  color: $text-muted;
+  font-size: $text-sm;
+}
+
+// Callout Boxes
+.callout {
+  margin: $space-6 0;
+  padding: $space-4 $space-5;
+  background-color: $bg-surface;
+  border-radius: 0 $radius-md $radius-md 0;
+  border-left: 3px solid $air-blue;
+
+  &--note {
+    border-left-color: $air-blue;
+  }
+
+  &--warning {
+    border-left-color: $fire-red;
+  }
+
+  &--tip {
+    border-left-color: $earth-yellow;
+  }
+
+  &--important {
+    border-left-color: $water-indigo;
+    background: linear-gradient(
+      90deg,
+      rgba($water-indigo, 0.1) 0%,
+      $bg-surface 100%
+    );
+  }
+}
+
+.callout__title {
+  font-weight: $weight-semibold;
+  margin-bottom: $space-2;
+  font-size: $text-sm;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+
+  .callout--note & { color: $air-blue-glow; }
+  .callout--warning & { color: $fire-red-glow; }
+  .callout--tip & { color: $earth-yellow-glow; }
+  .callout--important & { color: $text-primary; }
+}
+
+.callout__content {
+  color: $text-secondary;
+
+  p:last-child {
+    margin-bottom: 0;
+  }
+}
+
+// Army Badge
+.army-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: $space-2;
+  padding: $space-1 $space-3;
+  border-radius: $radius-sm;
+  font-size: $text-sm;
+  font-weight: $weight-medium;
+
+  &--blue {
+    background-color: rgba($air-blue, 0.2);
+    color: $air-blue-glow;
+  }
+
+  &--black {
+    background-color: rgba($water-indigo, 0.3);
+    color: lighten($water-indigo, 30%);
+  }
+
+  &--red {
+    background-color: rgba($fire-red, 0.2);
+    color: $fire-red-glow;
+  }
+
+  &--yellow {
+    background-color: rgba($earth-yellow, 0.2);
+    color: $earth-yellow-glow;
+  }
+}
+
+// Team indicator
+.team-indicator {
+  display: flex;
+  gap: $space-4;
+  margin: $space-4 0;
+}
+
+.team {
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+  padding: $space-2 $space-4;
+  background-color: $bg-surface;
+  border-radius: $radius-md;
+
+  &--air {
+    border: 1px solid $air-blue;
+  }
+
+  &--earth {
+    border: 1px solid $earth-yellow;
+  }
+}
+
+// Quick Start Steps
+.steps {
+  counter-reset: step-counter;
+  list-style: none;
+  padding: 0;
+}
+
+.step {
+  counter-increment: step-counter;
+  position: relative;
+  padding-left: $space-12;
+  margin-bottom: $space-8;
+
+  &::before {
+    content: counter(step-counter);
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 36px;
+    height: 36px;
+    background: $elemental-gradient;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: $weight-bold;
+    font-size: $text-sm;
+    color: $bg-deep;
+  }
+}
+
+.step__title {
+  font-weight: $weight-semibold;
+  margin-bottom: $space-2;
+}
+
+.step__content {
+  color: $text-secondary;
+}
+
+// Button
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: $space-2;
+  padding: $space-3 $space-6;
+  font-family: $font-display;
+  font-size: $text-base;
+  font-weight: $weight-semibold;
+  text-decoration: none;
+  border-radius: $radius-md;
+  transition: all $transition-fast;
+  cursor: pointer;
+  border: none;
+
+  &--primary {
+    background: $elemental-gradient;
+    color: $bg-deep;
+
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow: $shadow-md;
+      text-decoration: none;
+    }
+  }
+
+  &--secondary {
+    background-color: $bg-surface;
+    color: $text-primary;
+    border: 1px solid $bg-elevated;
+
+    &:hover {
+      border-color: $air-blue;
+      text-decoration: none;
+    }
+  }
+}
+
+// Move Notation
+.move {
+  font-family: $font-mono;
+  font-size: 0.9em;
+  background-color: $bg-surface;
+  padding: $space-1 $space-2;
+  border-radius: $radius-sm;
+  color: $earth-yellow;
+}
+
+// Piece Symbol inline
+.piece-symbol {
+  font-size: 1.2em;
+  vertical-align: middle;
+}
+
+// Table of Contents
+.toc {
+  background-color: $bg-surface;
+  border-radius: $radius-lg;
+  padding: $space-5;
+  margin-bottom: $space-8;
+}
+
+.toc__title {
+  font-size: $text-sm;
+  font-weight: $weight-semibold;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: $text-muted;
+  margin-bottom: $space-3;
+}
+
+.toc__list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+
+  a {
+    display: block;
+    padding: $space-1 0;
+    color: $text-secondary;
+    font-size: $text-sm;
+
+    &:hover {
+      color: $text-primary;
+    }
+  }
+}

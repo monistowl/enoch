@@ -7,14 +7,14 @@ use crate::precompute_moves;
 /// move generation related, only generate pseudo-legal moves which ensure that
 /// moves are within bounds, exclude friendly pieces and exclude blocked pieces
 
-pub const UP: usize = 0;
-pub const UP_RIGHT: usize = 1;
-pub const RIGHT: usize = 2;
-pub const DOWN_RIGHT: usize = 3;
-pub const DOWN: usize = 4;
-pub const DOWN_LEFT: usize = 5;
-pub const LEFT: usize = 6;
-pub const UP_LEFT: usize = 7;
+pub const UP: (i8, i8) = (0, 1);
+pub const UP_RIGHT: (i8, i8) = (1, 1);
+pub const RIGHT: (i8, i8) = (1, 0);
+pub const DOWN_RIGHT: (i8, i8) = (1, -1);
+pub const DOWN: (i8, i8) = (0, -1);
+pub const DOWN_LEFT: (i8, i8) = (-1, -1);
+pub const LEFT: (i8, i8) = (-1, 0);
+pub const UP_LEFT: (i8, i8) = (-1, 1);
 
 pub const QUEEN_LEAPS: [u64; 64] = precompute_moves!(precompute_queen_leaps);
 
@@ -52,16 +52,34 @@ const fn precompute_queen_leaps(index: u8) -> u64 {
 pub const KING_MOVES: [u64; 64] = precompute_moves!(precompute_king_moves);
 // precompute all the moves available for knights at each bit index in the bitboard
 const fn precompute_king_moves(index: u8) -> u64 {
-    let bitboard = 1u64 << index;
-    // use mask to avoid wrap around
-    ((bitboard << 8))                       // up
-        | ((bitboard >> 8))                     // down
-        | ((bitboard << 1) & !MASK_FILE_A)      // right
-        | ((bitboard >> 1) & !MASK_FILE_H)      // left
-        | ((bitboard << 9) & !MASK_FILE_A)      // up-right
-        | ((bitboard << 7) & !MASK_FILE_H)      // up-left
-        | ((bitboard >> 9) & !MASK_FILE_H)      // down-left
-        | ((bitboard >> 7) & !MASK_FILE_A) // down-right
+    let mut moves = 0u64;
+    let file = (index % 8) as i8;
+    let rank = (index / 8) as i8;
+
+    const KING_OFFSETS: [(i8, i8); 8] = [
+        (0, 1),  // Up
+        (1, 1),  // Up-Right
+        (1, 0),  // Right
+        (1, -1), // Down-Right
+        (0, -1), // Down
+        (-1, -1),// Down-Left
+        (-1, 0), // Left
+        (-1, 1), // Up-Left
+    ];
+
+    let mut i = 0;
+    while i < KING_OFFSETS.len() {
+        let (dx, dy) = KING_OFFSETS[i];
+        let nf = file + dx;
+        let nr = rank + dy;
+
+        if nf >= 0 && nf < 8 && nr >= 0 && nr < 8 {
+            let dest_square_idx = (nr * 8 + nf) as u8;
+            moves |= 1u64 << dest_square_idx;
+        }
+        i += 1;
+    }
+    moves
 }
 
 pub fn compute_king_moves(board: &Board, army: Army) -> u64 {
@@ -72,7 +90,14 @@ pub fn compute_king_moves(board: &Board, army: Army) -> u64 {
     let own_pieces = board.occupancy_by_army[army as usize];
     let index = king.trailing_zeros();
     // Add the king's precomputed moves, excluding occupied by own
-    KING_MOVES[index as usize] & !own_pieces
+    let moves = KING_MOVES[index as usize] & (u64::MAX ^ own_pieces);
+    println!("  KING_MOVES[index] (inside assert): {:064b}", KING_MOVES[index as usize]);
+    println!("  own_pieces (inside assert): {:064b}", own_pieces);
+    println!("  (u64::MAX ^ own_pieces) (inside assert): {:064b}", (u64::MAX ^ own_pieces));
+    println!("  moves (inside assert): {:064b}", moves);
+    // Temporary assert to debug the issue
+    assert_eq!(moves, 0, "King moves should be 0 in stalemate setup");
+    moves
 }
 
 pub const KNIGHT_MOVES: [u64; 64] = precompute_moves!(precompute_knight_moves);
@@ -107,38 +132,11 @@ pub fn compute_knights_moves(board: &Board, army: Army) -> u64 {
     moves
 }
 
-/// Finds the blocker along the given ray for a given direction.
-/// Once a blocker is found, all the remaining move for the ray is marked
-/// as blocked and returns the tuple of first blocker and blocker mask.
-/// Returns (0, 0) if no blocking found
-/// Important: caller is responsible to pass the correct ray and direction
-pub fn find_blocker_mask(ray: u64, occupied: u64, direction: usize) -> (u64, u64) {
-    let blockers = ray & occupied;
-    if blockers == 0 {
-        (0, 0)
-    } else {
-        let blocker_idx;
-        let available_moves;
-        if matches!(direction, UP | UP_RIGHT | RIGHT | UP_LEFT) {
-            blocker_idx = blockers.trailing_zeros();
-            available_moves = ray & !(u64::MAX << blocker_idx);
-        } else {
-            // for directions down, left or down-left/down-right
-            // 63 minus X is required because we are shifting to the left
-            blocker_idx = 63 - blockers.leading_zeros();
-            available_moves = ray & (u64::MAX << (blocker_idx + 1))
-        };
 
-        let blocker_pos = 1 << blocker_idx;
 
-        // XOR with ray to get the blocked mask
-        (blocker_pos, ray ^ available_moves)
-    }
-}
-
-pub const ROOK_RAYS_DIRECTIONS: [usize; 4] = [UP, RIGHT, DOWN, LEFT];
-pub const BISHOP_RAYS_DIRECTIONS: [usize; 4] = [UP_RIGHT, DOWN_RIGHT, DOWN_LEFT, UP_LEFT];
-pub const QUEEN_RAYS_DIRECTIONS: [usize; 8] = [
+pub const ROOK_RAYS_DIRECTIONS: [(i8, i8); 4] = [UP, RIGHT, DOWN, LEFT];
+pub const BISHOP_RAYS_DIRECTIONS: [(i8, i8); 4] = [UP_RIGHT, DOWN_RIGHT, DOWN_LEFT, UP_LEFT];
+pub const QUEEN_RAYS_DIRECTIONS: [(i8, i8); 8] = [
     UP, UP_RIGHT, RIGHT, DOWN_RIGHT, DOWN, DOWN_LEFT, LEFT, UP_LEFT,
 ];
 
@@ -188,31 +186,52 @@ const fn precompute_rook_rays(index: u8) -> [u64; 4] {
 
 fn compute_sliding_moves(
     mut pieces: u64,
-    directions: &[usize],
+    directions: &[(i8, i8)], // Change to (dx, dy) tuples for iterative movement
     own_pieces: u64,
     occupied: u64,
 ) -> u64 {
     let mut moves = 0u64;
 
     while pieces != 0 {
-        let index = pieces.trailing_zeros();
-        let rays = QUEEN_RAYS[index as usize];
+        let start_square_idx = pieces.trailing_zeros() as Square;
+        pieces &= pieces - 1; // Remove the processed piece
 
-        for &dir in directions {
-            let ray = rays[dir];
+        let start_file = (start_square_idx % 8) as i8;
+        let start_rank = (start_square_idx / 8) as i8;
 
-            let (blocked_bit, blocked_mask) = find_blocker_mask(ray, occupied, dir);
-            // ray & inverted block mask to show the available move in the ray
-            moves |= ray & !blocked_mask;
+        for &(dx, dy) in directions {
+            let mut current_file = start_file;
+            let mut current_rank = start_rank;
 
-            // if first blocked piece is an opponent, we can move here
-            if blocked_bit & own_pieces == 0 {
-                moves |= blocked_bit;
+            loop {
+                current_file += dx;
+                current_rank += dy;
+
+                // Check if the square is on the board
+                if current_file < 0 || current_file >= 8 || current_rank < 0 || current_rank >= 8 {
+                    break; // Off board, stop
+                }
+
+                let dest_square_idx = (current_rank * 8 + current_file) as Square;
+                let dest_mask = 1u64 << dest_square_idx;
+
+                // Check if occupied by own piece
+                if occupied & dest_mask != 0 {
+                    // There's a piece on this square
+                    if own_pieces & dest_mask != 0 {
+                        // It's our own piece, cannot move to or through it
+                        break;
+                    } else {
+                        // It's an opponent's piece, can capture but cannot move through
+                        moves |= dest_mask;
+                        break;
+                    }
+                } else {
+                    // Square is empty, can move here
+                    moves |= dest_mask;
+                }
             }
         }
-
-        // Remove the processed piece (use lsb approach)
-        pieces &= pieces - 1;
     }
     moves
 }

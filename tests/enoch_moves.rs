@@ -56,14 +56,16 @@ fn bishop_moves_follow_aries_diagonal() {
     let expected = bit(square('a', 8))
         | bit(square('b', 7))
         | bit(square('c', 6))
+        | bit(square('d', 5))
         | bit(square('f', 5))
         | bit(square('g', 6))
         | bit(square('h', 7))
-        | bit(square('d', 3))
-        | bit(square('c', 2))
         | bit(square('b', 1))
+        | bit(square('c', 2))
+        | bit(square('d', 3))
         | bit(square('f', 3))
-        | bit(square('g', 2));
+        | bit(square('g', 2))
+        | bit(square('h', 1));
 
     assert_eq!(moves, expected);
 }

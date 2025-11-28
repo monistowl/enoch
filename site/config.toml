@@ -1,0 +1,21 @@
+# Enochian Chess - Zola Configuration
+base_url = "https://enochian-chess.org"
+title = "Enochian Chess"
+description = "A four-army chess variant from the Victorian occult tradition"
+default_language = "en"
+theme = "grimoire"
+
+compile_sass = true
+minify_html = false
+build_search_index = false
+
+generate_feeds = false
+
+[markdown]
+highlight_code = true
+highlight_theme = "base16-ocean-dark"
+
+[extra]
+# Site-wide extras available in templates
+author = "Enochian Chess Project"
+github_repo = "https://github.com/monistowl/enoch"

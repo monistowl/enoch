@@ -1,0 +1,87 @@
+// Enochian Chess - Board Diagram Styles
+// =====================================
+
+@import 'variables';
+
+.board-figure {
+  margin: $space-6 auto;
+  max-width: 400px;
+}
+
+.board-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: $radius-md;
+  box-shadow: $shadow-lg;
+}
+
+.board-label {
+  font-family: $font-mono;
+  font-size: 10px;
+  fill: $text-muted;
+}
+
+.board-piece {
+  font-size: 32px;
+  font-weight: bold;
+
+  &--blue {
+    fill: $air-blue-glow;
+  }
+
+  &--red {
+    fill: $fire-red-glow;
+  }
+
+  &--black {
+    fill: lighten($water-indigo, 25%);
+  }
+
+  &--yellow {
+    fill: $earth-yellow-glow;
+  }
+}
+
+.board-caption {
+  text-align: center;
+  margin-top: $space-3;
+  font-size: $text-sm;
+  color: $text-muted;
+  font-style: italic;
+}
+
+// Static board display (inline SVG in content)
+.board-container {
+  margin: $space-6 auto;
+  max-width: 420px;
+
+  svg {
+    width: 100%;
+    height: auto;
+    display: block;
+    border-radius: $radius-md;
+    box-shadow: $shadow-lg;
+  }
+}
+
+// Throne square highlighting
+.throne-square {
+  fill: rgba($earth-yellow, 0.3);
+  stroke: $earth-yellow;
+  stroke-width: 1;
+}
+
+// Move indicator
+.move-indicator {
+  fill: rgba($air-blue, 0.4);
+  stroke: $air-blue;
+  stroke-width: 1;
+}
+
+// Attack indicator
+.attack-indicator {
+  fill: rgba($fire-red, 0.3);
+  stroke: $fire-red;
+  stroke-width: 1;
+}

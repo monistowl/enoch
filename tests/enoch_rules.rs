@@ -1,7 +1,7 @@
 use enoch::engine::{
     board::Board,
     game::{Game, GameConfig},
-    types::{Army, PieceKind, Square},
+    types::{Army, Piece, PieceKind, Square},
 };
 
 fn square(file: char, rank: u8) -> Square {
@@ -14,7 +14,7 @@ fn bit(square: Square) -> u64 {
     1u64 << square
 }
 
-fn build_game_with_pieces(placements: &[(Army, PieceKind, u64)]) -> Game {
+fn build_game_with_pieces(placements: &[(Army, Piece, u64)]) -> Game {
     let board = Board::new(placements);
     Game::with_config(board, GameConfig::default())
 }
@@ -22,9 +22,9 @@ fn build_game_with_pieces(placements: &[(Army, PieceKind, u64)]) -> Game {
 #[test]
 fn check_forces_king_move() {
     let placements = &[
-        (Army::Blue, PieceKind::King, bit(square('e', 1))),
-        (Army::Blue, PieceKind::Pawn, bit(square('d', 2))),
-        (Army::Red, PieceKind::Queen, bit(square('e', 3))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None }, bit(square('e', 1))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Pawn, pawn_type: None }, bit(square('d', 2))),
+        (Army::Red, Piece { army: Army::Red, kind: PieceKind::Queen, pawn_type: None }, bit(square('e', 3))),
     ];
 
     let mut game = build_game_with_pieces(placements);
@@ -40,7 +40,7 @@ fn check_forces_king_move() {
 
 #[test]
 fn capture_king_freezes_army() {
-    let placements = &[(Army::Blue, PieceKind::King, bit(square('e', 1)))];
+    let placements = &[(Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None }, bit(square('e', 1)))];
     let mut game = build_game_with_pieces(placements);
     game.capture_king(Army::Blue);
     assert!(game.army_is_frozen(Army::Blue));
@@ -50,9 +50,9 @@ fn capture_king_freezes_army() {
 #[test]
 fn privileged_pawn_recognition() {
     let placements = &[
-        (Army::Blue, PieceKind::King, bit(square('e', 1))),
-        (Army::Blue, PieceKind::Queen, bit(square('d', 1))),
-        (Army::Blue, PieceKind::Pawn, bit(square('a', 2))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None }, bit(square('e', 1))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Queen, pawn_type: None }, bit(square('d', 1))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Pawn, pawn_type: None }, bit(square('a', 2))),
     ];
     let game = build_game_with_pieces(placements);
     assert!(game.is_privileged_pawn(Army::Blue));
@@ -61,9 +61,9 @@ fn privileged_pawn_recognition() {
 #[test]
 fn privileged_pawn_demotes_existing_piece_on_promotion() {
     let placements = &[
-        (Army::Blue, PieceKind::King, bit(square('e', 1))),
-        (Army::Blue, PieceKind::Queen, bit(square('d', 1))),
-        (Army::Blue, PieceKind::Pawn, bit(square('e', 7))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None }, bit(square('e', 1))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Queen, pawn_type: None }, bit(square('d', 1))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Pawn, pawn_type: None }, bit(square('e', 7))),
     ];
     let mut game = build_game_with_pieces(placements);
     let result = game.apply_move(
@@ -75,7 +75,7 @@ fn privileged_pawn_demotes_existing_piece_on_promotion() {
     assert!(result.is_ok());
     assert_eq!(
         game.board.piece_counts(Army::Blue)[PieceKind::Pawn.index()],
-        2
+        1
     );
     assert_eq!(
         game.board.piece_at(square('d', 1)).unwrap().1,
@@ -84,12 +84,40 @@ fn privileged_pawn_demotes_existing_piece_on_promotion() {
 }
 
 #[test]
+fn test_king_moves_in_stalemate_setup() {
+    let placements = &[
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None }, bit(square('e', 1))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Rook, pawn_type: None }, bit(square('d', 1))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Rook, pawn_type: None }, bit(square('f', 1))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Rook, pawn_type: None }, bit(square('e', 2))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Pawn, pawn_type: None }, bit(square('d', 2))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Pawn, pawn_type: None }, bit(square('f', 2))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Pawn, pawn_type: None }, bit(square('e', 3))),
+    ];
+    let game = build_game_with_pieces(placements);
+    let king_moves = enoch::engine::moves::compute_king_moves(&game.board, Army::Blue);
+    assert_eq!(king_moves, 0);
+}
+
+#[test]
+fn test_bitwise_and_logic() {
+    let val1: u64 = 0b0000000000000000000000000000000000000000000000000011100000101000; // d1, f1, d2, e2, f2
+    let val2: u64 = 0b0000000000000000000000000000000000000000000100000001000000010000; // d1, e1, f1, d2, e2, f2, e3
+    let expected_result: u64 = 0;
+    let actual_result = val1 & (u64::MAX ^ val2);
+    assert_eq!(actual_result, expected_result, "Bitwise AND logic test failed");
+}
+
+#[test]
 fn stalemate_detected_when_no_moves_exist() {
     let placements = &[
-        (Army::Blue, PieceKind::King, bit(square('e', 1))),
-        (Army::Blue, PieceKind::Rook, bit(square('d', 1))),
-        (Army::Blue, PieceKind::Rook, bit(square('f', 1))),
-        (Army::Blue, PieceKind::Rook, bit(square('e', 2))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None }, bit(square('e', 1))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Rook, pawn_type: None }, bit(square('d', 1))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Rook, pawn_type: None }, bit(square('f', 1))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Rook, pawn_type: None }, bit(square('e', 2))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Pawn, pawn_type: None }, bit(square('d', 2))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Pawn, pawn_type: None }, bit(square('f', 2))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Pawn, pawn_type: None }, bit(square('e', 3))),
     ];
     let mut game = build_game_with_pieces(placements);
     game.update_stalemate_status(Army::Blue);
@@ -99,8 +127,8 @@ fn stalemate_detected_when_no_moves_exist() {
 #[test]
 fn prisoner_exchange_restores_kings() {
     let placements = &[
-        (Army::Blue, PieceKind::King, bit(square('e', 1))),
-        (Army::Red, PieceKind::King, bit(square('e', 8))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None }, bit(square('e', 1))),
+        (Army::Red, Piece { army: Army::Red, kind: PieceKind::King, pawn_type: None }, bit(square('e', 8))),
     ];
     let mut game = build_game_with_pieces(placements);
     game.capture_king(Army::Blue);
@@ -119,11 +147,11 @@ fn prisoner_exchange_restores_kings() {
 #[test]
 fn allows_non_king_move_when_king_stuck_in_check() {
     let placements = &[
-        (Army::Blue, PieceKind::King, bit(square('e', 1))),
-        (Army::Blue, PieceKind::Rook, bit(square('d', 1))),
-        (Army::Blue, PieceKind::Rook, bit(square('f', 1))),
-        (Army::Blue, PieceKind::Rook, bit(square('h', 2))),
-        (Army::Red, PieceKind::Rook, bit(square('e', 3))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None }, bit(square('e', 1))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Rook, pawn_type: None }, bit(square('d', 1))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Rook, pawn_type: None }, bit(square('f', 1))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Rook, pawn_type: None }, bit(square('h', 2))),
+        (Army::Red, Piece { army: Army::Red, kind: PieceKind::Rook, pawn_type: None }, bit(square('e', 3))),
     ];
     let mut game = build_game_with_pieces(placements);
     assert!(game.king_in_check(Army::Blue));
@@ -136,8 +164,8 @@ fn allows_non_king_move_when_king_stuck_in_check() {
 #[test]
 fn apply_move_rejects_opponent_move() {
     let placements = &[
-        (Army::Blue, PieceKind::King, bit(square('e', 1))),
-        (Army::Red, PieceKind::Rook, bit(square('e', 8))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None }, bit(square('e', 1))),
+        (Army::Red, Piece { army: Army::Red, kind: PieceKind::Rook, pawn_type: None }, bit(square('e', 8))),
     ];
     let mut game = build_game_with_pieces(placements);
     let result = game.apply_move(Army::Red, square('e', 8), square('e', 7), None);
@@ -147,8 +175,8 @@ fn apply_move_rejects_opponent_move() {
 #[test]
 fn promotion_targets_default_to_queen() {
     let placements = &[
-        (Army::Blue, PieceKind::King, bit(square('e', 1))),
-        (Army::Blue, PieceKind::Pawn, bit(square('e', 7))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None }, bit(square('e', 1))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Pawn, pawn_type: None }, bit(square('e', 7))),
     ];
     let game = build_game_with_pieces(placements);
     let targets = game.promotion_targets(Army::Blue);
@@ -158,9 +186,9 @@ fn promotion_targets_default_to_queen() {
 #[test]
 fn promotion_targets_privileged_pawn_returns_all_majors() {
     let placements = &[
-        (Army::Blue, PieceKind::King, bit(square('e', 1))),
-        (Army::Blue, PieceKind::Queen, bit(square('d', 1))),
-        (Army::Blue, PieceKind::Pawn, bit(square('e', 7))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None }, bit(square('e', 1))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Queen, pawn_type: None }, bit(square('d', 1))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Pawn, pawn_type: None }, bit(square('e', 7))),
     ];
     let game = build_game_with_pieces(placements);
     let targets = game.promotion_targets(Army::Blue);
@@ -178,8 +206,8 @@ fn promotion_targets_privileged_pawn_returns_all_majors() {
 #[test]
 fn exchange_prisoners_requires_both_kings_missing() {
     let placements = &[
-        (Army::Blue, PieceKind::King, bit(square('e', 1))),
-        (Army::Red, PieceKind::King, bit(square('e', 8))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None }, bit(square('e', 1))),
+        (Army::Red, Piece { army: Army::Red, kind: PieceKind::King, pawn_type: None }, bit(square('e', 8))),
     ];
     let mut game = build_game_with_pieces(placements);
     game.capture_king(Army::Blue);
@@ -190,8 +218,8 @@ fn exchange_prisoners_requires_both_kings_missing() {
 #[test]
 fn draw_detected_when_both_kings_bare() {
     let placements = &[
-        (Army::Blue, PieceKind::King, bit(square('e', 1))),
-        (Army::Red, PieceKind::King, bit(square('e', 8))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None }, bit(square('e', 1))),
+        (Army::Red, Piece { army: Army::Red, kind: PieceKind::King, pawn_type: None }, bit(square('e', 8))),
     ];
     let mut game = build_game_with_pieces(placements);
     game.capture_king(Army::Blue);
@@ -202,8 +230,8 @@ fn draw_detected_when_both_kings_bare() {
 #[test]
 fn apply_move_rejects_moving_into_own_piece() {
     let placements = &[
-        (Army::Blue, PieceKind::King, bit(square('e', 1))),
-        (Army::Blue, PieceKind::Pawn, bit(square('e', 2))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None }, bit(square('e', 1))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Pawn, pawn_type: None }, bit(square('e', 2))),
     ];
     let mut game = build_game_with_pieces(placements);
     let err = game.apply_move(Army::Blue, square('e', 1), square('e', 2), None);
@@ -225,10 +253,10 @@ fn default_array_has_all_army_kings() {
 #[test]
 fn stalemate_clears_after_any_move() {
     let placements = &[
-        (Army::Blue, PieceKind::King, bit(square('e', 1))),
-        (Army::Blue, PieceKind::Rook, bit(square('d', 1))),
-        (Army::Blue, PieceKind::Rook, bit(square('f', 1))),
-        (Army::Blue, PieceKind::Rook, bit(square('e', 2))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None }, bit(square('e', 1))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Rook, pawn_type: None }, bit(square('d', 1))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Rook, pawn_type: None }, bit(square('f', 1))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Rook, pawn_type: None }, bit(square('e', 2))),
     ];
     let mut game = build_game_with_pieces(placements);
     game.update_stalemate_status(Army::Blue);

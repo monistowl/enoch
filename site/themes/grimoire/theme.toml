@@ -1,0 +1,7 @@
+[extra]
+name = "Grimoire"
+description = "An elegant dark theme for Enochian Chess documentation"
+version = "0.1.0"
+license = "MIT"
+homepage = "https://github.com/your-repo/enoch"
+min_zola_version = "0.18.0"

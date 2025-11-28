@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rook | Enochian Chess</title>
+    <meta name="description" content="The straightforward piece—pure orthogonal power">
+
+    <link rel="stylesheet" href="https://enochian-chess.org/style.css">
+
+    
+</head>
+<body>
+    <div class="site">
+        
+        <aside class="sidebar" id="sidebar">
+            <header class="sidebar__header">
+                <a href="https://enochian-chess.org" class="sidebar__title">Enochian Chess</a>
+                <p class="sidebar__subtitle">Four Armies. Two Teams. One Board.</p>
+            </header>
+
+            <nav>
+                <ul class="nav">
+                    <li class="nav__section">
+                        <ul class="nav__list">
+                            <li class="nav__item">
+                                <a href="https://enochian-chess.org" class="nav__link ">Home</a>
+                            </li>
+                            <li class="nav__item">
+                                <a href="https://enochian-chess.org/quick-start" class="nav__link ">Quick Start</a>
+                            </li>
+                        </ul>
+                    </li>
+
+                    <li class="nav__section">
+                        <span class="nav__section-title">Rules</span>
+                        <ul class="nav__list">
+                            <li class="nav__item">
+                                <a href="https://enochian-chess.org/rules" class="nav__link ">Full Rules</a>
+                            </li>
+                            <li class="nav__item">
+                                <a href="https://enochian-chess.org/rules/pieces" class="nav__link is-active">The Pieces</a>
+                            </li>
+                        </ul>
+                    </li>
+
+                    <li class="nav__section">
+                        <span class="nav__section-title">Reference</span>
+                        <ul class="nav__list">
+                            <li class="nav__item">
+                                <a href="https://enochian-chess.org/arrays" class="nav__link ">Starting Arrays</a>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+        
+
+        <div class="overlay" id="overlay"></div>
+
+        <header class="mobile-header">
+            <span class="mobile-header__title">Enochian Chess</span>
+            <button class="mobile-header__toggle" id="menu-toggle" aria-label="Toggle navigation">
+                ☰
+            </button>
+        </header>
+
+        <main class="main">
+            <div class="content">
+                
+<article>
+    <header class="page-header">
+        <h1 class="page-header__title">Rook</h1>
+        
+        <p class="page-header__description">The straightforward piece—pure orthogonal power</p>
+        
+    </header>
+
+    <div style="text-align: center; font-size: 4rem; margin-bottom: 2rem;">♖</div>
+<p>The Rook is the most familiar piece in Enochian Chess. It moves exactly as in standard chess: <strong>sliding any number of squares horizontally or vertically</strong>, stopped by pieces in its path.</p>
+<div class="board-container">
+<svg viewBox="0 0 350 350" xmlns="http://www.w3.org/2000/svg">
+  <!-- 7x7 board -->
+  <defs>
+    <pattern id="r-board" width="100" height="100" patternUnits="userSpaceOnUse">
+      <rect width="50" height="50" fill="#2a2a35"/>
+      <rect x="50" width="50" height="50" fill="#1a1a22"/>
+      <rect y="50" width="50" height="50" fill="#1a1a22"/>
+      <rect x="50" y="50" width="50" height="50" fill="#2a2a35"/>
+    </pattern>
+  </defs>
+  <rect width="350" height="350" fill="url(#r-board)"/>
+  <!-- Orthogonal rays from center -->
+  <!-- Up -->
+  <circle cx="175" cy="125" r="12" fill="rgba(196, 162, 74, 0.4)" stroke="#c4a24a" stroke-width="2"/>
+  <circle cx="175" cy="75" r="12" fill="rgba(196, 162, 74, 0.4)" stroke="#c4a24a" stroke-width="2"/>
+  <circle cx="175" cy="25" r="12" fill="rgba(196, 162, 74, 0.4)" stroke="#c4a24a" stroke-width="2"/>
+  <!-- Down -->
+  <circle cx="175" cy="225" r="12" fill="rgba(196, 162, 74, 0.4)" stroke="#c4a24a" stroke-width="2"/>
+  <circle cx="175" cy="275" r="12" fill="rgba(196, 162, 74, 0.4)" stroke="#c4a24a" stroke-width="2"/>
+  <circle cx="175" cy="325" r="12" fill="rgba(196, 162, 74, 0.4)" stroke="#c4a24a" stroke-width="2"/>
+  <!-- Left -->
+  <circle cx="125" cy="175" r="12" fill="rgba(196, 162, 74, 0.4)" stroke="#c4a24a" stroke-width="2"/>
+  <circle cx="75" cy="175" r="12" fill="rgba(196, 162, 74, 0.4)" stroke="#c4a24a" stroke-width="2"/>
+  <circle cx="25" cy="175" r="12" fill="rgba(196, 162, 74, 0.4)" stroke="#c4a24a" stroke-width="2"/>
+  <!-- Right -->
+  <circle cx="225" cy="175" r="12" fill="rgba(196, 162, 74, 0.4)" stroke="#c4a24a" stroke-width="2"/>
+  <circle cx="275" cy="175" r="12" fill="rgba(196, 162, 74, 0.4)" stroke="#c4a24a" stroke-width="2"/>
+  <circle cx="325" cy="175" r="12" fill="rgba(196, 162, 74, 0.4)" stroke="#c4a24a" stroke-width="2"/>
+  <!-- Direction lines -->
+  <line x1="175" y1="175" x2="175" y2="25" stroke="#c4a24a" stroke-width="1" stroke-dasharray="4,4" opacity="0.5"/>
+  <line x1="175" y1="175" x2="175" y2="325" stroke="#c4a24a" stroke-width="1" stroke-dasharray="4,4" opacity="0.5"/>
+  <line x1="175" y1="175" x2="25" y2="175" stroke="#c4a24a" stroke-width="1" stroke-dasharray="4,4" opacity="0.5"/>
+  <line x1="175" y1="175" x2="325" y2="175" stroke="#c4a24a" stroke-width="1" stroke-dasharray="4,4" opacity="0.5"/>
+  <!-- Rook in center -->
+<p><text x="175" y="188" text-anchor="middle" fill="#c4a24a" font-size="36">♜</text>
+</svg></p>
+</div>
+<p style="text-align: center; color: #8a8680; font-size: 0.9rem; margin-top: -0.5rem;">
+  The Rook slides along ranks and files until blocked.
+</p>
+<h2 id="movement">Movement</h2>
+<p>The Rook can move:</p>
+<ul>
+<li>Any number of squares along a <strong>rank</strong> (horizontal)</li>
+<li>Any number of squares along a <strong>file</strong> (vertical)</li>
+</ul>
+<p>Pieces block its path—it cannot jump over anything.</p>
+<h2 id="captures">Captures</h2>
+<p>The Rook has <strong>no capture restrictions</strong>. It can capture any enemy piece it can reach:</p>
+<ul>
+<li>Kings</li>
+<li>Queens</li>
+<li>Bishops</li>
+<li>Knights</li>
+<li>Pawns</li>
+<li>Other Rooks</li>
+</ul>
+<div class="callout callout--note">
+    <div class="callout__title">No Special Rules</div>
+    <div class="callout__content">
+        Unlike the Queen and Bishop, the Rook has no diagonal network restrictions. It's pure, straightforward orthogonal power.
+    </div>
+</div>
+<h2 id="no-castling">No Castling</h2>
+<p>In standard chess, the Rook participates in castling with the King. <strong>There is no castling in Enochian Chess</strong>, so the Rook has no special moves.</p>
+<h2 id="strategic-value">Strategic Value</h2>
+<p>With four armies on the board, Rooks gain additional importance:</p>
+<ul>
+<li><strong>Open files</strong> become contested by multiple armies</li>
+<li><strong>Cross-board threats</strong> can target pieces from any direction</li>
+<li><strong>Coordination</strong> with your ally's rooks creates powerful batteries</li>
+</ul>
+<p>The Rook's ability to capture anything makes it a reliable piece in the chaotic four-way battles of Enochian Chess.</p>
+<h2 id="summary">Summary</h2>
+<table><thead><tr><th>Property</th><th>Value</th></tr></thead><tbody>
+<tr><td>Movement</td><td>Slide orthogonally, any distance</td></tr>
+<tr><td>Capture</td><td>Same as movement</td></tr>
+<tr><td>Restrictions</td><td>None</td></tr>
+<tr><td>Special Moves</td><td>None (no castling)</td></tr>
+</tbody></table>
+
+</article>
+
+
+                <footer class="footer">
+                    <div class="footer__links">
+                        <a href="https:&#x2F;&#x2F;github.com&#x2F;monistowl&#x2F;enoch">GitHub</a>
+                    </div>
+                    <p>Enochian Chess &mdash; A game of elemental strategy</p>
+                </footer>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Mobile menu toggle
+        const toggle = document.getElementById('menu-toggle');
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('overlay');
+
+        if (toggle && sidebar && overlay) {
+            toggle.addEventListener('click', () => {
+                sidebar.classList.toggle('is-open');
+                overlay.classList.toggle('is-visible');
+            });
+
+            overlay.addEventListener('click', () => {
+                sidebar.classList.remove('is-open');
+                overlay.classList.remove('is-visible');
+            });
+        }
+    </script>
+
+    
+</body>
+</html>

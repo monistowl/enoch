@@ -1,0 +1,222 @@
+// Enochian Chess - Base Styles
+// ============================
+
+@import 'variables';
+
+// Reset & Box Sizing
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+// Root & Body
+html {
+  font-size: 18px;
+  scroll-behavior: smooth;
+
+  @media (max-width: $bp-md) {
+    font-size: 16px;
+  }
+}
+
+body {
+  font-family: $font-body;
+  font-weight: $weight-regular;
+  line-height: 1.7;
+  color: $text-primary;
+  background-color: $bg-deep;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+// Typography
+h1, h2, h3, h4, h5, h6 {
+  font-family: $font-display;
+  font-weight: $weight-semibold;
+  line-height: 1.3;
+  color: $text-primary;
+  margin-top: $space-8;
+  margin-bottom: $space-4;
+
+  &:first-child {
+    margin-top: 0;
+  }
+}
+
+h1 {
+  font-size: $text-4xl;
+  font-weight: $weight-bold;
+  letter-spacing: -0.02em;
+}
+
+h2 {
+  font-size: $text-3xl;
+
+  // Elemental underline
+  &::after {
+    content: '';
+    display: block;
+    width: 60px;
+    height: 2px;
+    margin-top: $space-3;
+    background: $elemental-gradient;
+  }
+}
+
+h3 {
+  font-size: $text-2xl;
+}
+
+h4 {
+  font-size: $text-xl;
+}
+
+h5 {
+  font-size: $text-lg;
+}
+
+h6 {
+  font-size: $text-base;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: $text-secondary;
+}
+
+p {
+  margin-bottom: $space-4;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+// Links
+a {
+  color: $air-blue-glow;
+  text-decoration: none;
+  transition: color $transition-fast;
+
+  &:hover {
+    color: $earth-yellow;
+    text-decoration: underline;
+  }
+}
+
+// Lists
+ul, ol {
+  margin-bottom: $space-4;
+  padding-left: $space-6;
+}
+
+li {
+  margin-bottom: $space-2;
+
+  &::marker {
+    color: $text-muted;
+  }
+}
+
+// Code
+code {
+  font-family: $font-mono;
+  font-size: 0.85em;
+  background-color: $bg-surface;
+  padding: $space-1 $space-2;
+  border-radius: $radius-sm;
+  color: $earth-yellow;
+}
+
+pre {
+  font-family: $font-mono;
+  font-size: $text-sm;
+  background-color: $bg-surface;
+  padding: $space-4;
+  border-radius: $radius-md;
+  overflow-x: auto;
+  margin-bottom: $space-4;
+  border-left: 3px solid $air-blue;
+
+  code {
+    background: none;
+    padding: 0;
+    color: $text-primary;
+  }
+}
+
+// Blockquotes
+blockquote {
+  margin: $space-6 0;
+  padding: $space-4 $space-6;
+  background-color: $bg-surface;
+  border-left: 3px solid $fire-red;
+  border-radius: 0 $radius-md $radius-md 0;
+  font-style: italic;
+  color: $text-secondary;
+
+  p:last-child {
+    margin-bottom: 0;
+  }
+}
+
+// Horizontal Rule
+hr {
+  border: none;
+  height: 1px;
+  background: $elemental-gradient;
+  margin: $space-8 0;
+}
+
+// Tables
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: $space-4;
+  font-size: $text-sm;
+}
+
+th, td {
+  padding: $space-3 $space-4;
+  text-align: left;
+  border-bottom: $border-thin;
+}
+
+th {
+  font-weight: $weight-semibold;
+  color: $text-secondary;
+  background-color: $bg-surface;
+}
+
+tr:hover td {
+  background-color: $bg-surface;
+}
+
+// Strong & Emphasis
+strong, b {
+  font-weight: $weight-semibold;
+  color: $text-primary;
+}
+
+em, i {
+  font-style: italic;
+}
+
+// Selection
+::selection {
+  background-color: $air-blue;
+  color: $text-primary;
+}
+
+// Images
+img {
+  max-width: 100%;
+  height: auto;
+  border-radius: $radius-md;
+}
+
+// Focus States (Accessibility)
+:focus-visible {
+  outline: 2px solid $air-blue;
+  outline-offset: 2px;
+}

@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="{{ lang | default(value="en") }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{{ config.title }}{% endblock %}</title>
+    <meta name="description" content="{% block description %}{{ config.description }}{% endblock %}">
+
+    <link rel="stylesheet" href="{{ get_url(path="style.css") }}">
+
+    {% block head_extra %}{% endblock %}
+</head>
+<body>
+    <div class="site">
+        {% block sidebar %}
+        <aside class="sidebar" id="sidebar">
+            <header class="sidebar__header">
+                <a href="{{ get_url(path="/") }}" class="sidebar__title">Enochian Chess</a>
+                <p class="sidebar__subtitle">Four Armies. Two Teams. One Board.</p>
+            </header>
+
+            <nav>
+                <ul class="nav">
+                    <li class="nav__section">
+                        <ul class="nav__list">
+                            <li class="nav__item">
+                                <a href="{{ get_url(path="/") }}" class="nav__link {% if current_path == "/" %}is-active{% endif %}">Home</a>
+                            </li>
+                            <li class="nav__item">
+                                <a href="{{ get_url(path="quick-start") }}" class="nav__link {% if current_path is starting_with("/quick-start") %}is-active{% endif %}">Quick Start</a>
+                            </li>
+                        </ul>
+                    </li>
+
+                    <li class="nav__section">
+                        <span class="nav__section-title">Rules</span>
+                        <ul class="nav__list">
+                            <li class="nav__item">
+                                <a href="{{ get_url(path="rules") }}" class="nav__link {% if current_path == "/rules/" %}is-active{% endif %}">Full Rules</a>
+                            </li>
+                            <li class="nav__item">
+                                <a href="{{ get_url(path="rules/pieces") }}" class="nav__link {% if current_path is starting_with("/rules/pieces") %}is-active{% endif %}">The Pieces</a>
+                            </li>
+                        </ul>
+                    </li>
+
+                    <li class="nav__section">
+                        <span class="nav__section-title">Reference</span>
+                        <ul class="nav__list">
+                            <li class="nav__item">
+                                <a href="{{ get_url(path="arrays") }}" class="nav__link {% if current_path is starting_with("/arrays") %}is-active{% endif %}">Starting Arrays</a>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+        {% endblock %}
+
+        <div class="overlay" id="overlay"></div>
+
+        <header class="mobile-header">
+            <span class="mobile-header__title">Enochian Chess</span>
+            <button class="mobile-header__toggle" id="menu-toggle" aria-label="Toggle navigation">
+                ☰
+            </button>
+        </header>
+
+        <main class="main">
+            <div class="content">
+                {% block content %}{% endblock %}
+
+                <footer class="footer">
+                    <div class="footer__links">
+                        <a href="{{ config.extra.github_repo | default(value="#") }}">GitHub</a>
+                    </div>
+                    <p>Enochian Chess &mdash; A game of elemental strategy</p>
+                </footer>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Mobile menu toggle
+        const toggle = document.getElementById('menu-toggle');
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('overlay');
+
+        if (toggle && sidebar && overlay) {
+            toggle.addEventListener('click', () => {
+                sidebar.classList.toggle('is-open');
+                overlay.classList.toggle('is-visible');
+            });
+
+            overlay.addEventListener('click', () => {
+                sidebar.classList.remove('is-open');
+                overlay.classList.remove('is-visible');
+            });
+        }
+    </script>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

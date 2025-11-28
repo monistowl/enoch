@@ -1,0 +1,266 @@
+// Enochian Chess - Layout Styles
+// ==============================
+
+@import 'variables';
+
+// Site Container
+.site {
+  display: flex;
+  min-height: 100vh;
+}
+
+// Sidebar Navigation
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: $sidebar-width;
+  height: 100vh;
+  background-color: $bg-surface;
+  border-right: $border-thin;
+  padding: $space-6;
+  overflow-y: auto;
+  z-index: 100;
+
+  @media (max-width: $bp-md) {
+    transform: translateX(-100%);
+    transition: transform $transition-base;
+
+    &.is-open {
+      transform: translateX(0);
+    }
+  }
+}
+
+.sidebar__header {
+  margin-bottom: $space-8;
+}
+
+.sidebar__title {
+  font-family: $font-display;
+  font-size: $text-xl;
+  font-weight: $weight-bold;
+  color: $text-primary;
+  text-decoration: none;
+  display: block;
+
+  &:hover {
+    text-decoration: none;
+    color: $earth-yellow;
+  }
+
+  // Elemental underline
+  &::after {
+    content: '';
+    display: block;
+    height: 2px;
+    margin-top: $space-2;
+    background: $elemental-gradient;
+  }
+}
+
+.sidebar__subtitle {
+  font-size: $text-sm;
+  color: $text-muted;
+  margin-top: $space-2;
+  font-style: italic;
+}
+
+// Navigation
+.nav {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.nav__section {
+  margin-bottom: $space-6;
+}
+
+.nav__section-title {
+  font-size: $text-sm;
+  font-weight: $weight-semibold;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: $text-muted;
+  margin-bottom: $space-3;
+  padding-left: $space-3;
+}
+
+.nav__list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.nav__item {
+  margin-bottom: $space-1;
+}
+
+.nav__link {
+  display: block;
+  padding: $space-2 $space-3;
+  color: $text-secondary;
+  text-decoration: none;
+  border-radius: $radius-sm;
+  border-left: 2px solid transparent;
+  transition: all $transition-fast;
+
+  &:hover {
+    color: $text-primary;
+    background-color: $bg-elevated;
+    text-decoration: none;
+  }
+
+  &.is-active {
+    color: $text-primary;
+    background-color: $bg-elevated;
+    border-left-color: $air-blue;
+  }
+
+  // Elemental variants for different sections
+  &.is-active[data-element="fire"] {
+    border-left-color: $fire-red;
+  }
+
+  &.is-active[data-element="earth"] {
+    border-left-color: $earth-yellow;
+  }
+
+  &.is-active[data-element="water"] {
+    border-left-color: $water-indigo;
+  }
+}
+
+.nav__sublist {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  padding-left: $space-4;
+}
+
+// Main Content Area
+.main {
+  flex: 1;
+  margin-left: $sidebar-width;
+  min-height: 100vh;
+
+  @media (max-width: $bp-md) {
+    margin-left: 0;
+  }
+}
+
+// Mobile Header
+.mobile-header {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: $header-height;
+  background-color: $bg-surface;
+  border-bottom: $border-thin;
+  padding: 0 $space-4;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 90;
+
+  @media (max-width: $bp-md) {
+    display: flex;
+  }
+}
+
+.mobile-header__title {
+  font-family: $font-display;
+  font-size: $text-lg;
+  font-weight: $weight-bold;
+  color: $text-primary;
+}
+
+.mobile-header__toggle {
+  background: none;
+  border: none;
+  color: $text-primary;
+  font-size: $text-xl;
+  cursor: pointer;
+  padding: $space-2;
+
+  &:hover {
+    color: $earth-yellow;
+  }
+}
+
+// Content Container
+.content {
+  max-width: $content-width;
+  margin: 0 auto;
+  padding: $space-12 $space-6;
+
+  @media (max-width: $bp-md) {
+    padding: calc($header-height + $space-8) $space-4 $space-8;
+  }
+}
+
+// Page Header
+.page-header {
+  margin-bottom: $space-10;
+  text-align: center;
+}
+
+.page-header__title {
+  margin-bottom: $space-4;
+
+  &::after {
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
+.page-header__description {
+  font-size: $text-lg;
+  color: $text-secondary;
+  font-style: italic;
+  max-width: 540px;
+  margin: 0 auto;
+}
+
+// Footer
+.footer {
+  margin-top: $space-16;
+  padding: $space-8 0;
+  border-top: $border-thin;
+  text-align: center;
+  color: $text-muted;
+  font-size: $text-sm;
+}
+
+.footer__links {
+  margin-bottom: $space-4;
+
+  a {
+    color: $text-muted;
+    margin: 0 $space-4;
+
+    &:hover {
+      color: $text-primary;
+    }
+  }
+}
+
+// Overlay for mobile
+.overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  z-index: 50;
+
+  @media (max-width: $bp-md) {
+    &.is-visible {
+      display: block;
+    }
+  }
+}
