@@ -70,6 +70,9 @@
                             <li class="nav__item">
                                 <a href="{{ get_url(path="quick-start") }}" class="nav__link {% if safe_path is starting_with("/quick-start") %}is-active{% endif %}">Quick Start</a>
                             </li>
+                            <li class="nav__item">
+                                <a href="{{ get_url(path="play") }}" class="nav__link {% if safe_path is starting_with("/play") %}is-active{% endif %}">Play</a>
+                            </li>
                         </ul>
                     </li>
 
@@ -195,6 +198,7 @@
     <!-- Alpine.js for interactive components -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.3/dist/cdn.min.js"></script>
     <script src="{{ get_url(path='js/enoch-game.js') }}"></script>
+    <script src="{{ get_url(path='js/enoch-wasm.js') }}"></script>
 
     {% block scripts %}{% endblock %}
 </body>

@@ -1,0 +1,104 @@
+{#
+  Live Game Widget - WASM-powered full game with Rust engine
+
+  Usage:
+    {{ live_game() }}
+    {{ live_game(captures=false) }}
+    {{ live_game(controls=false) }}
+
+  The game uses the Rust engine via WebAssembly for:
+  - Legal move generation
+  - Move validation
+  - Game state (turn order, frozen armies, check detection)
+#}
+{% set show_captures = captures | default(value=true) %}
+{% set show_controls = controls | default(value=true) %}
+
+<div class="game-widget" x-data="enochWasmGame()">
+  <!-- Loading state -->
+  <template x-if="status === 'loading'">
+    <div class="game-widget__loading">
+      <p>Loading game engine...</p>
+    </div>
+  </template>
+
+  <!-- Error state -->
+  <template x-if="status === 'error'">
+    <div class="game-widget__error">
+      <p x-text="feedbackMessage || 'Failed to load game engine'"></p>
+    </div>
+  </template>
+
+  <!-- Game ready -->
+  <template x-if="wasmReady">
+    <div class="game-widget__content">
+      {% if show_captures %}
+      <!-- Air team captures (Blue + Black) -->
+      <div class="captures-widget captures-widget--air">
+        <div class="captures-widget__label">Air</div>
+        <div class="captures-widget__pieces">
+          <template x-for="piece in captures.Air" :key="piece.code">
+            <span class="captures-widget__piece" :class="'captures-widget__piece--' + piece.colorClass" x-text="piece.glyph"></span>
+          </template>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Board -->
+      <div class="board-widget" @click="handleBoardClick($event)">
+        <svg viewBox="0 0 400 400" class="board-widget__svg" :key="renderKey">
+          <g x-html="renderSquares()"></g>
+          <g x-html="renderLegalMoves()"></g>
+          <g x-html="renderPieces()"></g>
+        </svg>
+      </div>
+
+      {% if show_captures %}
+      <!-- Earth team captures (Red + Yellow) -->
+      <div class="captures-widget captures-widget--earth">
+        <div class="captures-widget__label">Earth</div>
+        <div class="captures-widget__pieces">
+          <template x-for="piece in captures.Earth" :key="piece.code">
+            <span class="captures-widget__piece" :class="'captures-widget__piece--' + piece.colorClass" x-text="piece.glyph"></span>
+          </template>
+        </div>
+      </div>
+      {% endif %}
+
+      {% if show_controls %}
+      <!-- Turn indicator and controls -->
+      <div class="game-widget__controls">
+        <div class="game-widget__turn">
+          <span class="game-widget__turn-label">Turn:</span>
+          <span class="game-widget__turn-army" :class="'game-widget__turn-army--' + turnColor" x-text="turnName"></span>
+          <template x-if="inCheck[turn]">
+            <span class="game-widget__check">CHECK</span>
+          </template>
+        </div>
+
+        <!-- Frozen indicator -->
+        <template x-if="frozen[turn]">
+          <div class="game-widget__frozen">
+            <span x-text="turnName + ' is frozen'"></span>
+          </div>
+        </template>
+
+        <!-- Winner -->
+        <template x-if="winner">
+          <div class="game-widget__winner">
+            <span x-text="winner + ' wins!'"></span>
+          </div>
+        </template>
+
+        <!-- New Game button -->
+        <button class="game-widget__btn" @click="resetGame()">New Game</button>
+      </div>
+      {% endif %}
+
+      <!-- Feedback message -->
+      <div class="game-widget__feedback" x-show="feedback" x-transition :class="'game-widget__feedback--' + feedback">
+        <span x-text="feedbackMessage"></span>
+      </div>
+    </div>
+  </template>
+</div>
