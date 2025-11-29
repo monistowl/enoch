@@ -20,9 +20,9 @@ The **Tablet of Fire** is the default starting array in the Enochian Chess engin
 | Army | Thrones |
 |------|---------|
 | <span class="army-badge army-badge--blue">Blue</span> | d1, e1 |
-| <span class="army-badge army-badge--red">Red</span> | a4, a5 |
+| <span class="army-badge army-badge--red">Red</span> | h4, h5 |
 | <span class="army-badge army-badge--black">Black</span> | d8, e8 |
-| <span class="army-badge army-badge--yellow">Yellow</span> | h4, h5 |
+| <span class="army-badge army-badge--yellow">Yellow</span> | a4, a5 |
 
 ## Board Diagram
 

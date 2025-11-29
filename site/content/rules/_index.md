@@ -18,6 +18,14 @@ The board is oriented by compass:
 
 Play proceeds **clockwise**: Blue → Red → Black → Yellow → Blue...
 
+## Differences from Standard Chess
+
+Several rules from standard chess do **not** apply:
+
+- **No castling** — Kings cannot castle with rooks
+- **No en passant** — Pawns cannot capture en passant
+- **No two-square pawn opening** — Pawns move one square forward only, even on their first move
+
 ## The Four Armies
 
 | Army | Element | Team | Pawn Direction | Promotion Zone |
@@ -38,9 +46,9 @@ Each army has two **throne squares**—special squares where kings gain addition
 | Army | Throne Squares |
 |------|----------------|
 | Blue | d1, e1 |
-| Red | e8, d8 |
-| Black | a5, a4 |
-| Yellow | h4, h5 |
+| Red | h4, h5 |
+| Black | d8, e8 |
+| Yellow | a4, a5 |
 
 **Throne properties:**
 - A king on its own throne can **share the square** with one allied piece
@@ -62,6 +70,33 @@ Queens and bishops are permanently assigned to one network. This affects capture
 - Queens **never** capture other queens
 
 The starting array defines which network each piece belongs to.
+
+## Concourse {#concourse}
+
+A **concourse** is a powerful tactical formation unique to Enochian Chess. When four pieces of the same type occupy a 2×2 square pattern, the player completing the formation gains a significant advantage.
+
+### Concourse of Bishoping
+
+When three bishops occupy adjacent squares in a 2×2 pattern and a fourth bishop moves to complete the square:
+
+1. The completing player **captures both enemy bishops**
+2. The completing player **gains control** of the allied bishop
+3. There are only **five positions** on the board where a concourse can occur
+
+<div class="callout callout--note">
+    <div class="callout__title">Bishops Never Capture Bishops... Except Here</div>
+    <div class="callout__content">
+        The concourse is the <em>only</em> way a bishop can remove enemy bishops from the board. This makes these 2×2 positions strategically critical.
+    </div>
+</div>
+
+### Concourse of Queens
+
+The same rule applies to queens. When four queens form a 2×2 square:
+- The completing player captures the two enemy queens
+- The completing player gains control of the allied queen
+
+Since queens also cannot normally capture queens, the concourse is the sole exception.
 
 ## King Capture & Frozen Armies {#frozen-armies}
 
@@ -85,12 +120,34 @@ You can rescue a frozen allied army:
 3. The army thaws and can move again on subsequent turns
 4. Control persists even if your king leaves the throne
 
+### Ally Captures Ally King (Four-Player Only)
+
+In a four-player game, if your ally's king is about to be captured by an enemy, **you may capture their king yourself**:
+
+- The captured king is removed, but their pieces are **not frozen**
+- You gain control of both your army and your ally's army
+- Each army still moves on its own turn (not combined)
+- This sacrificial move prevents the enemy from freezing your ally's forces
+
+<div class="callout callout--important">
+    <div class="callout__title">Four Players Only</div>
+    <div class="callout__content">
+        This rule does not apply in two-player games where each player already controls both armies of a team.
+    </div>
+</div>
+
 ### Exchange of Prisoners
 
 If two opposing players have each captured a king, they may negotiate an **exchange**:
-- Both captured kings return to their thrones (or nearest legal square)
+- Both captured kings return to their thrones (or nearest unoccupied, unthreatened square)
 - Both frozen armies thaw immediately
-- This is a negotiated action, not automatic
+- This is a negotiated action, not automatic—the opponent may refuse
+
+**Restrictions:**
+- An exchange can only be proposed by the player who captured the second king
+- The exchange must be between the same pair of opponents (you cannot exchange with someone who didn't capture your ally)
+- Players with frozen pieces **cannot** negotiate exchanges—only active players can propose
+- The offer can be made at capture time or later, and can be repeated if refused
 
 ## Check & Forced King Moves {#check}
 
@@ -102,22 +159,71 @@ Check works differently than in standard chess:
 
 3. **No legal king moves**: Only when the king has no legal moves can other pieces act while the king remains in check.
 
+4. **Moving into check**: Unusually, a king that is already in check **may move into check from a different piece**. This tactical sacrifice can buy time for an ally to intervene.
+
 ## Stalemate
 
 If a non-checked king has no legal moves (every move would put it in check), that army is **stalemated**.
 
 A stalemated army skips its turns until the stalemate is broken—perhaps by an ally moving pieces, or an enemy capture that frees up squares.
 
-## Privileged Pawn {#privileged-pawn}
+## Withdrawing {#withdrawing}
 
-Normally, pawns promote to their assigned **patron piece** (the piece type they represent, like "pawn of queen").
+A player may **withdraw** from the game under certain circumstances:
 
-However, if an army is reduced to a minimal force:
+### Bare King Withdrawal
+
+If a player loses all pieces except their king, they may choose to withdraw:
+- The withdrawn king remains on the board as a **frozen piece**
+- The ally takes over the withdrawn player's turn, gaining **two moves per round**
+- This allows the ally to operate both armies simultaneously
+
+### Voluntary Withdrawal
+
+Any player may withdraw at any time:
+- Their pieces come under the ally's control
+- However, the turn structure remains unchanged (one move per corner per round)
+- The ally moves the withdrawn player's pieces on that army's turn
+
+<div class="callout callout--note">
+    <div class="callout__title">Two-Player Games</div>
+    <div class="callout__content">
+        Withdrawal rules don't apply when two players operate two armies each—each player already controls their full team.
+    </div>
+</div>
+
+## Pawn Promotion {#pawn-promotion}
+
+Pawn promotion in Enochian Chess has several unique rules:
+
+### Patron Piece System
+
+Each pawn is a **vice-gerent** (deputy) to a specific major piece. When a pawn promotes, it becomes the piece it represents:
+- The pawn in front of the Queen becomes a Queen
+- The pawn in front of the Bishop becomes a Bishop
+- And so on...
+
+The pawn on the throne square belongs to the piece sharing that square with the King.
+
+### Delayed Promotion
+
+Promotion is **delayed** if the army still has all four pawns:
+- A pawn reaching the promotion zone waits there
+- Only after losing a pawn elsewhere does promotion occur
+- This prevents immediate doubling of pieces
+
+### Throne Square Promotion
+
+A pawn reaching a throne square cannot become a King. It promotes to the piece type that originally shared that throne at game start.
+
+### Privileged Pawn {#privileged-pawn}
+
+If an army is reduced to a minimal force:
 - King + Queen + Pawn
 - King + Bishop + Pawn
 - King + Pawn only
 
-...then that pawn becomes **privileged**. A privileged pawn may promote to **any** major piece type.
+...then that pawn becomes **privileged**. A privileged pawn may promote to **any** major piece type (except King).
 
 **Twist:** If you promote to a piece type already on the board, the existing piece is **demoted** back into a pawn.
 
