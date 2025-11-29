@@ -13,13 +13,13 @@
   height: auto;
   display: block;
   border-radius: $radius-md;
-  box-shadow: $shadow-lg;
+  box-shadow: var(--shadow-lg);
 }
 
 .board-label {
   font-family: $font-mono;
   font-size: 10px;
-  fill: $text-muted;
+  fill: var(--text-muted);
 }
 
 .board-piece {
@@ -27,19 +27,19 @@
   font-weight: bold;
 
   &--blue {
-    fill: $air-blue-glow;
+    fill: var(--air-blue-glow);
   }
 
   &--red {
-    fill: $fire-red-glow;
+    fill: var(--fire-red-glow);
   }
 
   &--black {
-    fill: lighten($water-indigo, 25%);
+    fill: #9a9ac8;
   }
 
   &--yellow {
-    fill: $earth-yellow-glow;
+    fill: var(--earth-yellow-glow);
   }
 }
 
@@ -47,7 +47,7 @@
   text-align: center;
   margin-top: $space-3;
   font-size: $text-sm;
-  color: $text-muted;
+  color: var(--text-muted);
   font-style: italic;
 }
 
@@ -61,27 +61,252 @@
     height: auto;
     display: block;
     border-radius: $radius-md;
-    box-shadow: $shadow-lg;
+    box-shadow: var(--shadow-lg);
   }
 }
 
 // Throne square highlighting
 .throne-square {
-  fill: rgba($earth-yellow, 0.3);
-  stroke: $earth-yellow;
+  fill: rgba(196, 160, 74, 0.3);
+  stroke: var(--earth-yellow);
   stroke-width: 1;
 }
 
 // Move indicator
 .move-indicator {
-  fill: rgba($air-blue, 0.4);
-  stroke: $air-blue;
+  fill: rgba(74, 124, 184, 0.4);
+  stroke: var(--air-blue);
   stroke-width: 1;
 }
 
 // Attack indicator
 .attack-indicator {
-  fill: rgba($fire-red, 0.3);
-  stroke: $fire-red;
+  fill: rgba(196, 90, 74, 0.3);
+  stroke: var(--fire-red);
   stroke-width: 1;
+}
+
+// Board Preview (Homepage)
+.board-preview {
+  margin: $space-6 auto;
+  max-width: 420px;
+
+  &__svg {
+    width: 100%;
+    height: auto;
+    display: block;
+    border-radius: $radius-md;
+    box-shadow: var(--shadow-lg);
+  }
+
+  &__caption {
+    text-align: center;
+    margin-top: $space-3;
+    font-size: $text-sm;
+    color: var(--text-muted);
+    font-style: italic;
+  }
+}
+
+// ============================================
+// Interactive Board Widget (Alpine.js)
+// ============================================
+
+.board-widget {
+  margin: $space-6 auto;
+  max-width: 420px;
+
+  &__svg {
+    width: 100%;
+    height: auto;
+    display: block;
+    border-radius: $radius-md;
+    box-shadow: var(--shadow-lg);
+    background-color: var(--bg-surface);
+  }
+
+  // Square styles
+  &__square {
+    transition: fill 0.15s ease;
+
+    &--light {
+      fill: #c8b898; // Light wood tone
+    }
+
+    &--dark {
+      fill: #8b6914; // Dark wood tone
+    }
+
+    &--selected {
+      fill: rgba(74, 124, 184, 0.6) !important;
+    }
+
+    &--highlighted {
+      fill: rgba(196, 160, 74, 0.5) !important;
+    }
+
+    &--legal {
+      // Handled by legal indicator circles
+    }
+
+    &--last-move {
+      fill: rgba(74, 124, 184, 0.3) !important;
+    }
+  }
+
+  // Legal move indicator
+  &__legal-indicator {
+    fill: rgba(74, 124, 184, 0.5);
+    stroke: var(--air-blue);
+    stroke-width: 1;
+    pointer-events: none;
+  }
+
+  // Piece styles
+  &__piece {
+    font-size: 36px;
+    font-weight: bold;
+    pointer-events: none;
+    filter: drop-shadow(1px 1px 1px rgba(0, 0, 0, 0.5));
+
+    &--blue {
+      fill: var(--air-blue-glow);
+    }
+
+    &--red {
+      fill: var(--fire-red-glow);
+    }
+
+    &--black {
+      fill: #9a9ac8;
+    }
+
+    &--yellow {
+      fill: var(--earth-yellow-glow);
+    }
+  }
+
+  // Board labels
+  &__label {
+    font-family: $font-mono;
+    font-size: 10px;
+    fill: var(--text-muted);
+    pointer-events: none;
+  }
+
+  // Controls
+  &__controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: $space-3;
+    margin-top: $space-4;
+    padding: $space-3;
+    background-color: var(--bg-surface);
+    border-radius: $radius-md;
+  }
+
+  &__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: $space-2 $space-4;
+    background-color: var(--bg-elevated);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: $radius-sm;
+    font-family: $font-body;
+    font-size: $text-sm;
+    cursor: pointer;
+    transition: all $transition-fast;
+
+    &:hover:not(:disabled) {
+      background-color: var(--bg-hover);
+      border-color: var(--air-blue);
+    }
+
+    &--disabled,
+    &:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    &--play {
+      width: 36px;
+      padding: $space-2;
+    }
+  }
+
+  &__step-label {
+    font-family: $font-mono;
+    font-size: $text-sm;
+    color: var(--text-muted);
+    min-width: 60px;
+    text-align: center;
+  }
+
+  // Turn indicator
+  &__turn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: $space-2;
+    margin-top: $space-3;
+    font-size: $text-sm;
+  }
+
+  &__turn-label {
+    color: var(--text-muted);
+  }
+
+  &__turn-army {
+    font-weight: $weight-semibold;
+    padding: $space-1 $space-2;
+    border-radius: $radius-sm;
+
+    &--blue {
+      background-color: rgba(74, 124, 184, 0.2);
+      color: var(--air-blue-glow);
+    }
+
+    &--black {
+      background-color: rgba(74, 74, 106, 0.3);
+      color: #9a9ac8;
+    }
+
+    &--red {
+      background-color: rgba(196, 90, 74, 0.2);
+      color: var(--fire-red-glow);
+    }
+
+    &--yellow {
+      background-color: rgba(196, 160, 74, 0.2);
+      color: var(--earth-yellow-glow);
+    }
+  }
+
+  // Narrative text
+  &__narrative {
+    margin-top: $space-4;
+    padding: $space-4;
+    background-color: var(--bg-surface);
+    border-radius: $radius-md;
+    border-left: 3px solid var(--air-blue);
+    color: var(--text-secondary);
+    font-style: italic;
+    text-align: center;
+  }
+}
+
+// Light theme adjustments
+[data-theme="light"] {
+  .board-widget__square {
+    &--light {
+      fill: #f0d9b5; // Lighter wood
+    }
+
+    &--dark {
+      fill: #b58863; // Warmer dark wood
+    }
+  }
 }

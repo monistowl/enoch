@@ -28,6 +28,35 @@
     their entire army freezes in place.
 </p>
 
+<!-- Interactive Board Demo -->
+<script>
+  window.homeDemo = {
+    mode: "demo",
+    autoPlay: true,
+    playSpeed: 2000,
+    initialPosition: {
+      b1: "BR", c1: "BN", d1: "BB", e1: "BK", f1: "BQ", g1: "BB",
+      b8: "KR", c8: "KN", d8: "KB", e8: "KK", f8: "KQ", g8: "KB",
+      h2: "RR", h3: "RN", h4: "RB", h5: "RK", h6: "RQ", h7: "RB",
+      a2: "YR", a3: "YN", a4: "YB", a5: "YK", a6: "YQ", a7: "YB"
+    },
+    steps: [
+      { narrative: "Blue opens by advancing the Bishop" },
+      { move: ["d1", "d3"], narrative: "Blue Bishop to d3" },
+      { move: ["h4", "f4"], narrative: "Red Bishop strikes across the board" },
+      { move: ["d8", "d6"], narrative: "Black Bishop mirrors Blue" },
+      { move: ["a4", "c4"], narrative: "Yellow Bishop enters the fray" },
+      { move: ["d3", "f5"], narrative: "Blue Bishop threatens Red" },
+      { move: ["f4", "d2"], narrative: "Red retreats to safety" }
+    ]
+  };
+</script>
+{% set demo_scenario = "window.homeDemo" %}
+{% include "partials/board.html" %}
+<p class="board-preview__caption" style="text-align: center; margin-top: -1rem; margin-bottom: 2rem;">
+    Click to pause &middot; Four armies clash on a single board
+</p>
+
 <div class="card-grid">
     <a href="{{ get_url(path="quick-start") }}" class="card card--air">
         <div class="card__icon">⚡</div>

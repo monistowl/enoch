@@ -22,13 +22,28 @@
     <meta name="twitter:description" content="{% block twitter_description %}{{ config.description }}{% endblock %}">
 
     <!-- Theme Color -->
-    <meta name="theme-color" content="#0a0a0f">
+    <meta name="theme-color" content="#0a0a0f" id="theme-color-meta">
+
+    <!-- Theme initialization (prevent flash of wrong theme) -->
+    <script>
+        (function() {
+            const stored = localStorage.getItem('theme');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const theme = stored || (prefersDark ? 'dark' : 'light');
+            if (theme === 'light') {
+                document.documentElement.setAttribute('data-theme', 'light');
+                const meta = document.getElementById('theme-color-meta');
+                if (meta) meta.content = '#f5f0e8';
+            }
+        })();
+    </script>
 
     <link rel="stylesheet" href="{{ get_url(path="style.css") }}">
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
     {% block head_extra %}{% endblock %}
 </head>
@@ -40,6 +55,9 @@
             <header class="sidebar__header">
                 <a href="{{ get_url(path="/") }}" class="sidebar__title">Enochian Chess</a>
                 <p class="sidebar__subtitle">Four Armies. Two Teams. One Board.</p>
+                <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">
+                    <span class="theme-toggle__icon">☽</span>
+                </button>
             </header>
 
             <nav>
@@ -123,7 +141,45 @@
                 overlay.classList.remove('is-visible');
             });
         }
+
+        // Theme toggle
+        const themeToggle = document.getElementById('theme-toggle');
+        const themeIcon = themeToggle?.querySelector('.theme-toggle__icon');
+        const themeColorMeta = document.getElementById('theme-color-meta');
+
+        function updateThemeIcon(isDark) {
+            if (themeIcon) {
+                themeIcon.textContent = isDark ? '☽' : '☀';
+            }
+            if (themeColorMeta) {
+                themeColorMeta.content = isDark ? '#0a0a0f' : '#f5f0e8';
+            }
+        }
+
+        // Set initial icon based on current theme
+        const currentTheme = document.documentElement.getAttribute('data-theme');
+        updateThemeIcon(currentTheme !== 'light');
+
+        if (themeToggle) {
+            themeToggle.addEventListener('click', () => {
+                const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+                const newTheme = isDark ? 'light' : 'dark';
+
+                if (newTheme === 'light') {
+                    document.documentElement.setAttribute('data-theme', 'light');
+                } else {
+                    document.documentElement.removeAttribute('data-theme');
+                }
+
+                localStorage.setItem('theme', newTheme);
+                updateThemeIcon(newTheme === 'dark');
+            });
+        }
     </script>
+
+    <!-- Alpine.js for interactive components -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.3/dist/cdn.min.js"></script>
+    <script src="{{ get_url(path='js/board.js') }}"></script>
 
     {% block scripts %}{% endblock %}
 </body>

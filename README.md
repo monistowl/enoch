@@ -3,6 +3,14 @@ A Rust-powered 🦀 chess engine in a terminal
 
 ![enoch-kitty.gif](screenshots/enoch-kitty.gif)
 
+## ♛ Enochian Chess Variant
+
+This engine also supports **Enochian Chess**, a four-army chess variant from the Victorian occult tradition. Four armies (Blue, Black, Red, Yellow) battle on a single board in teams of two.
+
+![Enochian Chess Demo](site/static/images/enoch-demo.gif)
+
+**[View the interactive documentation →](https://monistowl.github.io/enoch/)**
+
 ## 🚀 Why I Built This
 As I was preparing for a chess competition, I wanted to become **more proficient 
 with chess notation** so I could write down my moves quickly. Instead of using 
