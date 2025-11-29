@@ -1,5 +1,6 @@
 use crate::engine::arrays::{ArraySpec, default_array};
 use crate::engine::board::Board;
+use crate::engine::fen::EnochFen;
 use crate::engine::moves::{
     compute_bishops_moves, compute_king_moves, compute_knights_moves, compute_pawns_moves,
     compute_queens_moves, compute_rooks_moves,
@@ -14,6 +15,19 @@ pub struct Game {
     pub state: GameState,
     pub status: Status,
 }
+
+impl Game {
+    pub fn to_enoch_fen(&self) -> String {
+        let fen = EnochFen::from_game(self);
+        serde_json::to_string_pretty(&fen).unwrap_or_else(|_| "{}".to_string())
+    }
+
+    pub fn from_enoch_fen(json: &str) -> Result<Game, String> {
+        let fen: EnochFen = serde_json::from_str(json).map_err(|e| e.to_string())?;
+        fen.into_game()
+    }
+}
+
 
 #[derive(Debug, Clone)]
 pub struct GameConfig {
