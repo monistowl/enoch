@@ -1,0 +1,31 @@
+{#
+  Captured Pieces Widget Shortcode
+
+  Usage in Markdown (must be inside a game context):
+    {{ captures(team="Air") }}     - Show Air team captures (Blue + Black)
+    {{ captures(team="Earth") }}   - Show Earth team captures (Red + Yellow)
+
+  Note: This widget must be nested inside a {{ game() }} shortcode
+  to access the parent game state via Alpine.js $data.
+#}
+
+{% set team_name = team | default(value="Air") %}
+
+<div x-data="capturedPieces('{{ team_name }}')" class="captures-widget">
+  <div class="captures-widget__header">
+    <span class="captures-widget__team captures-widget__team--{{ team_name | lower }}">{{ team_name }}</span>
+    <span class="captures-widget__label">captured</span>
+  </div>
+  <div class="captures-widget__pieces" x-show="hasPieces">
+    <template x-for="piece in pieces" :key="piece.code + Math.random()">
+      <span
+        class="captures-widget__piece"
+        :class="'captures-widget__piece--' + piece.colorClass"
+        x-text="piece.glyph"
+      ></span>
+    </template>
+  </div>
+  <div class="captures-widget__empty" x-show="!hasPieces">
+    <span class="captures-widget__none">—</span>
+  </div>
+</div>

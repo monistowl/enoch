@@ -58,7 +58,7 @@ Captures in Enochian Chess follow standard chess rules:
 - The enemy piece is removed from the board
 - You **cannot** capture your teammate's pieces
 
-{{ board() }}
+{{ game() }}
 
 ## The Frozen Army Rule
 

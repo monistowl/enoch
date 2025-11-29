@@ -372,3 +372,147 @@
     }
   }
 }
+
+// ============================================
+// Captured Pieces Widget
+// ============================================
+
+// ============================================
+// Game Widget (Full Composed Layout)
+// ============================================
+
+.game-widget {
+  margin: $space-6 auto;
+  max-width: 600px;
+
+  &__layout {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    gap: $space-4;
+
+    @media (max-width: 600px) {
+      flex-direction: column;
+      align-items: center;
+    }
+  }
+
+  &__board {
+    flex: 0 0 auto;
+    max-width: 400px;
+    width: 100%;
+
+    .board-widget__svg {
+      width: 100%;
+      height: auto;
+      display: block;
+      border-radius: $radius-md;
+      box-shadow: var(--shadow-lg);
+      background-color: var(--bg-surface);
+    }
+  }
+
+  &__captures {
+    flex: 0 0 auto;
+
+    @media (max-width: 600px) {
+      display: none; // Hide on mobile, show below board instead
+    }
+
+    &--left,
+    &--right {
+      min-width: 90px;
+    }
+  }
+
+  // Reuse board-widget styles for controls, turn, narrative, feedback
+  .board-widget__controls,
+  .board-widget__turn,
+  .board-widget__narrative,
+  .board-widget__feedback {
+    margin-top: $space-3;
+  }
+}
+
+.captures-widget {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: $space-3;
+  background-color: var(--bg-surface);
+  border-radius: $radius-md;
+  min-width: 80px;
+
+  &__header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: $space-1;
+    margin-bottom: $space-2;
+  }
+
+  &__team {
+    font-weight: $weight-semibold;
+    font-size: $text-sm;
+    padding: $space-1 $space-2;
+    border-radius: $radius-sm;
+
+    &--air {
+      background-color: rgba(74, 124, 184, 0.2);
+      color: var(--air-blue-glow);
+    }
+
+    &--earth {
+      background-color: rgba(196, 160, 74, 0.2);
+      color: var(--earth-yellow-glow);
+    }
+  }
+
+  &__label {
+    font-size: $text-xs;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  &__pieces {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: $space-1;
+    min-height: 32px;
+  }
+
+  &__piece {
+    font-size: 24px;
+    line-height: 1;
+    filter: drop-shadow(1px 1px 1px rgba(0, 0, 0, 0.3));
+
+    &--blue {
+      color: var(--air-blue-glow);
+    }
+
+    &--black {
+      color: #9a9ac8;
+    }
+
+    &--red {
+      color: var(--fire-red-glow);
+    }
+
+    &--yellow {
+      color: var(--earth-yellow-glow);
+    }
+  }
+
+  &__empty {
+    min-height: 32px;
+    display: flex;
+    align-items: center;
+  }
+
+  &__none {
+    color: var(--text-muted);
+    font-size: $text-lg;
+  }
+}

@@ -1,0 +1,140 @@
+{#
+  Full Game Widget Shortcode
+
+  Usage in Markdown:
+    {{ game() }}                     - Uses page.extra.scenario
+    {{ game(id="myGame") }}          - For multiple games, specify unique ID
+    {{ game(captures=false) }}       - Hide captured pieces panels
+    {{ game(controls=false) }}       - Hide navigation controls
+
+  Composes:
+    - Captured pieces (both teams)
+    - Interactive board
+    - Turn indicator
+    - Navigation controls
+    - Narrative text
+#}
+
+{% set game_id = id | default(value="tutorialGame") %}
+{% set show_captures = captures | default(value=true) %}
+{% set show_controls = controls | default(value=true) %}
+
+{% if page.extra.scenario %}
+<script>
+  window.{{ game_id }} = {{ page.extra.scenario | safe }};
+</script>
+
+<div x-data="enochGame(window.{{ game_id }})" x-init="init()" class="game-widget" :class="{ 'game-widget--success': feedback === 'success', 'game-widget--error': feedback === 'error' }">
+
+  <!-- Game layout: captures | board | captures -->
+  <div class="game-widget__layout">
+
+    {% if show_captures %}
+    <!-- Air team captures (left) -->
+    <div class="game-widget__captures game-widget__captures--left">
+      <div x-data="capturedPieces('Air')" class="captures-widget">
+        <div class="captures-widget__header">
+          <span class="captures-widget__team captures-widget__team--air">Air</span>
+          <span class="captures-widget__label">captured</span>
+        </div>
+        <div class="captures-widget__pieces" x-show="hasPieces">
+          <template x-for="(piece, idx) in pieces" :key="'air-' + idx">
+            <span
+              class="captures-widget__piece"
+              :class="'captures-widget__piece--' + piece.colorClass"
+              x-text="piece.glyph"
+            ></span>
+          </template>
+        </div>
+        <div class="captures-widget__empty" x-show="!hasPieces">
+          <span class="captures-widget__none">—</span>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Board (center) -->
+    <div class="game-widget__board">
+      <svg viewBox="0 0 400 400" class="board-widget__svg" xmlns="http://www.w3.org/2000/svg" @click="handleBoardClick($event)">
+        <g x-html="renderKey >= 0 && renderSquares()"></g>
+        <g x-html="renderKey >= 0 && renderLegalMoves()"></g>
+        <g x-html="renderKey >= 0 && renderPieces()"></g>
+
+        <!-- File labels -->
+        <text x="25" y="395" class="board-widget__label" text-anchor="middle">a</text>
+        <text x="75" y="395" class="board-widget__label" text-anchor="middle">b</text>
+        <text x="125" y="395" class="board-widget__label" text-anchor="middle">c</text>
+        <text x="175" y="395" class="board-widget__label" text-anchor="middle">d</text>
+        <text x="225" y="395" class="board-widget__label" text-anchor="middle">e</text>
+        <text x="275" y="395" class="board-widget__label" text-anchor="middle">f</text>
+        <text x="325" y="395" class="board-widget__label" text-anchor="middle">g</text>
+        <text x="375" y="395" class="board-widget__label" text-anchor="middle">h</text>
+
+        <!-- Rank labels -->
+        <text x="5" y="380" class="board-widget__label">1</text>
+        <text x="5" y="330" class="board-widget__label">2</text>
+        <text x="5" y="280" class="board-widget__label">3</text>
+        <text x="5" y="230" class="board-widget__label">4</text>
+        <text x="5" y="180" class="board-widget__label">5</text>
+        <text x="5" y="130" class="board-widget__label">6</text>
+        <text x="5" y="80" class="board-widget__label">7</text>
+        <text x="5" y="30" class="board-widget__label">8</text>
+      </svg>
+    </div>
+
+    {% if show_captures %}
+    <!-- Earth team captures (right) -->
+    <div class="game-widget__captures game-widget__captures--right">
+      <div x-data="capturedPieces('Earth')" class="captures-widget">
+        <div class="captures-widget__header">
+          <span class="captures-widget__team captures-widget__team--earth">Earth</span>
+          <span class="captures-widget__label">captured</span>
+        </div>
+        <div class="captures-widget__pieces" x-show="hasPieces">
+          <template x-for="(piece, idx) in pieces" :key="'earth-' + idx">
+            <span
+              class="captures-widget__piece"
+              :class="'captures-widget__piece--' + piece.colorClass"
+              x-text="piece.glyph"
+            ></span>
+          </template>
+        </div>
+        <div class="captures-widget__empty" x-show="!hasPieces">
+          <span class="captures-widget__none">—</span>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+
+  {% if show_controls %}
+  <!-- Controls -->
+  <div class="board-widget__controls" x-show="scenario.steps && scenario.steps.length > 1">
+    <button class="board-widget__btn" @click="prevStep()" :disabled="step === 0" :class="{ 'board-widget__btn--disabled': step === 0 }">
+      ← Back
+    </button>
+    <span class="board-widget__step-label" x-text="stepLabel"></span>
+    <button class="board-widget__btn" @click="nextStep()" :disabled="step === maxStep" :class="{ 'board-widget__btn--disabled': step === maxStep }">
+      Next →
+    </button>
+    <button x-show="mode === 'demo'" class="board-widget__btn board-widget__btn--play" @click="toggleAutoPlay()" x-text="isPlaying ? '⏸' : '▶'"></button>
+  </div>
+  {% endif %}
+
+  <!-- Turn indicator -->
+  <div class="board-widget__turn" x-show="turnIndicator">
+    <span class="board-widget__turn-label">Turn:</span>
+    <span class="board-widget__turn-army" :class="'board-widget__turn-army--' + turnIndicator.toLowerCase()" x-text="turnIndicator"></span>
+  </div>
+
+  <!-- Narrative text -->
+  <p class="board-widget__narrative" x-show="currentNarrative && !feedbackMessage" x-text="currentNarrative"></p>
+
+  <!-- Feedback message -->
+  <p class="board-widget__feedback" :class="{ 'board-widget__feedback--success': feedback === 'success', 'board-widget__feedback--error': feedback === 'error' }" x-show="feedbackMessage" x-text="feedbackMessage"></p>
+
+</div>
+{% else %}
+<p class="board-widget__error"><em>No scenario defined for this game.</em></p>
+{% endif %}
