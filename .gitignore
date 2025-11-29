@@ -2,3 +2,7 @@
 
 .gemini/
 gha-creds-*.json
+.playwright-mcp/
+
+# Zola build output (regenerated on deploy)
+site/public/
