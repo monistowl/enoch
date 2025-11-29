@@ -10,8 +10,9 @@ scenario = """
   "initialPosition": {
     "d4": "BB",
     "f6": "RB",
-    "c3": "YN",
-    "e5": "KK"
+    "e5": "RK",
+    "g3": "RN",
+    "h2": "RP"
   },
   "steps": [
     {
@@ -27,16 +28,23 @@ scenario = """
     },
     {
       "move": ["d4", "f6"],
-      "narrative": "Excellent! The Red Bishop is captured. Blue now threatens Black's King!",
+      "narrative": "Excellent! The Red Bishop is captured. Now Blue threatens Red's King on e5!",
       "highlight": ["f6", "e5"]
     },
     {
-      "narrative": "When a King is captured, its army FREEZES. Frozen pieces block movement but can't act.",
-      "highlight": ["e5"]
+      "narrative": "Capturing a King freezes the entire army. Click f6, then e5 to capture the Red King!",
+      "highlight": ["f6", "e5"],
+      "expectedMove": ["f6", "e5"],
+      "legalMoves": { "f6": ["e5", "g7", "h8", "e7", "d8"] }
     },
     {
-      "narrative": "This is key to Enochian Chess strategy: capture enemy kings to freeze their armies!",
-      "highlight": ["f6"]
+      "move": ["f6", "e5"],
+      "narrative": "The Red King is captured! Notice how the Red Knight and Pawn are now FROZEN (greyed out).",
+      "highlight": ["g3", "h2"]
+    },
+    {
+      "narrative": "Frozen pieces block movement but cannot move or capture. This is key to Enochian Chess strategy!",
+      "highlight": ["e5", "g3", "h2"]
     }
   ]
 }
