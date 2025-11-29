@@ -1,0 +1,6 @@
+base_url = "https://monistowl.github.io/enoch/"
+title = "Enoch"
+description = "Enochian Chess Project"
+default_language = "en"
+compile_sass = true
+taxonomies = []
