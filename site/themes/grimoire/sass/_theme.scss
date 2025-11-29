@@ -1,0 +1,109 @@
+// Enochian Chess - Theme System
+// ==============================
+// CSS Custom Properties for dark/light mode support
+
+@import 'variables';
+
+// Dark Theme (Default)
+:root {
+  // Backgrounds
+  --bg-deep: #{$bg-deep};
+  --bg-surface: #{$bg-surface};
+  --bg-elevated: #{$bg-elevated};
+  --bg-hover: #{$bg-hover};
+
+  // Text
+  --text-primary: #{$text-primary};
+  --text-secondary: #{$text-secondary};
+  --text-muted: #{$text-muted};
+  --text-faint: #{$text-faint};
+
+  // Elemental Colors (consistent across themes)
+  --air-blue: #{$air-blue};
+  --air-blue-dim: #{$air-blue-dim};
+  --air-blue-glow: #{$air-blue-glow};
+
+  --water-black: #{$water-black};
+  --water-indigo: #{$water-indigo};
+  --water-deep: #{$water-deep};
+
+  --fire-red: #{$fire-red};
+  --fire-red-dim: #{$fire-red-dim};
+  --fire-red-glow: #{$fire-red-glow};
+
+  --earth-yellow: #{$earth-yellow};
+  --earth-yellow-dim: #{$earth-yellow-dim};
+  --earth-yellow-glow: #{$earth-yellow-glow};
+
+  // Borders & Shadows
+  --border-color: #{$bg-elevated};
+  --shadow-color: rgba(0, 0, 0, 0.5);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.5);
+
+  // Theme indicator
+  --theme-icon: "☽";
+
+  // Color scheme hint for browser
+  color-scheme: dark;
+}
+
+// Light Theme
+[data-theme="light"] {
+  // Backgrounds - warm parchment tones
+  --bg-deep: #f5f0e8;
+  --bg-surface: #ebe6de;
+  --bg-elevated: #e0dbd3;
+  --bg-hover: #d5d0c8;
+
+  // Text - dark ink
+  --text-primary: #1a1a1f;
+  --text-secondary: #3a3a42;
+  --text-muted: #5a5a64;
+  --text-faint: #8a8a94;
+
+  // Elemental colors - slightly adjusted for light bg
+  --air-blue: #3a6ca8;
+  --air-blue-dim: #2a4c78;
+  --air-blue-glow: #4a7cb8;
+
+  --water-indigo: #4a4a7a;
+  --water-black: #3d3d5a;
+  --water-deep: #2d2d4a;
+
+  --fire-red: #b44a3a;
+  --fire-red-dim: #842a1a;
+  --fire-red-glow: #c45a4a;
+
+  --earth-yellow: #a4822a;
+  --earth-yellow-dim: #74520a;
+  --earth-yellow-glow: #b4922a;
+
+  // Borders & Shadows
+  --border-color: #d0cbc3;
+  --shadow-color: rgba(0, 0, 0, 0.15);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.12);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.15);
+
+  // Theme indicator
+  --theme-icon: "☀";
+
+  // Color scheme hint for browser
+  color-scheme: light;
+}
+
+// Transition for smooth theme switching
+html {
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+body,
+.sidebar,
+.content,
+.card,
+.callout,
+.mobile-header {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}

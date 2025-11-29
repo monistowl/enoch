@@ -16,8 +16,8 @@
   left: 0;
   width: $sidebar-width;
   height: 100vh;
-  background-color: $bg-surface;
-  border-right: $border-thin;
+  background-color: var(--bg-surface);
+  border-right: 1px solid var(--border-color);
   padding: $space-6;
   overflow-y: auto;
   z-index: 100;
@@ -40,13 +40,13 @@
   font-family: $font-display;
   font-size: $text-xl;
   font-weight: $weight-bold;
-  color: $text-primary;
+  color: var(--text-primary);
   text-decoration: none;
   display: block;
 
   &:hover {
     text-decoration: none;
-    color: $earth-yellow;
+    color: var(--earth-yellow);
   }
 
   // Elemental underline
@@ -55,13 +55,13 @@
     display: block;
     height: 2px;
     margin-top: $space-2;
-    background: $elemental-gradient;
+    background: linear-gradient(90deg, var(--air-blue) 0%, var(--water-indigo) 25%, var(--fire-red) 75%, var(--earth-yellow) 100%);
   }
 }
 
 .sidebar__subtitle {
   font-size: $text-sm;
-  color: $text-muted;
+  color: var(--text-muted);
   margin-top: $space-2;
   font-style: italic;
 }
@@ -82,7 +82,7 @@
   font-weight: $weight-semibold;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: $text-muted;
+  color: var(--text-muted);
   margin-bottom: $space-3;
   padding-left: $space-3;
 }
@@ -100,35 +100,35 @@
 .nav__link {
   display: block;
   padding: $space-2 $space-3;
-  color: $text-secondary;
+  color: var(--text-secondary);
   text-decoration: none;
   border-radius: $radius-sm;
   border-left: 2px solid transparent;
   transition: all $transition-fast;
 
   &:hover {
-    color: $text-primary;
-    background-color: $bg-elevated;
+    color: var(--text-primary);
+    background-color: var(--bg-elevated);
     text-decoration: none;
   }
 
   &.is-active {
-    color: $text-primary;
-    background-color: $bg-elevated;
-    border-left-color: $air-blue;
+    color: var(--text-primary);
+    background-color: var(--bg-elevated);
+    border-left-color: var(--air-blue);
   }
 
   // Elemental variants for different sections
   &.is-active[data-element="fire"] {
-    border-left-color: $fire-red;
+    border-left-color: var(--fire-red);
   }
 
   &.is-active[data-element="earth"] {
-    border-left-color: $earth-yellow;
+    border-left-color: var(--earth-yellow);
   }
 
   &.is-active[data-element="water"] {
-    border-left-color: $water-indigo;
+    border-left-color: var(--water-indigo);
   }
 }
 
@@ -158,8 +158,8 @@
   left: 0;
   right: 0;
   height: $header-height;
-  background-color: $bg-surface;
-  border-bottom: $border-thin;
+  background-color: var(--bg-surface);
+  border-bottom: 1px solid var(--border-color);
   padding: 0 $space-4;
   align-items: center;
   justify-content: space-between;
@@ -174,19 +174,19 @@
   font-family: $font-display;
   font-size: $text-lg;
   font-weight: $weight-bold;
-  color: $text-primary;
+  color: var(--text-primary);
 }
 
 .mobile-header__toggle {
   background: none;
   border: none;
-  color: $text-primary;
+  color: var(--text-primary);
   font-size: $text-xl;
   cursor: pointer;
   padding: $space-2;
 
   &:hover {
-    color: $earth-yellow;
+    color: var(--earth-yellow);
   }
 }
 
@@ -218,7 +218,7 @@
 
 .page-header__description {
   font-size: $text-lg;
-  color: $text-secondary;
+  color: var(--text-secondary);
   font-style: italic;
   max-width: 540px;
   margin: 0 auto;
@@ -228,9 +228,9 @@
 .footer {
   margin-top: $space-16;
   padding: $space-8 0;
-  border-top: $border-thin;
+  border-top: 1px solid var(--border-color);
   text-align: center;
-  color: $text-muted;
+  color: var(--text-muted);
   font-size: $text-sm;
 }
 
@@ -238,11 +238,11 @@
   margin-bottom: $space-4;
 
   a {
-    color: $text-muted;
+    color: var(--text-muted);
     margin: 0 $space-4;
 
     &:hover {
-      color: $text-primary;
+      color: var(--text-primary);
     }
   }
 }

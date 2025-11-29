@@ -24,8 +24,8 @@ body {
   font-family: $font-body;
   font-weight: $weight-regular;
   line-height: 1.7;
-  color: $text-primary;
-  background-color: $bg-deep;
+  color: var(--text-primary);
+  background-color: var(--bg-deep);
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -36,7 +36,7 @@ h1, h2, h3, h4, h5, h6 {
   font-family: $font-display;
   font-weight: $weight-semibold;
   line-height: 1.3;
-  color: $text-primary;
+  color: var(--text-primary);
   margin-top: $space-8;
   margin-bottom: $space-4;
 
@@ -61,7 +61,7 @@ h2 {
     width: 60px;
     height: 2px;
     margin-top: $space-3;
-    background: $elemental-gradient;
+    background: linear-gradient(90deg, var(--air-blue) 0%, var(--water-indigo) 25%, var(--fire-red) 75%, var(--earth-yellow) 100%);
   }
 }
 
@@ -81,7 +81,7 @@ h6 {
   font-size: $text-base;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: $text-secondary;
+  color: var(--text-secondary);
 }
 
 p {
@@ -94,12 +94,12 @@ p {
 
 // Links
 a {
-  color: $air-blue-glow;
+  color: var(--air-blue-glow);
   text-decoration: none;
   transition: color $transition-fast;
 
   &:hover {
-    color: $earth-yellow;
+    color: var(--earth-yellow);
     text-decoration: underline;
   }
 }
@@ -114,7 +114,7 @@ li {
   margin-bottom: $space-2;
 
   &::marker {
-    color: $text-muted;
+    color: var(--text-muted);
   }
 }
 
@@ -122,26 +122,26 @@ li {
 code {
   font-family: $font-mono;
   font-size: 0.85em;
-  background-color: $bg-surface;
+  background-color: var(--bg-surface);
   padding: $space-1 $space-2;
   border-radius: $radius-sm;
-  color: $earth-yellow;
+  color: var(--earth-yellow);
 }
 
 pre {
   font-family: $font-mono;
   font-size: $text-sm;
-  background-color: $bg-surface;
+  background-color: var(--bg-surface);
   padding: $space-4;
   border-radius: $radius-md;
   overflow-x: auto;
   margin-bottom: $space-4;
-  border-left: 3px solid $air-blue;
+  border-left: 3px solid var(--air-blue);
 
   code {
     background: none;
     padding: 0;
-    color: $text-primary;
+    color: var(--text-primary);
   }
 }
 
@@ -149,11 +149,11 @@ pre {
 blockquote {
   margin: $space-6 0;
   padding: $space-4 $space-6;
-  background-color: $bg-surface;
-  border-left: 3px solid $fire-red;
+  background-color: var(--bg-surface);
+  border-left: 3px solid var(--fire-red);
   border-radius: 0 $radius-md $radius-md 0;
   font-style: italic;
-  color: $text-secondary;
+  color: var(--text-secondary);
 
   p:last-child {
     margin-bottom: 0;
@@ -164,7 +164,7 @@ blockquote {
 hr {
   border: none;
   height: 1px;
-  background: $elemental-gradient;
+  background: linear-gradient(90deg, var(--air-blue) 0%, var(--water-indigo) 25%, var(--fire-red) 75%, var(--earth-yellow) 100%);
   margin: $space-8 0;
 }
 
@@ -179,23 +179,23 @@ table {
 th, td {
   padding: $space-3 $space-4;
   text-align: left;
-  border-bottom: $border-thin;
+  border-bottom: 1px solid var(--border-color);
 }
 
 th {
   font-weight: $weight-semibold;
-  color: $text-secondary;
-  background-color: $bg-surface;
+  color: var(--text-secondary);
+  background-color: var(--bg-surface);
 }
 
 tr:hover td {
-  background-color: $bg-surface;
+  background-color: var(--bg-surface);
 }
 
 // Strong & Emphasis
 strong, b {
   font-weight: $weight-semibold;
-  color: $text-primary;
+  color: var(--text-primary);
 }
 
 em, i {
@@ -204,8 +204,8 @@ em, i {
 
 // Selection
 ::selection {
-  background-color: $air-blue;
-  color: $text-primary;
+  background-color: var(--air-blue);
+  color: var(--text-primary);
 }
 
 // Images
@@ -217,6 +217,6 @@ img {
 
 // Focus States (Accessibility)
 :focus-visible {
-  outline: 2px solid $air-blue;
+  outline: 2px solid var(--air-blue);
   outline-offset: 2px;
 }
