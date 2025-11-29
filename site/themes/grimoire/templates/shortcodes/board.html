@@ -16,14 +16,14 @@
 <div x-data="enochBoard(window.{{ board_id }})" x-init="init()" class="board-widget" :class="{ 'board-widget--success': feedback === 'success', 'board-widget--error': feedback === 'error' }">
   <!-- Board SVG -->
   <svg viewBox="0 0 400 400" class="board-widget__svg" xmlns="http://www.w3.org/2000/svg" @click="handleBoardClick($event)">
-    <!-- Board squares - rendered by JS -->
-    <g x-html="renderSquares()"></g>
+    <!-- Board squares -->
+    <g x-html="renderKey >= 0 && renderSquares()"></g>
 
     <!-- Legal move indicators -->
-    <g x-html="renderLegalMoves()"></g>
+    <g x-html="renderKey >= 0 && renderLegalMoves()"></g>
 
     <!-- Pieces -->
-    <g x-html="renderPieces()"></g>
+    <g x-html="renderKey >= 0 && renderPieces()"></g>
 
     <!-- File labels (a-h) -->
     <text x="25" y="395" class="board-widget__label" text-anchor="middle">a</text>

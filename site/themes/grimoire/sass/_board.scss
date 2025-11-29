@@ -137,10 +137,6 @@
       fill: #8b6914; // Dark wood tone
     }
 
-    &--selected {
-      fill: rgba(74, 124, 184, 0.6) !important;
-    }
-
     &--highlighted {
       fill: rgba(196, 160, 74, 0.5) !important;
     }
@@ -151,6 +147,11 @@
 
     &--last-move {
       fill: rgba(74, 124, 184, 0.3) !important;
+    }
+
+    // Selected has highest priority (comes last)
+    &--selected {
+      fill: rgba(74, 124, 184, 0.6) !important;
     }
   }
 
@@ -183,6 +184,12 @@
 
     &--yellow {
       fill: var(--earth-yellow-glow);
+    }
+
+    // Frozen army pieces (king captured)
+    &--frozen {
+      opacity: 0.4;
+      filter: grayscale(0.6) drop-shadow(1px 1px 1px rgba(0, 0, 0, 0.3));
     }
   }
 
