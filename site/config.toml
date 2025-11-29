@@ -1,5 +1,5 @@
 # Enochian Chess - Zola Configuration
-base_url = "https://enochian-chess.org"
+base_url = "https://monistowl.github.io/enoch"
 title = "Enochian Chess"
 description = "A four-army chess variant from the Victorian occult tradition"
 default_language = "en"
