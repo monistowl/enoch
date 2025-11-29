@@ -17,11 +17,20 @@ async function initEnochWasm() {
   if (wasmReady) return true;
   if (wasmLoadPromise) return wasmLoadPromise;
 
+  const baseUrl = window.ENOCH_BASE_URL || '';
+  // Ensure trailing slash if needed, or just join paths carefully
+  // If baseUrl is "http://.../enoch", we want "http://.../enoch/wasm/enoch.js"
+  const basePath = baseUrl.endsWith('/') ? baseUrl : baseUrl + '/';
+
   wasmLoadPromise = (async () => {
     try {
       // Dynamic import of the WASM module
-      const wasm = await import('/wasm/enoch.js');
-      await wasm.default('/wasm/enoch_bg.wasm');
+      // Note: import() expects a URL or absolute path.
+      const wasmJsUrl = new URL('wasm/enoch.js', basePath).href;
+      const wasmBgUrl = new URL('wasm/enoch_bg.wasm', basePath).href;
+
+      const wasm = await import(wasmJsUrl);
+      await wasm.default(wasmBgUrl);
       WasmGame = wasm.WasmGame;
       wasmModule = wasm;
       wasmReady = true;

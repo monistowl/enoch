@@ -195,6 +195,11 @@
         }
     </script>
 
+    <script>
+        // Global config for JS modules
+        window.ENOCH_BASE_URL = "{{ get_url(path='') }}";
+    </script>
+
     <!-- Alpine.js for interactive components -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.3/dist/cdn.min.js"></script>
     <script src="{{ get_url(path='js/enoch-game.js') }}"></script>
