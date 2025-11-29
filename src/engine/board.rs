@@ -48,7 +48,7 @@ impl Board {
     ) -> Board {
         let mut by_army_kind = [[0u64; PIECE_KIND_COUNT]; ARMY_COUNT];
         for (army, piece, bitboard) in initial_placements {
-            by_army_kind[army.index()][piece.kind.index()] = *bitboard;
+            by_army_kind[army.index()][piece.kind.index()] |= *bitboard;
         }
 
         let occupancy_by_army = compute_occupancy_by_army(&by_army_kind);
