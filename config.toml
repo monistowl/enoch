@@ -4,3 +4,9 @@ description = "Enochian Chess Project"
 default_language = "en"
 compile_sass = true
 taxonomies = []
+author = "Tom Monistowl"
+
+[extra]
+favicon = "favicon.ico"
+twitter = "monistowl"
+github = "monistowl/enoch"
