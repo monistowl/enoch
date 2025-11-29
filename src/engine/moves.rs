@@ -90,14 +90,7 @@ pub fn compute_king_moves(board: &Board, army: Army) -> u64 {
     let own_pieces = board.occupancy_by_army[army as usize];
     let index = king.trailing_zeros();
     // Add the king's precomputed moves, excluding occupied by own
-    let moves = KING_MOVES[index as usize] & (u64::MAX ^ own_pieces);
-    println!("  KING_MOVES[index] (inside assert): {:064b}", KING_MOVES[index as usize]);
-    println!("  own_pieces (inside assert): {:064b}", own_pieces);
-    println!("  (u64::MAX ^ own_pieces) (inside assert): {:064b}", (u64::MAX ^ own_pieces));
-    println!("  moves (inside assert): {:064b}", moves);
-    // Temporary assert to debug the issue
-    assert_eq!(moves, 0, "King moves should be 0 in stalemate setup");
-    moves
+    KING_MOVES[index as usize] & !own_pieces
 }
 
 pub const KNIGHT_MOVES: [u64; 64] = precompute_moves!(precompute_knight_moves);

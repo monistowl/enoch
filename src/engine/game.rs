@@ -160,8 +160,6 @@ impl Game {
         if self.army_is_frozen(army) {
             return 0;
         }
-        let own_pieces = self.board.occupancy_by_army[army as usize];
-        println!("  own_pieces in king_moves_bitboard: {:064b}", own_pieces);
         compute_king_moves(&self.board, army)
     }
 
