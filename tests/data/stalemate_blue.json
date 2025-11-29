@@ -1,0 +1,80 @@
+{
+  "turn_order": [
+    "Blue",
+    "Red",
+    "Black",
+    "Yellow"
+  ],
+  "current_turn_index": 0,
+  "army_states": [
+    {
+      "army": "Blue",
+      "controller": 0,
+      "throne_squares": [
+        3,
+        4
+      ],
+      "is_frozen": false,
+      "is_stalemated": true,
+      "king_square": 0
+    },
+    {
+      "army": "Black",
+      "controller": 0,
+      "throne_squares": [
+        24,
+        32
+      ],
+      "is_frozen": false,
+      "is_stalemated": false,
+      "king_square": null
+    },
+    {
+      "army": "Red",
+      "controller": 1,
+      "throne_squares": [
+        59,
+        60
+      ],
+      "is_frozen": false,
+      "is_stalemated": false,
+      "king_square": null
+    },
+    {
+      "army": "Yellow",
+      "controller": 1,
+      "throne_squares": [
+        31,
+        39
+      ],
+      "is_frozen": false,
+      "is_stalemated": false,
+      "king_square": null
+    }
+  ],
+  "pieces": [
+    {
+      "square": 0,
+      "army": "Blue",
+      "kind": "King"
+    },
+    {
+      "square": 10,
+      "army": "Red",
+      "kind": "Rook"
+    },
+    {
+      "square": 57,
+      "army": "Red",
+      "kind": "Rook"
+    }
+  ],
+  "promotion_zones": [
+    18374686479671623680,
+    9259542123273814144,
+    255,
+    72340172838076673
+  ],
+  "mode": "Normal",
+  "divination_die": null
+}

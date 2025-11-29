@@ -402,9 +402,27 @@ impl Game {
             self.state.set_stalemate(army, false);
             return;
         }
-        let king_moves = self.king_moves_bitboard(army);
-        let non_king_moves = self.army_moves_bitboard(army) & !king_moves;
-        let stalemated = king_moves == 0 && non_king_moves == 0;
+        
+        // Check if any geometric king move is safe
+        let geometric_king_moves = self.king_moves_bitboard(army);
+        let mut safe_king_moves = 0u64;
+        let opponent = army.team().opponent();
+        
+        let mut mask = geometric_king_moves;
+        while mask != 0 {
+            let sq = mask.trailing_zeros() as Square;
+            // Note: We verify if the DESTINATION is attacked.
+            if !self.is_square_attacked_by_team(sq, opponent) {
+                safe_king_moves |= 1u64 << sq;
+            }
+            mask &= mask - 1;
+        }
+
+        // Non-king moves
+        let all_moves = self.army_moves_bitboard(army);
+        let non_king_moves = all_moves & !geometric_king_moves;
+        
+        let stalemated = safe_king_moves == 0 && non_king_moves == 0;
         self.state.set_stalemate(army, stalemated);
     }
 
