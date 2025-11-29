@@ -2,6 +2,8 @@ use crate::engine::arrays::{available_arrays, default_array, find_array_by_name}
 use crate::engine::game::Game;
 use crate::engine::types::{Army, PieceKind, Square};
 use std::fmt;
+use std::fs;
+use std::path::Path;
 
 pub struct App {
     pub game: Game,
@@ -33,6 +35,9 @@ pub enum UiCommand {
     SelectArray(String),
     CycleArray(isize),
     Exchange(Army),
+    Save(String),
+    Load(String),
+    New(String),
 }
 
 #[derive(Debug)]
@@ -114,18 +119,10 @@ impl App {
                 self.error_message = None;
             }
             UiCommand::SelectArray(name) => {
-                if let Some(spec) = find_array_by_name(&name) {
-                    self.game = Game::from_array_spec(spec);
-                    self.selected_array = spec.name.to_string();
-                    self.status_message = Some(format!("Loaded array: {}", spec.name));
-                    self.error_message = None;
-                    self.array_index = available_arrays()
-                        .iter()
-                        .position(|s| s.name == spec.name)
-                        .unwrap_or(self.array_index);
-                } else {
-                    self.error_message = Some(format!("Unknown array: {}", name));
-                }
+                self.select_array(&name);
+            }
+            UiCommand::New(name) => {
+                self.select_array(&name);
             }
             UiCommand::CycleArray(direction) => {
                 let specs = available_arrays();
@@ -153,9 +150,47 @@ impl App {
                         Some("Exchange failed: both kings must be captured and frozen".into());
                 }
             }
+            UiCommand::Save(path) => {
+                match fs::write(&path, self.game.to_enoch_fen()) {
+                    Ok(_) => {
+                        self.status_message = Some(format!("Game saved to {}", path));
+                        self.error_message = None;
+                    }
+                    Err(e) => self.error_message = Some(format!("Save failed: {}", e)),
+                }
+            }
+            UiCommand::Load(path) => {
+                match fs::read_to_string(&path) {
+                    Ok(json) => match Game::from_enoch_fen(&json) {
+                        Ok(game) => {
+                            self.game = game;
+                            self.status_message = Some(format!("Game loaded from {}", path));
+                            self.error_message = None;
+                            self.selected_array = "Custom (Loaded)".to_string(); 
+                        }
+                        Err(e) => self.error_message = Some(format!("Load invalid: {}", e)),
+                    },
+                    Err(e) => self.error_message = Some(format!("Read failed: {}", e)),
+                }
+            }
         }
         if self.status_message.is_some() {
             self.error_message = None;
+        }
+    }
+
+    fn select_array(&mut self, name: &str) {
+        if let Some(spec) = find_array_by_name(name) {
+            self.game = Game::from_array_spec(spec);
+            self.selected_array = spec.name.to_string();
+            self.status_message = Some(format!("Loaded array: {}", spec.name));
+            self.error_message = None;
+            self.array_index = available_arrays()
+                .iter()
+                .position(|s| s.name == spec.name)
+                .unwrap_or(self.array_index);
+        } else {
+            self.error_message = Some(format!("Unknown array: {}", name));
         }
     }
 
@@ -240,6 +275,13 @@ fn parse_ui_command(input: &str) -> Result<UiCommand, CommandParseError> {
                         Err(CommandParseError("Missing array name".into()))
                     }
                 }
+                "new" => {
+                    if let Some(arg) = parts.next() {
+                        Ok(UiCommand::New(arg.to_string()))
+                    } else {
+                        Err(CommandParseError("Missing array name".into()))
+                    }
+                }
                 "exchange" => {
                     if let Some(name) = parts.next() {
                         match Army::from_str(name) {
@@ -248,6 +290,20 @@ fn parse_ui_command(input: &str) -> Result<UiCommand, CommandParseError> {
                         }
                     } else {
                         Err(CommandParseError("Missing army name".into()))
+                    }
+                }
+                "save" => {
+                    if let Some(path) = parts.next() {
+                        Ok(UiCommand::Save(path.to_string()))
+                    } else {
+                        Err(CommandParseError("Missing file path".into()))
+                    }
+                }
+                "load" => {
+                    if let Some(path) = parts.next() {
+                        Ok(UiCommand::Load(path.to_string()))
+                    } else {
+                        Err(CommandParseError("Missing file path".into()))
                     }
                 }
                 _ => Err(CommandParseError("Unknown command".into())),

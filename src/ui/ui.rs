@@ -290,5 +290,5 @@ fn controller_label(id: PlayerId) -> &'static str {
 }
 
 fn command_help() -> String {
-    "/arrays  /status  army: e2-e4  /array <name|next|prev>  /exchange <army>".to_string()
+    "/new <array>  /save <path>  /load <path>  army: e2-e4  /exchange <army>".to_string()
 }
