@@ -74,6 +74,21 @@
                     </li>
 
                     <li class="nav__section">
+                        <span class="nav__section-title">Learn</span>
+                        <ul class="nav__list">
+                            <li class="nav__item">
+                                <a href="{{ get_url(path="learn/board-setup") }}" class="nav__link {% if safe_path is starting_with("/learn/board-setup") %}is-active{% endif %}">Board & Armies</a>
+                            </li>
+                            <li class="nav__item">
+                                <a href="{{ get_url(path="learn/movement") }}" class="nav__link {% if safe_path is starting_with("/learn/movement") %}is-active{% endif %}">How Pieces Move</a>
+                            </li>
+                            <li class="nav__item">
+                                <a href="{{ get_url(path="learn/captures") }}" class="nav__link {% if safe_path is starting_with("/learn/captures") %}is-active{% endif %}">Captures & Threats</a>
+                            </li>
+                        </ul>
+                    </li>
+
+                    <li class="nav__section">
                         <span class="nav__section-title">Rules</span>
                         <ul class="nav__list">
                             <li class="nav__item">

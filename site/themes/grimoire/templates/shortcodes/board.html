@@ -1,76 +1,95 @@
 {#
-  Chess board shortcode
-  Usage: {{ board(position="rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR", caption="Starting position") }}
+  Board Shortcode
 
-  Position format: Modified FEN-like with army colors:
-  - Lowercase = Blue (b), Uppercase = Red (R)
-  - Prefix ~ = Black, Prefix ^ = Yellow
-  - Example: K=Red King, k=Blue King, ~K=Black King, ^K=Yellow King
-
-  Or use armies parameter for simpler notation:
-  {{ board(armies="blue:Ke4,Qd1|red:Ke5|black:Ka5|yellow:Kh4", caption="Example") }}
+  Usage in Markdown:
+    {{ board() }}                     - Uses page.extra.scenario
+    {{ board(id="myBoard") }}         - For multiple boards, specify unique ID
 #}
 
-<figure class="board-figure">
-  <svg viewBox="0 0 360 360" class="board-svg" xmlns="http://www.w3.org/2000/svg">
-    <defs>
-      <!-- Board pattern -->
-      <pattern id="board-pattern" width="90" height="90" patternUnits="userSpaceOnUse">
-        <rect width="45" height="45" fill="#2a2a35"/>
-        <rect x="45" width="45" height="45" fill="#1a1a22"/>
-        <rect y="45" width="45" height="45" fill="#1a1a22"/>
-        <rect x="45" y="45" width="45" height="45" fill="#2a2a35"/>
-      </pattern>
+{% set board_id = id | default(value="tutorialBoard") %}
 
-      <!-- Piece colors -->
-      <linearGradient id="blue-fill" x1="0%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" style="stop-color:#6a9cd8"/>
-        <stop offset="100%" style="stop-color:#4a7cb8"/>
-      </linearGradient>
-      <linearGradient id="red-fill" x1="0%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" style="stop-color:#e47a6a"/>
-        <stop offset="100%" style="stop-color:#c45a4a"/>
-      </linearGradient>
-      <linearGradient id="black-fill" x1="0%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" style="stop-color:#6a6a8a"/>
-        <stop offset="100%" style="stop-color:#4a4a6a"/>
-      </linearGradient>
-      <linearGradient id="yellow-fill" x1="0%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" style="stop-color:#e4c26a"/>
-        <stop offset="100%" style="stop-color:#c4a24a"/>
-      </linearGradient>
-    </defs>
+{% if page.extra.scenario %}
+<script>
+  window.{{ board_id }} = {{ page.extra.scenario | safe }};
+</script>
 
-    <!-- Board background -->
-    <rect width="360" height="360" fill="url(#board-pattern)"/>
+<div x-data="enochBoard(window.{{ board_id }})" x-init="init()" class="board-widget">
+  <!-- Board SVG -->
+  <svg viewBox="0 0 400 400" class="board-widget__svg" xmlns="http://www.w3.org/2000/svg" @click="handleBoardClick($event)">
+    <!-- Board squares - rendered by JS -->
+    <g x-html="renderSquares()"></g>
 
-    <!-- Board border -->
-    <rect width="360" height="360" fill="none" stroke="#3a3a45" stroke-width="2"/>
+    <!-- Legal move indicators -->
+    <g x-html="renderLegalMoves()"></g>
 
-    <!-- File labels -->
-    {% for file in ["a", "b", "c", "d", "e", "f", "g", "h"] %}
-    <text x="{{ loop.index0 * 45 + 22 }}" y="355" class="board-label" text-anchor="middle">{{ file }}</text>
-    {% endfor %}
+    <!-- Pieces -->
+    <g x-html="renderPieces()"></g>
 
-    <!-- Rank labels -->
-    {% for rank in ["8", "7", "6", "5", "4", "3", "2", "1"] %}
-    <text x="-8" y="{{ loop.index0 * 45 + 28 }}" class="board-label" text-anchor="middle">{{ rank }}</text>
-    {% endfor %}
+    <!-- File labels (a-h) -->
+    <text x="25" y="395" class="board-widget__label" text-anchor="middle">a</text>
+    <text x="75" y="395" class="board-widget__label" text-anchor="middle">b</text>
+    <text x="125" y="395" class="board-widget__label" text-anchor="middle">c</text>
+    <text x="175" y="395" class="board-widget__label" text-anchor="middle">d</text>
+    <text x="225" y="395" class="board-widget__label" text-anchor="middle">e</text>
+    <text x="275" y="395" class="board-widget__label" text-anchor="middle">f</text>
+    <text x="325" y="395" class="board-widget__label" text-anchor="middle">g</text>
+    <text x="375" y="395" class="board-widget__label" text-anchor="middle">h</text>
 
-    <!-- Pieces will be rendered by JavaScript or static placement -->
-    {% if pieces %}
-      {% for piece in pieces %}
-      <text
-        x="{{ piece.file * 45 + 22 }}"
-        y="{{ (7 - piece.rank) * 45 + 32 }}"
-        class="board-piece board-piece--{{ piece.army }}"
-        text-anchor="middle"
-      >{{ piece.glyph }}</text>
-      {% endfor %}
-    {% endif %}
+    <!-- Rank labels (1-8) -->
+    <text x="5" y="380" class="board-widget__label">1</text>
+    <text x="5" y="330" class="board-widget__label">2</text>
+    <text x="5" y="280" class="board-widget__label">3</text>
+    <text x="5" y="230" class="board-widget__label">4</text>
+    <text x="5" y="180" class="board-widget__label">5</text>
+    <text x="5" y="130" class="board-widget__label">6</text>
+    <text x="5" y="80" class="board-widget__label">7</text>
+    <text x="5" y="30" class="board-widget__label">8</text>
   </svg>
 
-  {% if caption %}
-  <figcaption class="board-caption">{{ caption }}</figcaption>
-  {% endif %}
-</figure>
+  <!-- Controls (shown for tutorial/demo modes) -->
+  <div class="board-widget__controls" x-show="scenario.steps && scenario.steps.length > 1">
+    <button
+      class="board-widget__btn"
+      @click="prevStep()"
+      :disabled="step === 0"
+      :class="{ 'board-widget__btn--disabled': step === 0 }"
+    >
+      ← Back
+    </button>
+
+    <span class="board-widget__step-label" x-text="stepLabel"></span>
+
+    <button
+      class="board-widget__btn"
+      @click="nextStep()"
+      :disabled="step === maxStep"
+      :class="{ 'board-widget__btn--disabled': step === maxStep }"
+    >
+      Next →
+    </button>
+
+    <!-- Play/pause for demo mode -->
+    <button
+      x-show="mode === 'demo'"
+      class="board-widget__btn board-widget__btn--play"
+      @click="toggleAutoPlay()"
+      x-text="isPlaying ? '⏸' : '▶'"
+    ></button>
+  </div>
+
+  <!-- Turn indicator -->
+  <div class="board-widget__turn" x-show="turnIndicator">
+    <span class="board-widget__turn-label">Turn:</span>
+    <span
+      class="board-widget__turn-army"
+      :class="'board-widget__turn-army--' + turnIndicator.toLowerCase()"
+      x-text="turnIndicator"
+    ></span>
+  </div>
+
+  <!-- Narrative text -->
+  <p class="board-widget__narrative" x-show="currentNarrative" x-text="currentNarrative"></p>
+</div>
+{% else %}
+<p class="board-widget__error"><em>No scenario defined for this board.</em></p>
+{% endif %}
