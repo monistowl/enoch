@@ -453,7 +453,7 @@ impl Game {
         self.state.current_army(&self.config)
     }
 
-    fn piece_moves(&self, army: Army, kind: PieceKind) -> u64 {
+    pub fn piece_moves(&self, army: Army, kind: PieceKind) -> u64 {
         match kind {
             PieceKind::King => compute_king_moves(&self.board, army),
             PieceKind::Queen => compute_queens_moves(&self.board, army),

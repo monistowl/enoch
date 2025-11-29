@@ -44,7 +44,7 @@ of how chess engines work
 
 ## 🎮 Human vs Human Only
 enoch is **strictly designed for 2-player, human-vs-human chess**
-- **❌ No AI Opponent** – moves must be manually entered using **PGN notation**
+- **❌ No AI Opponent** – moves must be manually entered or played on the interactive board
 - **✅ Ideal for Chess Study** – Useful for **notation practice, replaying games, and move visualization**
 - **🚫 No Plans for AI Integration** – The goal of this project was to 
   **improve notation practice and understand chess engine mechanics, not to 
@@ -102,7 +102,7 @@ enoch --halfblocks
 
 to use halfblocks rendering (for iTerm2)
 
-Make sure your terminal size is at least `132x46` for proper rendering
+Make sure your terminal size is at least `80x24` for proper rendering
 
 If you are interested to build and compile, ensure that you have [Rust](https://www.rust-lang.org/tools/install) 
 1.8 and above installed
@@ -145,6 +145,24 @@ Optionally you can also run using halfblocks rendering
 ```
 target/release/enoch --halfblocks
 ```
+
+## 🕹️ Controls
+
+enoch features two interaction modes:
+
+### Command Mode (Default)
+Type commands or moves manually.
+- **Standard Moves**: `blue: e2-e4`, `red: h7-h6`
+- **Commands**: `/new`, `/help`, `/status`
+- **Switch to Board**: Press `Tab` or any Arrow key
+
+### Board Mode
+Navigate the board interactively.
+- **Move Cursor**: Arrow keys
+- **Select/Move**: `Enter` (select piece, then select destination)
+- **Cancel Selection**: `Esc`
+- **Return to Command Mode**: `Esc` (when no piece selected) or `Tab` / `/`
+
 
 ## 🛠️ Key Technical Highlights
 ### Bitboard-based data structure

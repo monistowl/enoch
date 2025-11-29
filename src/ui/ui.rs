@@ -1,8 +1,8 @@
 use crate::engine::arrays::available_arrays;
 use crate::engine::game::{Game, Mode};
-use crate::engine::types::{Army, PieceKind, PlayerId, Team};
-use crate::ui::app::App;
-use ratatui::layout::{Constraint, Direction, Layout, Rect};
+use crate::engine::types::{Army, PieceKind, PlayerId, Square, Team};
+use crate::ui::app::{App, InputMode};
+use ratatui::layout::{Alignment, Constraint, Direction, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span, Text};
 use ratatui::widgets::{Block, Borders, Paragraph, Wrap};
@@ -17,59 +17,148 @@ pub fn render(frame: &mut Frame, app: &mut App) {
         .constraints(
             [
                 Constraint::Length(1), // Header
-                Constraint::Min(10),   // Body
+                Constraint::Min(15),   // Body
                 Constraint::Length(3), // Input
             ]
             .as_ref(),
         )
         .split(size);
 
+    let header_text = if app.input_mode == InputMode::Board {
+        "Enochian Chess - [BOARD MODE] (Arrows to move, Enter to select, Esc to exit)"
+    } else {
+        "Enochian Chess - [COMMAND MODE] (Type command, Tab for Board)"
+    };
+
     let header = Paragraph::new(Span::styled(
-        "Enochian Chess",
+        header_text,
         Style::default()
             .fg(Color::Yellow)
             .add_modifier(Modifier::BOLD),
     ))
-    .block(Block::default().borders(Borders::NONE)); // Minimal header
+    .alignment(Alignment::Center)
+    .block(Block::default().borders(Borders::NONE));
     frame.render_widget(header, layout[0]);
 
-    // Body: Left (Air Captures) | Center (Board) | Right (Earth Captures) | Info
-    let body_chunks = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([
-            Constraint::Length(15), // Air Captures
-            Constraint::Length(28), // Board (26 + padding)
-            Constraint::Length(15), // Earth Captures
-            Constraint::Min(20),    // Info
-        ].as_ref())
-        .split(layout[1]);
+    // Determine layout based on width
+    // Min width 80. Board takes ~26 chars.
+    // If width > 100, use 4 columns.
+    // If width <= 100, maybe 3 columns or specific compact layout.
+    
+    let body_chunks = if size.width > 100 {
+        Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([
+                Constraint::Percentage(20), // Air Captures
+                Constraint::Percentage(40), // Board (Center)
+                Constraint::Percentage(20), // Earth Captures
+                Constraint::Percentage(20), // Info
+            ].as_ref())
+            .split(layout[1])
+    } else {
+        // Compact: Left (Info/Captures), Right (Board)
+         Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([
+                Constraint::Percentage(40), // Info/Captures
+                Constraint::Percentage(60), // Board
+            ].as_ref())
+            .split(layout[1])
+    };
 
-    // Air Captures (Team Air: Blue + Black)
-    let air_captures = render_captures(app, Team::Air);
-    frame.render_widget(air_captures, body_chunks[0]);
+    if size.width > 100 {
+        // Wide Layout
+        let air_captures = render_captures(app, Team::Air);
+        frame.render_widget(air_captures, body_chunks[0]);
 
-    // Board
-    let board = Paragraph::new(text_from_board(app))
+        render_centered_board(frame, app, body_chunks[1]);
+
+        let earth_captures = render_captures(app, Team::Earth);
+        frame.render_widget(earth_captures, body_chunks[2]);
+
+        render_info_panel(frame, app, body_chunks[3]);
+    } else {
+        // Compact Layout
+        // Left column: Status (Top), History (Middle), Captures (Bottom)
+        let left_col = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([
+                Constraint::Length(8), // Status
+                Constraint::Min(5),    // History
+                Constraint::Length(6), // Air Captures
+                Constraint::Length(6), // Earth Captures
+            ].as_ref())
+            .split(body_chunks[0]);
+            
+        let status = Paragraph::new(build_status_lines(app))
+            .block(Block::default().title("Status").borders(Borders::ALL))
+            .wrap(Wrap { trim: true });
+        frame.render_widget(status, left_col[0]);
+
+        let history = Paragraph::new(render_history(app))
+            .block(Block::default().title("History").borders(Borders::ALL))
+            .wrap(Wrap { trim: true });
+        frame.render_widget(history, left_col[1]);
+        
+        frame.render_widget(render_captures(app, Team::Air), left_col[2]);
+        frame.render_widget(render_captures(app, Team::Earth), left_col[3]);
+
+        render_centered_board(frame, app, body_chunks[1]);
+    }
+
+    // Input
+    let input_border_color = if app.input_mode == InputMode::Board {
+        Color::Blue
+    } else {
+        Color::White
+    };
+    
+    let input_line = Paragraph::new(Text::from(Line::from(vec![
+        Span::styled("> ", Style::default().fg(Color::Green)),
+        Span::raw(app.input.clone()),
+        if app.input_mode == InputMode::Normal {
+            Span::styled("_", Style::default().add_modifier(Modifier::SLOW_BLINK))
+        } else {
+            Span::raw("")
+        }
+    ])))
+    .block(
+        Block::default()
+            .borders(Borders::ALL)
+            .border_style(Style::default().fg(input_border_color))
+            .title(if app.input_mode == InputMode::Board { " Board Active " } else { " Command Input " })
+    );
+    frame.render_widget(input_line, layout[2]);
+}
+
+fn render_centered_board(frame: &mut Frame, app: &App, area: Rect) {
+    let board_widget = Paragraph::new(text_from_board(app))
         .block(
             Block::default()
                 .title("Board")
-                .borders(Borders::ALL),
+                .borders(Borders::ALL)
+                .border_style(if app.input_mode == InputMode::Board {
+                    Style::default().fg(Color::Cyan)
+                } else {
+                    Style::default()
+                }),
         )
-        .wrap(Wrap { trim: true });
-    frame.render_widget(board, body_chunks[1]);
+        .alignment(Alignment::Center)
+        .wrap(Wrap { trim: true }); // Use wrap if needed, but center alignment helps
+        
+    // To truly center the 8x8 grid (plus coords), we might need to manually pad or let Paragraph handle it.
+    // Paragraph alignment centers the text block within the area.
+    frame.render_widget(board_widget, area);
+}
 
-    // Earth Captures (Team Earth: Red + Yellow)
-    let earth_captures = render_captures(app, Team::Earth);
-    frame.render_widget(earth_captures, body_chunks[2]);
-
-    // Info Panel (Status + History)
+fn render_info_panel(frame: &mut Frame, app: &App, area: Rect) {
     let info_chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
             Constraint::Length(10), // Status
             Constraint::Min(5),     // History
         ].as_ref())
-        .split(body_chunks[3]);
+        .split(area);
 
     let status = Paragraph::new(build_status_lines(app))
         .block(Block::default().title("Status").borders(Borders::ALL))
@@ -80,30 +169,10 @@ pub fn render(frame: &mut Frame, app: &mut App) {
         .block(Block::default().title("History").borders(Borders::ALL))
         .wrap(Wrap { trim: true });
     frame.render_widget(history, info_chunks[1]);
-
-    // Input
-    let input_line = Paragraph::new(Text::from(Line::from(vec![
-        Span::styled("> ", Style::default().fg(Color::Green)),
-        Span::raw(app.input.clone()),
-    ])))
-    .block(Block::default().borders(Borders::ALL).title("Command (Type /help)"));
-    frame.render_widget(input_line, layout[2]);
 }
 
 fn render_captures(app: &App, team: Team) -> Paragraph {
     let title = format!("{} Captures", team.name());
-    let mut lines = Vec::new();
-    
-    // We need to calculate captured pieces.
-    // Game doesn't track them explicitly, so we infer from array.
-    // Actually, that's hard because we swapped arrays.
-    // Let's just list *remaining* pieces?
-    // No, user wants captured.
-    
-    // For MVP overhaul, let's list ALIVE pieces for now, or
-    // assume standard array count (1K, 1Q, 1B, 1N, 1R, 4P).
-    // Most Enochian arrays follow this.
-    
     let mut captured_text = Vec::new();
     
     for army in team.armies() {
@@ -132,21 +201,20 @@ fn render_captures(app: &App, team: Team) -> Paragraph {
         }
     }
     
-    if captured_text.is_empty() {
-        lines.push(Line::from(Span::raw("-")));
+    let line = if captured_text.is_empty() {
+        Line::from(Span::raw("-"))
     } else {
-        // Group by lines to wrap?
-        lines.push(Line::from(captured_text));
-    }
+        Line::from(captured_text)
+    };
 
-    Paragraph::new(Text::from(lines))
+    Paragraph::new(Text::from(vec![line]))
         .block(Block::default().title(title).borders(Borders::ALL))
         .wrap(Wrap { trim: true })
 }
 
 fn render_history(app: &App) -> Text {
     let mut lines = Vec::new();
-    for (i, cmd) in app.command_history.iter().rev().enumerate() {
+    for (i, cmd) in app.command_history.iter().rev().take(10).enumerate() {
         lines.push(Line::from(format!("{}. {}", app.command_history.len() - i, cmd)));
     }
     Text::from(lines)
@@ -160,7 +228,8 @@ pub fn render_size_error(frame: &mut Frame, min_width: u16, min_height: u16, siz
         ),
         Style::default().fg(Color::Red).add_modifier(Modifier::BOLD),
     )])]))
-    .block(Block::default().borders(Borders::ALL).title("Size Error"));
+    .block(Block::default().borders(Borders::ALL).title("Size Error"))
+    .alignment(Alignment::Center);
     frame.render_widget(warning, size);
 }
 
@@ -185,7 +254,6 @@ fn build_status_lines(app: &App) -> Text {
             style_for_army(current_army).add_modifier(Modifier::BOLD | Modifier::UNDERLINED),
         ),
     ]));
-    lines.push(Line::from(""));
 
     if app.game.config.mode == Mode::Divination {
         if let Some(die) = app.game.state.divination_die {
@@ -214,13 +282,12 @@ fn build_status_lines(app: &App) -> Text {
     // Check Alert
     if app.game.king_in_check(current_army) {
          lines.push(Line::from(Span::styled(
-            "!!! KING IN CHECK !!!",
+            "!!! CHECK !!!",
             Style::default().fg(Color::Red).add_modifier(Modifier::SLOW_BLINK | Modifier::BOLD),
         )));
     }
 
     if let Some(ref msg) = app.status_message {
-        lines.push(Line::from(""));
         lines.push(Line::from(Span::styled(
             format!("> {}", msg),
             Style::default().fg(Color::Green),
@@ -228,7 +295,6 @@ fn build_status_lines(app: &App) -> Text {
     }
 
     if let Some(ref err) = app.error_message {
-        lines.push(Line::from(""));
         lines.push(Line::from(Span::styled(
             format!("! {}", err),
             Style::default().fg(Color::Red),
@@ -248,62 +314,6 @@ fn die_piece_name(die: u8) -> &'static str {
         6 => "Pawn",
         _ => "?",
     }
-}
-
-fn array_list_text(app: &App) -> Text {
-    let mut lines = Vec::new();
-    for spec in available_arrays() {
-        let name = spec.name;
-        let style = if name == app.selected_array {
-            Style::default()
-                .fg(Color::LightGreen)
-                .add_modifier(Modifier::BOLD)
-        } else {
-            Style::default()
-        };
-        let order = spec
-            .turn_order
-            .iter()
-            .map(|army| army.display_name())
-            .collect::<Vec<_>>()
-            .join(" → ");
-        lines.push(Line::from(Span::styled(
-            format!("{} [{}]", name, order),
-            style,
-        )));
-    }
-    Text::from(lines)
-}
-
-fn army_status_lines(app: &App) -> Vec<Line> {
-    let mut lines = Vec::new();
-    for &army in Army::ALL.iter() {
-        let status = if app.game.army_is_frozen(army) {
-            "Frozen"
-        } else if app.game.state.is_stalemated(army) {
-            "Stalemated"
-        } else {
-            "Active"
-        };
-        let style = match army {
-            Army::Blue => Style::default().fg(Color::Blue),
-            Army::Black => Style::default().fg(Color::White),
-            Army::Red => Style::default().fg(Color::Red),
-            Army::Yellow => Style::default().fg(Color::Yellow),
-        };
-        let controller = controller_label(app.game.board.controller_for(army));
-        lines.push(Line::from(Span::styled(
-            format!(
-                "{} ({}) - {} - {}",
-                army.display_name(),
-                army.team().name(),
-                status,
-                controller
-            ),
-            style,
-        )));
-    }
-    lines
 }
 
 fn text_from_board(app: &App) -> Text {
@@ -334,6 +344,10 @@ fn text_from_board(app: &App) -> Text {
 }
 
 fn board_square_info(app: &App, square: u8, current_army: Army) -> (char, Style) {
+    let is_cursor = app.input_mode == InputMode::Board && app.cursor_pos == square;
+    let is_selected = app.selected_square == Some(square);
+    let is_hint = (app.valid_moves & (1u64 << square)) != 0;
+
     let base_color = if (square / 8 + square % 8) % 2 == 0 {
         Color::Rgb(30, 30, 30)
     } else {
@@ -341,11 +355,27 @@ fn board_square_info(app: &App, square: u8, current_army: Army) -> (char, Style)
     };
     let throne_bg = Color::Rgb(80, 45, 15);
     let throne = app.game.board.throne_owner(square);
-    let bg = if throne.is_some() {
+    
+    let mut bg = if throne.is_some() {
         throne_bg
     } else {
         base_color
     };
+
+    // Overlay highlighting
+    if is_selected {
+        bg = Color::Rgb(50, 100, 50); // Greenish selection
+    } else if is_cursor {
+        bg = Color::Rgb(100, 100, 50); // Yellowish cursor
+    } else if is_hint {
+         // Subtle hint background
+         bg = if throne.is_some() {
+             Color::Rgb(100, 60, 30)
+         } else {
+             Color::Rgb(40, 40, 60)
+         };
+    }
+
     if let Some((army, kind)) = app.game.board.piece_at(square) {
         let fg = match army {
             Army::Blue => Color::Blue,
@@ -354,15 +384,36 @@ fn board_square_info(app: &App, square: u8, current_army: Army) -> (char, Style)
             Army::Yellow => Color::Yellow,
         };
         let mut style = Style::default().fg(fg).bg(bg);
+        
         if army == current_army {
             style = style.add_modifier(Modifier::BOLD);
         }
+        
+        // If captured? No, board only shows active pieces.
+        
+        if is_hint {
+             // Attack hint
+             style = style.bg(Color::Rgb(100, 40, 40));
+        }
+
+        if is_cursor {
+            style = style.add_modifier(Modifier::REVERSED);
+        }
+
         (
             piece_character(army, kind),
             style,
         )
     } else {
-        ('.', Style::default().fg(Color::Gray).bg(bg))
+        let char = if is_hint { 'x' } else { '.' };
+        let mut style = Style::default().fg(Color::Gray).bg(bg);
+        if is_hint {
+            style = style.fg(Color::Green);
+        }
+        if is_cursor {
+             style = style.add_modifier(Modifier::REVERSED);
+        }
+        (char, style)
     }
 }
 

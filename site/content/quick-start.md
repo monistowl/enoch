@@ -102,12 +102,19 @@ But for now, just play. The elegance of Enochian Chess reveals itself at the boa
 
 ## Playing in the Terminal (TUI)
 
-If you are playing using the `enoch` terminal application, here are the essential commands:
+If you are playing using the `enoch` terminal application, you can play in two modes:
 
+**Interactive Board Mode (Default)**
+- **Navigate**: Use `Arrow Keys` to move the cursor.
+- **Select/Move**: Press `Enter` to select a piece, then move to a destination and press `Enter` again.
+- **Hints**: Valid moves for the selected piece are highlighted.
+- **Cancel**: Press `Esc` to deselect.
+
+**Command Mode**
+- **Switch**: Press `Tab` or type `/` to enter command mode.
 - **Move**: Type `army: e2-e4` (e.g., `blue: e2-e4` or `red: h2-h1`).
 - **New Game**: `/new <array>` (e.g., `/new Tablet of Fire (Air Setting)`).
 - **Save/Load**: `/save mygame.json` and `/load mygame.json`.
 - **AI**: Type `/ai` to let the computer make a move for the current army.
 - **Divination Mode**: `/mode divination` switches to dice-based play (d6 rolls determine valid pieces).
-- **Help**: Type `/help` or `/arrays` to see more options.
 

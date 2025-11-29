@@ -21,8 +21,8 @@ use ratatui::{DefaultTerminal, Frame, Terminal};
 use std::io::{stdout, Error, ErrorKind, Stdout};
 use std::{env, io, process};
 
-pub const MIN_WIDTH: u16 = 132;
-pub const MIN_HEIGHT: u16 = 46;
+pub const MIN_WIDTH: u16 = 80;
+pub const MIN_HEIGHT: u16 = 24;
 
 fn check_size(terminal: &mut DefaultTerminal) -> Result<(), io::Error> {
     let size = terminal.size()?;
@@ -72,7 +72,11 @@ fn run(terminal: &mut DefaultTerminal, app: &mut App) -> io::Result<bool> {
         terminal.draw(|frame| render(frame, app))?;
         if let Event::Key(key) = event::read()? {
             if key.kind == KeyEventKind::Press {
+                // Global keys
                 match key.code {
+                    KeyCode::Char('c') if key.modifiers.contains(event::KeyModifiers::CONTROL) => {
+                        return Ok(true);
+                    }
                     KeyCode::Char(']') => {
                         app.cycle_array_direction(1);
                         continue;
@@ -83,22 +87,43 @@ fn run(terminal: &mut DefaultTerminal, app: &mut App) -> io::Result<bool> {
                     }
                     _ => {}
                 }
+
                 match app.current_screen {
-                    CurrentScreen::Main => match key.code {
-                        KeyCode::Esc => app.current_screen = CurrentScreen::Exiting,
-                        KeyCode::Char(to_insert) => app.add_char(to_insert),
-                        KeyCode::Backspace => app.delete_char(),
-                        KeyCode::Enter => app.submit_command(),
-                        _ => {}
-                    },
+                    CurrentScreen::Main => {
+                        match app.input_mode {
+                            crate::ui::app::InputMode::Normal => match key.code {
+                                KeyCode::Esc => app.current_screen = CurrentScreen::Exiting,
+                                KeyCode::Tab | KeyCode::Down | KeyCode::Up | KeyCode::Left | KeyCode::Right => {
+                                    app.input_mode = crate::ui::app::InputMode::Board;
+                                }
+                                KeyCode::Char(to_insert) => app.add_char(to_insert),
+                                KeyCode::Backspace => app.delete_char(),
+                                KeyCode::Enter => app.submit_command(),
+                                _ => {}
+                            },
+                            crate::ui::app::InputMode::Board => match key.code {
+                                KeyCode::Esc => app.handle_board_esc(),
+                                KeyCode::Left => app.move_cursor(-1, 0),
+                                KeyCode::Right => app.move_cursor(1, 0),
+                                KeyCode::Up => app.move_cursor(0, 1),
+                                KeyCode::Down => app.move_cursor(0, -1),
+                                KeyCode::Enter | KeyCode::Char(' ') => app.handle_board_enter(),
+                                KeyCode::Tab => app.input_mode = crate::ui::app::InputMode::Normal,
+                                KeyCode::Char('/') => {
+                                    app.input_mode = crate::ui::app::InputMode::Normal;
+                                    app.add_char('/');
+                                }
+                                _ => {}
+                            },
+                        }
+                    }
                     CurrentScreen::Exiting => match key.code {
                         KeyCode::Char('y') => return Ok(true),
-                        KeyCode::Char('n') => {
+                        KeyCode::Char('n') | KeyCode::Esc => {
                             app.current_screen = CurrentScreen::Main;
                         }
                         _ => {}
                     },
-                    _ => {}
                 }
             }
         }

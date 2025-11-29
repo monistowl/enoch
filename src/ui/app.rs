@@ -9,12 +9,22 @@ use std::path::Path;
 pub struct App {
     pub game: Game,
     pub current_screen: CurrentScreen,
+    pub input_mode: InputMode,
     pub input: String,
     pub status_message: Option<String>,
     pub error_message: Option<String>,
     pub command_history: Vec<String>,
     pub selected_array: String,
     pub array_index: usize,
+    pub cursor_pos: Square,
+    pub selected_square: Option<Square>,
+    pub valid_moves: u64,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum InputMode {
+    Normal,
+    Board,
 }
 
 pub enum CurrentScreen {
@@ -58,12 +68,16 @@ impl App {
         App {
             game: Game::from_array_spec(spec),
             current_screen: CurrentScreen::Main,
+            input_mode: InputMode::Normal,
             input: String::new(),
             status_message: None,
             error_message: None,
             command_history: Vec::new(),
             selected_array: spec.name.to_string(),
             array_index: 0,
+            cursor_pos: 0,
+            selected_square: None,
+            valid_moves: 0,
         }
     }
 
@@ -278,6 +292,104 @@ impl App {
 
     pub fn cycle_array_direction(&mut self, direction: isize) {
         self.cycle_array(direction);
+    }
+
+    pub fn move_cursor(&mut self, dx: i8, dy: i8) {
+        let rank = (self.cursor_pos / 8) as i8;
+        let file = (self.cursor_pos % 8) as i8;
+
+        let new_rank = (rank + dy).clamp(0, 7);
+        let new_file = (file + dx).clamp(0, 7);
+
+        self.cursor_pos = (new_rank * 8 + new_file) as Square;
+    }
+
+    pub fn handle_board_enter(&mut self) {
+        if let Some(selected) = self.selected_square {
+            // Try to move
+            if selected == self.cursor_pos {
+                // Deselect if clicking same square
+                self.selected_square = None;
+                self.valid_moves = 0;
+                self.status_message = Some("Deselected".into());
+                return;
+            }
+
+            // Check if target is in valid moves
+            if (self.valid_moves & (1u64 << self.cursor_pos)) != 0 {
+                let from = selected;
+                let to = self.cursor_pos;
+                let army = self.game.current_army();
+
+                // Auto-promote to Queen for now if applicable
+                let promotion = if self.game.can_promote_at(army, to) {
+                     if let Some((_, kind)) = self.game.board.piece_at(from) {
+                        if kind == PieceKind::Pawn {
+                             Some(PieceKind::Queen)
+                        } else {
+                            None
+                        }
+                     } else {
+                         None
+                     }
+                } else {
+                    None
+                };
+
+                let command = UiCommand::Move {
+                    army,
+                    from,
+                    to,
+                    promotion
+                };
+                self.execute_command(command);
+
+                // Reset selection after move attempt
+                self.selected_square = None;
+                self.valid_moves = 0;
+            } else {
+                // Invalid move, maybe select this piece instead if it belongs to current army?
+                self.select_square_at_cursor();
+            }
+        } else {
+            self.select_square_at_cursor();
+        }
+    }
+
+    fn select_square_at_cursor(&mut self) {
+        let sq = self.cursor_pos;
+        if let Some((army, kind)) = self.game.board.piece_at(sq) {
+            if army == self.game.current_army() {
+                // Valid selection
+                self.selected_square = Some(sq);
+                self.valid_moves = self.game.piece_moves(army, kind);
+                self.status_message = Some(format!("Selected {:?} at {}", kind, self.square_name(sq)));
+                self.error_message = None;
+            } else {
+                self.error_message = Some("Cannot select enemy/frozen piece or not your turn".into());
+            }
+        } else {
+            self.selected_square = None;
+            self.valid_moves = 0;
+            self.status_message = Some(format!("Empty square {}", self.square_name(sq)));
+        }
+    }
+
+    fn square_name(&self, sq: Square) -> String {
+        let file = (sq % 8) as u8;
+        let rank = (sq / 8) as u8;
+        format!("{}{}", (b'a' + file) as char, rank + 1)
+    }
+
+    pub fn handle_board_esc(&mut self) {
+        if self.selected_square.is_some() {
+            self.selected_square = None;
+            self.valid_moves = 0;
+            self.status_message = Some("Selection cleared".into());
+        } else {
+            self.input_mode = InputMode::Normal;
+            self.status_message = Some("Command Mode".into());
+        }
     }
 }
 
