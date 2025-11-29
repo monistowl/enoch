@@ -63,6 +63,7 @@ function enochWasmGame() {
     legalCaptures: [],
     lastMove: null,
     renderKey: 0,
+    moveHistory: [],
 
     // Feedback
     feedback: null,
@@ -182,15 +183,29 @@ function enochWasmGame() {
     },
 
     makeMove(from, to) {
+      // Save piece info before the move
+      const movingPiece = this.position[from];
       const result = this.wasmGame.applyMove(from, to);
 
       if (result.success) {
         this.lastMove = { from, to };
 
+        // Record move in history
+        this.moveHistory.push({
+          army: movingPiece?.army || '?',
+          armyName: movingPiece?.armyName || 'Unknown',
+          piece: movingPiece?.type || '?',
+          glyph: movingPiece?.glyph || '?',
+          from: this.squareToNotation(from),
+          to: this.squareToNotation(to),
+          captured: result.captured ? result.captured.glyph : null,
+          colorClass: movingPiece?.colorClass || 'blue',
+        });
+
         // Track capture
         if (result.captured) {
-          const team = this.position[from]?.armyName === 'Blue' ||
-                       this.position[from]?.armyName === 'Black' ? 'Air' : 'Earth';
+          const team = movingPiece?.armyName === 'Blue' ||
+                       movingPiece?.armyName === 'Black' ? 'Air' : 'Earth';
           this.captures[team].push({
             code: result.captured.code,
             glyph: result.captured.glyph,
@@ -234,8 +249,24 @@ function enochWasmGame() {
       this.legalCaptures = [];
       this.lastMove = null;
       this.captures = { Air: [], Earth: [] };
+      this.moveHistory = [];
       this.syncFromWasm();
       this.showFeedback('info', 'New game started');
+    },
+
+    // Square index to algebraic notation (a1-h8)
+    squareToNotation(index) {
+      const file = String.fromCharCode(97 + (index % 8)); // a-h
+      const rank = Math.floor(index / 8) + 1; // 1-8
+      return file + rank;
+    },
+
+    // Format move for display
+    formatMove(move) {
+      const pieceSymbols = { K: 'K', Q: 'Q', R: 'R', B: 'B', N: 'N', P: '' };
+      const piece = pieceSymbols[move.piece] || '';
+      const capture = move.captured ? 'x' : '';
+      return `${piece}${capture}${move.to}`;
     },
 
     // Render helpers (same as enochGame)

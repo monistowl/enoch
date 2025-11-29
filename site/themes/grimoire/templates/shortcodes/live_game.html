@@ -5,6 +5,7 @@
     {{ live_game() }}
     {{ live_game(captures=false) }}
     {{ live_game(controls=false) }}
+    {{ live_game(history=false) }}
 
   The game uses the Rust engine via WebAssembly for:
   - Legal move generation
@@ -13,6 +14,7 @@
 #}
 {% set show_captures = captures | default(value=true) %}
 {% set show_controls = controls | default(value=true) %}
+{% set show_history = history | default(value=true) %}
 
 <div class="game-widget" x-data="enochWasmGame()">
   <!-- Loading state -->
@@ -92,6 +94,26 @@
 
         <!-- New Game button -->
         <button class="game-widget__btn" @click="resetGame()">New Game</button>
+      </div>
+      {% endif %}
+
+      {% if show_history %}
+      <!-- Move history -->
+      <div class="history-widget">
+        <div class="history-widget__header">
+          <span class="history-widget__title">Moves</span>
+          <span class="history-widget__count" x-text="moveHistory.length + ' moves'"></span>
+        </div>
+        <div class="history-widget__list">
+          <template x-if="moveHistory.length === 0">
+            <span class="history-widget__empty">No moves yet</span>
+          </template>
+          <template x-for="(move, index) in moveHistory" :key="index">
+            <span class="history-widget__move" :class="'history-widget__move--' + move.colorClass">
+              <span x-text="formatMove(move)"></span>
+            </span>
+          </template>
+        </div>
       </div>
       {% endif %}
 
