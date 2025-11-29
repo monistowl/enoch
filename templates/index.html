@@ -3,6 +3,17 @@
   <head>
     <meta charset='utf-8'>
     <title>{{ home.title }}</title>
+    <meta name="description" content="{{ config.description }}">
+    <meta name="author" content="{{ config.author }}">
+    {% if config.extra.favicon %}
+      <link rel="icon" href="/{{ config.extra.favicon }}">
+    {% endif %}
+    {% if config.extra.twitter %}
+      <meta name="twitter:site" content="@{{ config.extra.twitter }}">
+    {% endif %}
+    {% if config.extra.github %}
+      <meta name="github" content="https://github.com/{{ config.extra.github }}">
+    {% endif %}
   </head>
   <body>
     <nav>
