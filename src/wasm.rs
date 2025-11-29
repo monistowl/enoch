@@ -5,7 +5,7 @@
 use wasm_bindgen::prelude::*;
 use serde::{Serialize, Deserialize};
 
-use crate::engine::arrays::TABLET_OF_FIRE_PROTOTYPE;
+use crate::engine::arrays::TABLET_OF_FIRE_FIRE;
 use crate::engine::board::Board;
 use crate::engine::game::{Game, Status};
 use crate::engine::moves::{
@@ -93,7 +93,7 @@ impl WasmGame {
     /// Create a new game with the default Tablet of Fire array
     #[wasm_bindgen(constructor)]
     pub fn new() -> WasmGame {
-        let game = Game::from_array_spec(&TABLET_OF_FIRE_PROTOTYPE);
+        let game = Game::from_array_spec(&TABLET_OF_FIRE_FIRE);
         WasmGame { game }
     }
 
