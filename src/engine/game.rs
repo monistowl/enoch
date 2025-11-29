@@ -11,6 +11,7 @@ use crate::engine::types::{Army, PieceKind, PlayerId, Square, Team, ARMY_COUNT, 
 use rand::Rng;
 
 /// Game struct responsible for all game logics (pin, check, valid captures, etc)
+#[derive(Clone)]
 pub struct Game {
     pub board: Board,
     pub config: GameConfig,
@@ -152,7 +153,7 @@ pub enum MoveError {
     GameOver,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Status {
     Ongoing,
     Draw,

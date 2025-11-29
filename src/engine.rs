@@ -1,3 +1,4 @@
+pub mod ai;
 pub mod arrays;
 pub mod board;
 pub mod fen;

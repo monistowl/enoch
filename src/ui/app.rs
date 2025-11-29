@@ -1,3 +1,4 @@
+use crate::engine::ai::Ai;
 use crate::engine::arrays::{available_arrays, default_array, find_array_by_name};
 use crate::engine::game::{Game, Mode};
 use crate::engine::types::{Army, PieceKind, Square};
@@ -39,6 +40,7 @@ pub enum UiCommand {
     Load(String),
     New(String),
     SetMode(Mode),
+    AiMove,
 }
 
 #[derive(Debug)]
@@ -179,6 +181,22 @@ impl App {
                 self.status_message = Some(format!("Mode set to {:?}", mode));
                 self.error_message = None;
             }
+            UiCommand::AiMove => {
+                let ai = Ai::new(2);
+                if let Some((army, from, to, promo)) = ai.select_move(&self.game) {
+                    match self.game.apply_move(army, from, to, promo) {
+                        Ok(msg) => {
+                            self.status_message = Some(format!("AI: {}", msg));
+                            self.error_message = None;
+                        }
+                        Err(e) => {
+                            self.error_message = Some(format!("AI Error: {}", e));
+                        }
+                    }
+                } else {
+                    self.error_message = Some("AI could not find a move (Stalemate?)".into());
+                }
+            }
         }
         if self.status_message.is_some() {
             self.error_message = None;
@@ -270,6 +288,7 @@ fn parse_ui_command(input: &str) -> Result<UiCommand, CommandParseError> {
             match cmd.to_lowercase().as_str() {
                 "arrays" => Ok(UiCommand::ArraysList),
                 "status" => Ok(UiCommand::Status),
+                "ai" => Ok(UiCommand::AiMove),
                 "array" => {
                     if let Some(arg) = parts.next() {
                         match arg.to_lowercase().as_str() {
