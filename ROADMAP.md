@@ -375,22 +375,12 @@ For each piece, create a dedicated module (if not already present) like `moves/k
 
 **Tasks:**
 
-1. In `docs/enochian-arrays.md`, list the eight Zalewski arrays with diagrams from the book (just descriptive; no images, but coordinates).
-
-2. Define a serialization format, e.g.:
-
+1. [x] In `docs/enochian-arrays.md`, list the eight Zalewski arrays with diagrams from the book (just descriptive; no images, but coordinates).
+2. [x] Define a serialization format, e.g.:
    ```rust
-   pub struct ArraySpec {
-       pub name: String,
-       pub description: String,
-       pub piece_placements: Vec<(Square, Piece)>,
-       pub throne_squares: [(Army, Square); 4],
-       pub ptah_default_square: Option<Square>, // for divination mode later
-       pub turn_order: [Army; 4],
-   }
+   pub struct ArraySpec { ... }
    ```
-
-3. Implement `arrays.rs` that constructs these `ArraySpec`s from hard-coded tables.
+3. [x] Implement `arrays.rs` that constructs these `ArraySpec`s from hard-coded tables.
 
 ### 3.2 – Enochian FEN or JSON
 
@@ -398,24 +388,9 @@ For each piece, create a dedicated module (if not already present) like `moves/k
 
 **Tasks:**
 
-1. Define an `EnochFEN` string format, something like:
-
-   ```
-   board: 8/8/8/8/8/8/8/8
-   armies: B:bkqrnbppppp/... etc
-   turn: Blue
-   turn_order: Blue,Red,Black,Yellow
-   frozen: -
-   kings: B:e1,R:a8,...
-   array: AirOfWater
-   ```
-
-   or make it JSON.
-
-2. Implement `GameState::to_enoch_fen()` and `GameState::from_enoch_fen()`.
-
-3. Wire this into CLI commands:
-
+1. [x] Define an `EnochFEN` string format (implemented as JSON).
+2. [x] Implement `GameState::to_enoch_fen()` and `GameState::from_enoch_fen()`.
+3. [x] Wire this into CLI commands:
    * `/save <path>`
    * `/load <path>`
 
@@ -429,25 +404,10 @@ For each piece, create a dedicated module (if not already present) like `moves/k
 
 **Tasks:**
 
-1. Identify current board drawing code (probably uses Unicode pieces and colored squares). ([GitHub][2])
-
-2. Introduce:
-
-   * A per-army color palette (terminal colors) matching the Enochian boards (e.g. Blue = Air, Red = Fire, Black = Water, Yellow = Earth, or however you like, consistent with your board textures). 
-   * Glyphs for pieces (e.g. use uppercase letter for piece type plus subscript/colored background for army).
-
-3. Render:
-
-   * Board from a fixed perspective (e.g. corners labelled A1..H8).
-   * A sidebar showing whose turn it is, which armies are frozen, king locations, and team status.
-   * Throne squares with a special background/frame.
-   * Optional Ptah square marker for divination.
-
-4. Expose a config option for rendering style:
-
-   * Simple ASCII.
-   * Unicode + ANSI colors.
-   * Kitty-image mode later if you want to keep some of `enoch`’s flair.
+1. [x] Identify current board drawing code (probably uses Unicode pieces and colored squares).
+2. [x] Introduce per-army color palette and glyphs.
+3. [x] Render board from a fixed perspective, sidebar, throne squares.
+4. [x] Expose a config option for rendering style.
 
 ### 4.2 – Input syntax
 
@@ -455,25 +415,15 @@ For each piece, create a dedicated module (if not already present) like `moves/k
 
 **Tasks:**
 
-1. Define a move syntax, e.g.:
-
-   * `blue: a3-a4`
-   * `red: c1xb4` (capture)
-   * `yellow: e7-e8=Q` (promotion)
-
-2. Implement parser:
-
-   * Extract army name before colon.
-   * Parse from/to squares and optional promotion suffix.
-   * Ensure the parsed army matches `current_army` (or allowed “operate both” rules for 2-player mode).
-
-3. Extend command set:
-
-   * `/new <array_name> [players=2|4]`
-   * `/arrays` (list arrays)
+1. [x] Define a move syntax (army: from-to).
+2. [x] Implement parser.
+3. [x] Extend command set:
+   * `/new <array_name>`
+   * `/arrays`
    * `/status`
-   * `/exchange <opponent_army>` (for prisoner exchanges)
-   * `/withdraw` (for player withdrawal as per article). 
+   * `/exchange <opponent_army>`
+   * `/withdraw` (TODO)
+   * `/save`, `/load`, `/mode`
 
 ---
 
@@ -487,11 +437,9 @@ This is optional but natural given the sources you provided.
 
 **Tasks:**
 
-1. Collapse team states into a “side to evaluate”: treat `(Blue + Black)` as one side, `(Red + Yellow)` as the other when evaluating positions.
-2. Implement a simple evaluation heuristic:
-
-   * Material values tuned to Zalewski’s observed piece strengths (rook heavy in endgame; queen comparatively weak etc.). 
-3. Implement a very shallow minimax or Monte-Carlo playout engine that chooses moves for both armies on a team.
+1. [ ] Collapse team states into a “side to evaluate”.
+2. [ ] Implement a simple evaluation heuristic.
+3. [ ] Implement a very shallow minimax or Monte-Carlo playout engine.
 
 ### 5.2 – Dice-driven divination mode
 
@@ -499,14 +447,12 @@ This is optional but natural given the sources you provided.
 
 **Tasks:**
 
-1. Add a `Mode` enum: `Mode::Normal`, `Mode::Divination`.
-2. In `Mode::Divination` on each army’s turn:
-
+1. [x] Add a `Mode` enum: `Mode::Normal`, `Mode::Divination`.
+2. [x] In `Mode::Divination` on each army’s turn:
    * Roll d6 (RNG).
-   * Map die to piece type (1 → King or Pawn; 2 → Knight; 3 → Bishop; 4 → Queen; 5 → Rook; 6 → Pawn). 
-   * Filter legal moves to only moves whose *moving piece kind* matches the die selection (including king+pawn on 1).
-   * If no such move exists, re-roll a limited number of times or fall back to “skip” (document decision).
-3. Display the die result in the TUI.
+   * Map die to piece type.
+   * Filter legal moves.
+3. [x] Display the die result in the TUI.
 
 ---
 
@@ -518,21 +464,16 @@ This is optional but natural given the sources you provided.
 
 **Tasks:**
 
-1. Create `tests/enoch_moves.rs` with table-driven tests:
-
-   * Queen leap patterns from center, edge, and corner squares.
-   * Bishop diagonals limited to proper Aries/Cancer systems.
-   * Pawn forward/capture moves for each army orientation.
+1. [x] Create `tests/enoch_moves.rs` with table-driven tests:
+   * Queen leap patterns.
+   * Bishop diagonals.
+   * Pawn forward/capture moves.
    * King capture → frozen pieces.
 
-2. Create `tests/enoch_rules.rs`:
-
-   * Check situations where a king is in check and:
-
-     * Has multiple king moves → only king moves are legal.
-     * Has no king moves → other moves are allowed.
-   * Frozen army cannot move and does not give check.
-   * Exchange of prisoners restores mobility.
+2. [x] Create `tests/enoch_rules.rs`:
+   * Check situations where a king is in check.
+   * Frozen army behavior.
+   * Exchange of prisoners.
 
 ### 6.2 – Golden Dawn position fixtures
 
