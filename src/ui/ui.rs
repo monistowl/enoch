@@ -10,63 +10,146 @@ use ratatui::Frame;
 
 pub fn render(frame: &mut Frame, app: &mut App) {
     let size = frame.area();
+    
+    // Layout: Header, Main Body, Input
     let layout = Layout::default()
         .direction(Direction::Vertical)
         .constraints(
             [
-                Constraint::Length(3),
-                Constraint::Min(10),
-                Constraint::Length(3),
+                Constraint::Length(1), // Header
+                Constraint::Min(10),   // Body
+                Constraint::Length(3), // Input
             ]
             .as_ref(),
         )
         .split(size);
 
     let header = Paragraph::new(Span::styled(
-        "Enochian Chess (type /arrays, /status, army: e2-e4)",
+        "Enochian Chess",
         Style::default()
             .fg(Color::Yellow)
             .add_modifier(Modifier::BOLD),
     ))
-    .block(Block::default().borders(Borders::ALL).title("Help"));
+    .block(Block::default().borders(Borders::NONE)); // Minimal header
     frame.render_widget(header, layout[0]);
 
-    let mid_chunks = Layout::default()
+    // Body: Left (Air Captures) | Center (Board) | Right (Earth Captures) | Info
+    let body_chunks = Layout::default()
         .direction(Direction::Horizontal)
-        .constraints([Constraint::Percentage(65), Constraint::Percentage(35)].as_ref())
+        .constraints([
+            Constraint::Length(15), // Air Captures
+            Constraint::Length(28), // Board (26 + padding)
+            Constraint::Length(15), // Earth Captures
+            Constraint::Min(20),    // Info
+        ].as_ref())
         .split(layout[1]);
 
+    // Air Captures (Team Air: Blue + Black)
+    let air_captures = render_captures(app, Team::Air);
+    frame.render_widget(air_captures, body_chunks[0]);
+
+    // Board
     let board = Paragraph::new(text_from_board(app))
         .block(
             Block::default()
-                .title("Enochian Board")
+                .title("Board")
                 .borders(Borders::ALL),
         )
         .wrap(Wrap { trim: true });
-    frame.render_widget(board, mid_chunks[0]);
+    frame.render_widget(board, body_chunks[1]);
 
+    // Earth Captures (Team Earth: Red + Yellow)
+    let earth_captures = render_captures(app, Team::Earth);
+    frame.render_widget(earth_captures, body_chunks[2]);
+
+    // Info Panel (Status + History)
     let info_chunks = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Min(7), Constraint::Length(6)].as_ref())
-        .split(mid_chunks[1]);
+        .constraints([
+            Constraint::Length(10), // Status
+            Constraint::Min(5),     // History
+        ].as_ref())
+        .split(body_chunks[3]);
 
     let status = Paragraph::new(build_status_lines(app))
         .block(Block::default().title("Status").borders(Borders::ALL))
         .wrap(Wrap { trim: true });
     frame.render_widget(status, info_chunks[0]);
 
-    let array_text = array_list_text(app);
-    let arrays = Paragraph::new(array_text)
-        .block(Block::default().title("Arrays").borders(Borders::ALL))
+    let history = Paragraph::new(render_history(app))
+        .block(Block::default().title("History").borders(Borders::ALL))
         .wrap(Wrap { trim: true });
-    frame.render_widget(arrays, info_chunks[1]);
+    frame.render_widget(history, info_chunks[1]);
 
+    // Input
     let input_line = Paragraph::new(Text::from(Line::from(vec![
         Span::styled("> ", Style::default().fg(Color::Green)),
         Span::raw(app.input.clone()),
     ])))
-    .block(Block::default().borders(Borders::ALL).title("Command"));
+    .block(Block::default().borders(Borders::ALL).title("Command (Type /help)"));
     frame.render_widget(input_line, layout[2]);
+}
+
+fn render_captures(app: &App, team: Team) -> Paragraph {
+    let title = format!("{} Captures", team.name());
+    let mut lines = Vec::new();
+    
+    // We need to calculate captured pieces.
+    // Game doesn't track them explicitly, so we infer from array.
+    // Actually, that's hard because we swapped arrays.
+    // Let's just list *remaining* pieces?
+    // No, user wants captured.
+    
+    // For MVP overhaul, let's list ALIVE pieces for now, or
+    // assume standard array count (1K, 1Q, 1B, 1N, 1R, 4P).
+    // Most Enochian arrays follow this.
+    
+    let mut captured_text = Vec::new();
+    
+    for army in team.armies() {
+        let counts = app.game.board.piece_counts(army);
+        // Standard counts
+        let standard = [
+            (PieceKind::King, 1),
+            (PieceKind::Queen, 1),
+            (PieceKind::Bishop, 1),
+            (PieceKind::Knight, 1),
+            (PieceKind::Rook, 1),
+            (PieceKind::Pawn, 4),
+        ];
+        
+        for (kind, initial) in standard {
+            let current = counts[kind.index()];
+            if current < initial {
+                let lost = initial - current;
+                for _ in 0..lost {
+                    captured_text.push(Span::styled(
+                        format!("{} ", piece_character(army, kind)),
+                        style_for_army(army).add_modifier(Modifier::DIM),
+                    ));
+                }
+            }
+        }
+    }
+    
+    if captured_text.is_empty() {
+        lines.push(Line::from(Span::raw("-")));
+    } else {
+        // Group by lines to wrap?
+        lines.push(Line::from(captured_text));
+    }
+
+    Paragraph::new(Text::from(lines))
+        .block(Block::default().title(title).borders(Borders::ALL))
+        .wrap(Wrap { trim: true })
+}
+
+fn render_history(app: &App) -> Text {
+    let mut lines = Vec::new();
+    for (i, cmd) in app.command_history.iter().rev().enumerate() {
+        lines.push(Line::from(format!("{}. {}", app.command_history.len() - i, cmd)));
+    }
+    Text::from(lines)
 }
 
 pub fn render_size_error(frame: &mut Frame, min_width: u16, min_height: u16, size: Rect) {
@@ -81,25 +164,38 @@ pub fn render_size_error(frame: &mut Frame, min_width: u16, min_height: u16, siz
     frame.render_widget(warning, size);
 }
 
+fn style_for_army(army: Army) -> Style {
+    match army {
+        Army::Blue => Style::default().fg(Color::Blue),
+        Army::Black => Style::default().fg(Color::White), // Black on terminal usually White/Gray
+        Army::Red => Style::default().fg(Color::Red),
+        Army::Yellow => Style::default().fg(Color::Yellow),
+    }
+}
+
 fn build_status_lines(app: &App) -> Text {
     let mut lines = Vec::new();
     let current_army = app.game.state.current_army(&app.game.config);
-    lines.push(Line::from(vec![Span::styled(
-        format!("Turn: {}", current_army.display_name()),
-        Style::default().fg(Color::LightBlue),
-    )]));
-
-    lines.push(Line::from(Span::raw(format!(
-        "Array: {}",
-        app.selected_array
-    ))));
+    
+    // BIG Turn Indicator
+    lines.push(Line::from(vec![
+        Span::raw("TURN: "),
+        Span::styled(
+            current_army.display_name().to_uppercase(),
+            style_for_army(current_army).add_modifier(Modifier::BOLD | Modifier::UNDERLINED),
+        ),
+    ]));
+    lines.push(Line::from(""));
 
     if app.game.config.mode == Mode::Divination {
         if let Some(die) = app.game.state.divination_die {
-            lines.push(Line::from(Span::styled(
-                format!("Divination Die: {} ({})", die, die_piece_name(die)),
-                Style::default().fg(Color::Magenta).add_modifier(Modifier::BOLD),
-            )));
+            lines.push(Line::from(vec![
+                Span::raw("DIE: "),
+                Span::styled(
+                    format!("{} ({})", die, die_piece_name(die)),
+                    Style::default().fg(Color::Magenta).add_modifier(Modifier::BOLD),
+                ),
+            ]));
         }
     }
 
@@ -109,52 +205,35 @@ fn build_status_lines(app: &App) -> Text {
         .map(|army| army.display_name())
         .collect();
     if !frozen.is_empty() {
-        lines.push(Line::from(Span::raw(format!(
-            "Frozen armies: {}",
-            frozen.join(", ")
-        ))));
+        lines.push(Line::from(vec![
+            Span::styled("FROZEN: ", Style::default().fg(Color::Cyan)),
+            Span::raw(frozen.join(", ")),
+        ]));
     }
-
-    let stalemated: Vec<&str> = Army::ALL
-        .iter()
-        .filter(|&&army| app.game.state.is_stalemated(army))
-        .map(|army| army.display_name())
-        .collect();
-    if !stalemated.is_empty() {
-        lines.push(Line::from(Span::raw(format!(
-            "Stalemated: {}",
-            stalemated.join(", ")
-        ))));
+    
+    // Check Alert
+    if app.game.king_in_check(current_army) {
+         lines.push(Line::from(Span::styled(
+            "!!! KING IN CHECK !!!",
+            Style::default().fg(Color::Red).add_modifier(Modifier::SLOW_BLINK | Modifier::BOLD),
+        )));
     }
 
     if let Some(ref msg) = app.status_message {
+        lines.push(Line::from(""));
         lines.push(Line::from(Span::styled(
-            format!("Status: {}", msg),
-            Style::default().fg(Color::White),
+            format!("> {}", msg),
+            Style::default().fg(Color::Green),
         )));
     }
 
     if let Some(ref err) = app.error_message {
+        lines.push(Line::from(""));
         lines.push(Line::from(Span::styled(
-            format!("Error: {}", err),
+            format!("! {}", err),
             Style::default().fg(Color::Red),
         )));
     }
-
-    let history = app.history_lines();
-    if !history.is_empty() {
-        lines.push(Line::from(Span::styled(
-            format!("Last commands: {}", history.join(", ")),
-            Style::default().fg(Color::Gray),
-        )));
-    }
-
-    lines.extend(army_status_lines(app));
-
-    lines.push(Line::from(Span::styled(
-        command_help(),
-        Style::default().fg(Color::Rgb(120, 120, 200)),
-    )));
 
     Text::from(lines)
 }
