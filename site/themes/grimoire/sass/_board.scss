@@ -296,6 +296,61 @@
     font-style: italic;
     text-align: center;
   }
+
+  // Feedback messages
+  &__feedback {
+    margin-top: $space-4;
+    padding: $space-4;
+    border-radius: $radius-md;
+    text-align: center;
+    font-weight: $weight-semibold;
+    animation: feedbackPulse 0.3s ease-out;
+
+    &--success {
+      background-color: rgba(76, 175, 80, 0.15);
+      border-left: 3px solid #4caf50;
+      color: #4caf50;
+    }
+
+    &--error {
+      background-color: rgba(244, 67, 54, 0.15);
+      border-left: 3px solid #f44336;
+      color: #f44336;
+    }
+  }
+
+  // Success/error state modifiers
+  &--success {
+    .board-widget__svg {
+      box-shadow: 0 0 20px rgba(76, 175, 80, 0.4);
+    }
+  }
+
+  &--error {
+    .board-widget__svg {
+      animation: shake 0.4s ease-in-out;
+    }
+  }
+}
+
+// Feedback animations
+@keyframes feedbackPulse {
+  0% {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-5px); }
+  40% { transform: translateX(5px); }
+  60% { transform: translateX(-5px); }
+  80% { transform: translateX(5px); }
 }
 
 // Light theme adjustments

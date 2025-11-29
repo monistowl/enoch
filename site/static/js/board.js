@@ -124,6 +124,11 @@ function enochBoard(scenario) {
     isPlaying: false,
     playInterval: null,
 
+    // Feedback state
+    feedback: null, // 'success', 'error', or null
+    feedbackMessage: '',
+    feedbackTimeout: null,
+
     // Computed
     get maxStep() {
       return (this.scenario.steps?.length || 1) - 1;
@@ -257,6 +262,31 @@ function enochBoard(scenario) {
       }
     },
 
+    // Feedback helpers
+    showFeedback(type, message) {
+      // Clear any existing timeout
+      if (this.feedbackTimeout) {
+        clearTimeout(this.feedbackTimeout);
+      }
+
+      this.feedback = type;
+      this.feedbackMessage = message;
+
+      // Auto-clear after delay
+      this.feedbackTimeout = setTimeout(() => {
+        this.clearFeedback();
+      }, 2000);
+    },
+
+    clearFeedback() {
+      this.feedback = null;
+      this.feedbackMessage = '';
+      if (this.feedbackTimeout) {
+        clearTimeout(this.feedbackTimeout);
+        this.feedbackTimeout = null;
+      }
+    },
+
     // Square interaction
     selectSquare(index) {
       if (this.mode === 'demo') {
@@ -278,15 +308,25 @@ function enochBoard(scenario) {
 
             if (this.selected === fromIdx && index === toIdx) {
               // Correct move!
-              this.nextStep();
+              this.showFeedback('success', 'Correct!');
+              applyMove(this.position, this.selected, index);
+              this.lastMove = { from: this.selected, to: index };
               this.selected = null;
+              this.legalMoves = [];
+              // Advance after short delay to show feedback
+              setTimeout(() => this.nextStep(), 800);
+              return;
+            } else if (this.legalMoves.includes(index)) {
+              // Wrong move but legal - show hint
+              this.showFeedback('error', 'Not quite! Try a different move.');
+              this.selected = null;
+              this.legalMoves = [];
               return;
             }
           }
 
-          // Check if this is a legal move destination
+          // Check if this is a legal move destination (free exploration)
           if (this.legalMoves.includes(index)) {
-            // Apply the move locally (for free exploration)
             applyMove(this.position, this.selected, index);
             this.lastMove = { from: this.selected, to: index };
           }

@@ -13,7 +13,7 @@
   window.{{ board_id }} = {{ page.extra.scenario | safe }};
 </script>
 
-<div x-data="enochBoard(window.{{ board_id }})" x-init="init()" class="board-widget">
+<div x-data="enochBoard(window.{{ board_id }})" x-init="init()" class="board-widget" :class="{ 'board-widget--success': feedback === 'success', 'board-widget--error': feedback === 'error' }">
   <!-- Board SVG -->
   <svg viewBox="0 0 400 400" class="board-widget__svg" xmlns="http://www.w3.org/2000/svg" @click="handleBoardClick($event)">
     <!-- Board squares - rendered by JS -->
@@ -88,7 +88,17 @@
   </div>
 
   <!-- Narrative text -->
-  <p class="board-widget__narrative" x-show="currentNarrative" x-text="currentNarrative"></p>
+  <p class="board-widget__narrative" x-show="currentNarrative && !feedbackMessage" x-text="currentNarrative"></p>
+
+  <!-- Feedback message -->
+  <p
+    class="board-widget__feedback"
+    :class="{ 'board-widget__feedback--success': feedback === 'success', 'board-widget__feedback--error': feedback === 'error' }"
+    x-show="feedbackMessage"
+    x-text="feedbackMessage"
+    x-transition:enter="board-widget__feedback--enter"
+    x-transition:leave="board-widget__feedback--leave"
+  ></p>
 </div>
 {% else %}
 <p class="board-widget__error"><em>No scenario defined for this board.</em></p>
