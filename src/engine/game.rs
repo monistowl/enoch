@@ -1,3 +1,4 @@
+use serde::{Deserialize, Serialize};
 use crate::engine::arrays::{ArraySpec, default_array};
 use crate::engine::board::Board;
 use crate::engine::fen::EnochFen;
@@ -7,6 +8,7 @@ use crate::engine::moves::{
 };
 use crate::engine::piece_kind::{parse_move, ParsedMove, SpecialMove};
 use crate::engine::types::{Army, PieceKind, PlayerId, Square, Team, ARMY_COUNT, PIECE_KIND_COUNT};
+use rand::Rng;
 
 /// Game struct responsible for all game logics (pin, check, valid captures, etc)
 pub struct Game {
@@ -28,12 +30,24 @@ impl Game {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum Mode {
+    Normal,
+    Divination,
+}
+
+impl Default for Mode {
+    fn default() -> Self {
+        Mode::Normal
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct GameConfig {
     pub armies: [Army; ARMY_COUNT],
     pub turn_order: [Army; ARMY_COUNT],
     pub controller_map: [PlayerId; ARMY_COUNT],
+    pub mode: Mode,
 }
 
 impl Default for GameConfig {
@@ -47,6 +61,7 @@ impl Default for GameConfig {
                 PlayerId::PLAYER_ONE,
                 PlayerId::PLAYER_TWO,
             ],
+            mode: Mode::default(),
         }
     }
 }
@@ -57,6 +72,7 @@ pub struct GameState {
     pub army_frozen: [bool; ARMY_COUNT],
     pub king_positions: [Option<Square>; ARMY_COUNT],
     pub stalemated_armies: [bool; ARMY_COUNT],
+    pub divination_die: Option<u8>,
 }
 
 impl GameState {
@@ -66,6 +82,7 @@ impl GameState {
             army_frozen: [false; ARMY_COUNT],
             king_positions: [None; ARMY_COUNT],
             stalemated_armies: [false; ARMY_COUNT],
+            divination_die: None,
         }
     }
 
@@ -75,6 +92,7 @@ impl GameState {
             self.king_positions[army.index()] = board.king_square(army);
             self.stalemated_armies[army.index()] = false;
         }
+        // Preserve divination_die
     }
 
     pub fn current_army(&self, config: &GameConfig) -> Army {
@@ -450,6 +468,18 @@ impl Game {
         }
         let piece_kind = piece.1;
 
+        if self.config.mode == Mode::Divination {
+            if let Some(die) = self.state.divination_die {
+                if !self.is_allowed_by_die(piece_kind, die) {
+                    return Err(format!(
+                        "Die roll {} requires {}",
+                        die,
+                        self.die_piece_name(die)
+                    ));
+                }
+            }
+        }
+
         if self.must_move_king(army) && piece_kind != PieceKind::King {
             return Err("King must move while in check".to_string());
         }
@@ -503,8 +533,77 @@ impl Game {
             self.state.advance_turn(&self.config);
             let candidate = self.state.current_army(&self.config);
             if !self.state.army_frozen[candidate.index()] && !self.state.is_stalemated(candidate) {
+                if self.config.mode == Mode::Divination {
+                    self.roll_divination_die_for_turn(candidate);
+                }
                 break;
             }
+        }
+    }
+
+    fn roll_divination_die_for_turn(&mut self, army: Army) {
+        let mut rng = rand::thread_rng();
+        // Loop until we find a die roll that allows at least one move.
+        // To prevent infinite loop if NO moves possible (which should be stalemate, but maybe not detected yet?),
+        // we cap iterations. But theoretically if not stalemated, there is a move.
+        // Since we have 6 die types, and at least one piece can move, eventually we hit it.
+        // Max pieces = 16.
+        
+        for _ in 0..1000 {
+            let roll = rng.gen_range(1..=6);
+            self.state.divination_die = Some(roll);
+            if self.has_move_for_die(army, roll) {
+                return;
+            }
+        }
+        // If we failed 1000 times, something is wrong or very unlucky.
+        // Fallback: Just leave the last roll.
+    }
+
+    fn has_move_for_die(&self, army: Army, die: u8) -> bool {
+        let allowed_kinds = match die {
+            1 => vec![PieceKind::King, PieceKind::Pawn],
+            2 => vec![PieceKind::Knight],
+            3 => vec![PieceKind::Bishop],
+            4 => vec![PieceKind::Queen],
+            5 => vec![PieceKind::Rook],
+            6 => vec![PieceKind::Pawn],
+            _ => return false,
+        };
+
+        for kind in allowed_kinds {
+            if self.must_move_king(army) && kind != PieceKind::King {
+                continue;
+            }
+            let moves = self.piece_moves(army, kind);
+            if moves != 0 {
+                return true;
+            }
+        }
+        false
+    }
+
+    fn is_allowed_by_die(&self, kind: PieceKind, die: u8) -> bool {
+        match die {
+            1 => matches!(kind, PieceKind::King | PieceKind::Pawn),
+            2 => kind == PieceKind::Knight,
+            3 => kind == PieceKind::Bishop,
+            4 => kind == PieceKind::Queen,
+            5 => kind == PieceKind::Rook,
+            6 => kind == PieceKind::Pawn,
+            _ => true,
+        }
+    }
+
+    fn die_piece_name(&self, die: u8) -> &'static str {
+        match die {
+            1 => "King or Pawn",
+            2 => "Knight",
+            3 => "Bishop",
+            4 => "Queen",
+            5 => "Rook",
+            6 => "Pawn",
+            _ => "Unknown",
         }
     }
 

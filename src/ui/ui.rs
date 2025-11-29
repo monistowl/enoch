@@ -1,4 +1,5 @@
 use crate::engine::arrays::available_arrays;
+use crate::engine::game::{Game, Mode};
 use crate::engine::types::{Army, PieceKind, PlayerId, Team};
 use crate::ui::app::App;
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
@@ -93,6 +94,15 @@ fn build_status_lines(app: &App) -> Text {
         app.selected_array
     ))));
 
+    if app.game.config.mode == Mode::Divination {
+        if let Some(die) = app.game.state.divination_die {
+            lines.push(Line::from(Span::styled(
+                format!("Divination Die: {} ({})", die, die_piece_name(die)),
+                Style::default().fg(Color::Magenta).add_modifier(Modifier::BOLD),
+            )));
+        }
+    }
+
     let frozen: Vec<&str> = Army::ALL
         .iter()
         .filter(|&&army| app.game.army_is_frozen(army))
@@ -147,6 +157,18 @@ fn build_status_lines(app: &App) -> Text {
     )));
 
     Text::from(lines)
+}
+
+fn die_piece_name(die: u8) -> &'static str {
+    match die {
+        1 => "King/Pawn",
+        2 => "Knight",
+        3 => "Bishop",
+        4 => "Queen",
+        5 => "Rook",
+        6 => "Pawn",
+        _ => "?",
+    }
 }
 
 fn array_list_text(app: &App) -> Text {

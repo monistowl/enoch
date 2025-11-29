@@ -1,5 +1,5 @@
 use crate::engine::arrays::{available_arrays, default_array, find_array_by_name};
-use crate::engine::game::Game;
+use crate::engine::game::{Game, Mode};
 use crate::engine::types::{Army, PieceKind, Square};
 use std::fmt;
 use std::fs;
@@ -38,6 +38,7 @@ pub enum UiCommand {
     Save(String),
     Load(String),
     New(String),
+    SetMode(Mode),
 }
 
 #[derive(Debug)]
@@ -173,6 +174,11 @@ impl App {
                     Err(e) => self.error_message = Some(format!("Read failed: {}", e)),
                 }
             }
+            UiCommand::SetMode(mode) => {
+                self.game.config.mode = mode;
+                self.status_message = Some(format!("Mode set to {:?}", mode));
+                self.error_message = None;
+            }
         }
         if self.status_message.is_some() {
             self.error_message = None;
@@ -304,6 +310,17 @@ fn parse_ui_command(input: &str) -> Result<UiCommand, CommandParseError> {
                         Ok(UiCommand::Load(path.to_string()))
                     } else {
                         Err(CommandParseError("Missing file path".into()))
+                    }
+                }
+                "mode" => {
+                    if let Some(mode_str) = parts.next() {
+                        match mode_str.to_lowercase().as_str() {
+                            "normal" => Ok(UiCommand::SetMode(Mode::Normal)),
+                            "divination" => Ok(UiCommand::SetMode(Mode::Divination)),
+                            _ => Err(CommandParseError("Unknown mode. Use 'normal' or 'divination'".into())),
+                        }
+                    } else {
+                        Err(CommandParseError("Missing mode (normal/divination)".into()))
                     }
                 }
                 _ => Err(CommandParseError("Unknown command".into())),
