@@ -1,0 +1,13 @@
+{% set home = get_page(path=pages/home.md) %}
+<html>
+  <head>
+    <meta charset='utf-8'>
+    <title>{{ home.title }}</title>
+  </head>
+  <body>
+    <main>
+      <h1>{{ home.title }}</h1>
+      {{ home.content | safe }}
+    </main>
+  </body>
+</html>
