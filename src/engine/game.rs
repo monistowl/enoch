@@ -1,4 +1,4 @@
-use crate::engine::arrays::{ArraySpec, TABLET_OF_FIRE_PROTOTYPE};
+use crate::engine::arrays::{ArraySpec, default_array};
 use crate::engine::board::Board;
 use crate::engine::moves::{
     compute_bishops_moves, compute_king_moves, compute_knights_moves, compute_pawns_moves,
@@ -514,6 +514,6 @@ impl Game {
 
 impl Default for Game {
     fn default() -> Game {
-        Self::from_array_spec(&TABLET_OF_FIRE_PROTOTYPE)
+        Self::from_array_spec(default_array())
     }
 }
