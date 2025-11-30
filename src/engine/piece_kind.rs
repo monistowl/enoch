@@ -164,7 +164,9 @@ fn parse_piece(piece: PieceKind, mut chars: Chars) -> Result<ParsedMove, ParseEr
             PieceParserState::TargetFileParsed => match c {
                 rank @ '0'..='8' => {
                     potential_target_rank = rank.to_digit(10).unwrap() as u64;
-                    to = 0; // Replace with a valid bitboard value
+                    let file_idx = potential_target_file as u64 - 'a' as u64;
+                    let rank_idx = potential_target_rank - 1;
+                    to = 1 << (rank_idx * 8 + file_idx);
                     state = PieceParserState::TargetParsed;
                 }
                 _ => {
@@ -181,7 +183,9 @@ fn parse_piece(piece: PieceKind, mut chars: Chars) -> Result<ParsedMove, ParseEr
 
     // final checks
     if state == PieceParserState::PotentialTargetParsed {
-        to = 0; // Replace with a valid bitboard value
+        let file_idx = potential_target_file as u64 - 'a' as u64;
+        let rank_idx = potential_target_rank - 1;
+        to = 1 << (rank_idx * 8 + file_idx);
         state = PieceParserState::TargetParsed;
     }
 
@@ -214,13 +218,16 @@ fn parse_pawn(source: char, mut chars: Chars) -> Result<ParsedMove, ParseError> 
 
     let mut state = PawnParserState::Initial;
     let mut target_rank: u64 = 0;
+    let mut target_file = source;
 
     while let Some(c) = chars.next() {
         match state {
             PawnParserState::Initial => match c {
                 rank @ '1'..='8' => {
                     target_rank = rank.to_digit(10).unwrap() as u64;
-                    to = 0; // Replace with a valid bitboard value
+                    let file_idx = target_file as u64 - 'a' as u64;
+                    let rank_idx = target_rank - 1;
+                    to = 1 << (rank_idx * 8 + file_idx);
                     state = PawnParserState::TargetParsed;
                 }
                 'x' => {
@@ -233,11 +240,14 @@ fn parse_pawn(source: char, mut chars: Chars) -> Result<ParsedMove, ParseError> 
             },
             PawnParserState::Capturing => match c {
                 file @ 'a'..='h' => {
+                    target_file = file;
                     if let Some(c) = chars.next() {
                         match c {
                             rank @ '1'..='8' => {
                                 target_rank = rank.to_digit(10).unwrap() as u64;
-                                to = 0; // Replace with a valid bitboard value
+                                let file_idx = target_file as u64 - 'a' as u64;
+                                let rank_idx = target_rank - 1;
+                                to = 1 << (rank_idx * 8 + file_idx);
                                 state = PawnParserState::TargetParsed;
                             }
                             _ => {
