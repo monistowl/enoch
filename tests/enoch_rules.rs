@@ -2,7 +2,7 @@ use enoch::engine::{
     board::{Board, OverlayPiece, diagonal_system_for_square},
     game::{Game, GameConfig, Mode},
     moves::can_capture_piece,
-    types::{Army, DiagonalSystem, Piece, PieceKind, PlayerId, Square},
+    types::{Army, DiagonalSystem, Piece, PieceKind, PlayerId, Square, Team},
 };
 
 fn square(file: char, rank: u8) -> Square {
@@ -815,105 +815,115 @@ fn get_piece_at(array: &enoch::engine::arrays::ArraySpec, file: char, rank: u8) 
 }
 
 /// Verify Fire/Earth boards use Group 1 settings - test Earth setting (KR, B, Q, N)
-/// Position D1 should have King's partner (Rook for Earth setting)
+/// In cross layout, Blue uses files c-f on rank 1: c1=Bishop, d1=Rook(partner), e1=King, f1=Bishop
 #[test]
 fn fire_earth_setting_piece_layout() {
-    // Earth setting on Fire board: KR (D/E), B, Q, N
-    // Blue pieces on rank 1: N(A), Q(B), B(C), R(D), K(E), B(F), Q(G), N(H)
+    // Earth setting: [Rook, Bishop, Queen, Knight]
+    // Cross layout places: c1=setting[1]=Bishop, d1=setting[0]=Rook, e1=King, f1=setting[1]=Bishop
     let board = TABLET_OF_FIRE_EARTH.board();
 
-    // Blue army on rank 1
-    assert_eq!(board.piece_at(square('a', 1)).map(|(_, k)| k), Some(PieceKind::Knight), "A1 should be Knight");
-    assert_eq!(board.piece_at(square('b', 1)).map(|(_, k)| k), Some(PieceKind::Queen), "B1 should be Queen");
+    // Blue army on rank 1, files c-f (cross layout)
     assert_eq!(board.piece_at(square('c', 1)).map(|(_, k)| k), Some(PieceKind::Bishop), "C1 should be Bishop");
     assert_eq!(board.piece_at(square('d', 1)).map(|(_, k)| k), Some(PieceKind::Rook), "D1 should be Rook (King's partner)");
     assert_eq!(board.piece_at(square('e', 1)).map(|(_, k)| k), Some(PieceKind::King), "E1 should be King");
     assert_eq!(board.piece_at(square('f', 1)).map(|(_, k)| k), Some(PieceKind::Bishop), "F1 should be Bishop");
-    assert_eq!(board.piece_at(square('g', 1)).map(|(_, k)| k), Some(PieceKind::Queen), "G1 should be Queen");
-    assert_eq!(board.piece_at(square('h', 1)).map(|(_, k)| k), Some(PieceKind::Knight), "H1 should be Knight");
+
+    // A1, B1, G1, H1 should be empty in cross layout (corners are reserved)
+    assert!(board.piece_at(square('a', 1)).is_none(), "A1 should be empty in cross layout");
+    assert!(board.piece_at(square('h', 1)).is_none(), "H1 should be empty in cross layout");
 }
 
 /// Verify Fire setting on Fire board (KN, Q, B, R)
+/// In cross layout, Blue uses files c-f on rank 1: c1=Queen, d1=Knight(partner), e1=King, f1=Queen
 #[test]
 fn fire_fire_setting_piece_layout() {
-    // Fire setting: KN (D/E), Q, B, R
-    // Blue pieces on rank 1: R(A), B(B), Q(C), N(D), K(E), Q(F), B(G), R(H)
+    // Fire setting: [Knight, Queen, Bishop, Rook]
+    // Cross layout places: c1=setting[1]=Queen, d1=setting[0]=Knight, e1=King, f1=setting[1]=Queen
     let board = TABLET_OF_FIRE_FIRE.board();
 
-    assert_eq!(board.piece_at(square('a', 1)).map(|(_, k)| k), Some(PieceKind::Rook), "A1 should be Rook");
-    assert_eq!(board.piece_at(square('b', 1)).map(|(_, k)| k), Some(PieceKind::Bishop), "B1 should be Bishop");
+    // Blue army on rank 1, files c-f (cross layout)
     assert_eq!(board.piece_at(square('c', 1)).map(|(_, k)| k), Some(PieceKind::Queen), "C1 should be Queen");
     assert_eq!(board.piece_at(square('d', 1)).map(|(_, k)| k), Some(PieceKind::Knight), "D1 should be Knight (King's partner)");
     assert_eq!(board.piece_at(square('e', 1)).map(|(_, k)| k), Some(PieceKind::King), "E1 should be King");
     assert_eq!(board.piece_at(square('f', 1)).map(|(_, k)| k), Some(PieceKind::Queen), "F1 should be Queen");
-    assert_eq!(board.piece_at(square('g', 1)).map(|(_, k)| k), Some(PieceKind::Bishop), "G1 should be Bishop");
-    assert_eq!(board.piece_at(square('h', 1)).map(|(_, k)| k), Some(PieceKind::Rook), "H1 should be Rook");
+
+    // Corners should be empty
+    assert!(board.piece_at(square('a', 1)).is_none(), "A1 should be empty in cross layout");
+    assert!(board.piece_at(square('h', 1)).is_none(), "H1 should be empty in cross layout");
 }
 
 /// Verify Air/Water boards use Group 2 settings - test Earth setting (KR, N, Q, B)
-/// Note: Group 2 has Knight and Bishop swapped compared to Group 1
+/// In cross layout, Blue uses files c-f on rank 1: c1=Knight, d1=Rook(partner), e1=King, f1=Knight
 #[test]
 fn air_earth_setting_piece_layout() {
-    // Earth setting on Air board (Group 2): KR (D/E), N, Q, B
-    // Blue pieces on rank 1: B(A), Q(B), N(C), R(D), K(E), N(F), Q(G), B(H)
+    // Earth setting Group 2: [Rook, Knight, Queen, Bishop]
+    // Cross layout places: c1=setting[1]=Knight, d1=setting[0]=Rook, e1=King, f1=setting[1]=Knight
     let board = TABLET_OF_AIR_EARTH.board();
 
-    assert_eq!(board.piece_at(square('a', 1)).map(|(_, k)| k), Some(PieceKind::Bishop), "A1 should be Bishop");
-    assert_eq!(board.piece_at(square('b', 1)).map(|(_, k)| k), Some(PieceKind::Queen), "B1 should be Queen");
+    // Blue army on rank 1, files c-f (cross layout)
     assert_eq!(board.piece_at(square('c', 1)).map(|(_, k)| k), Some(PieceKind::Knight), "C1 should be Knight");
     assert_eq!(board.piece_at(square('d', 1)).map(|(_, k)| k), Some(PieceKind::Rook), "D1 should be Rook (King's partner)");
     assert_eq!(board.piece_at(square('e', 1)).map(|(_, k)| k), Some(PieceKind::King), "E1 should be King");
     assert_eq!(board.piece_at(square('f', 1)).map(|(_, k)| k), Some(PieceKind::Knight), "F1 should be Knight");
-    assert_eq!(board.piece_at(square('g', 1)).map(|(_, k)| k), Some(PieceKind::Queen), "G1 should be Queen");
-    assert_eq!(board.piece_at(square('h', 1)).map(|(_, k)| k), Some(PieceKind::Bishop), "H1 should be Bishop");
+
+    // Corners should be empty
+    assert!(board.piece_at(square('a', 1)).is_none(), "A1 should be empty in cross layout");
+    assert!(board.piece_at(square('h', 1)).is_none(), "H1 should be empty in cross layout");
 }
 
 /// Verify patron pieces are correctly assigned from array settings
+/// In cross layout, Blue pawns are at c2-f2, and their patron is the major piece in the same column
 #[test]
 fn array_assigns_patron_to_pawns() {
     let board = TABLET_OF_FIRE_FIRE.board();
 
-    // In Fire setting (KN, Q, B, R), the patron for each column:
-    // A/H columns: Rook pawns
-    // B/G columns: Bishop pawns
-    // C/F columns: Queen pawns
-    // D/E columns: Knight pawn (D) and King pawn (E) - but King isn't a patron, so no patron
-
-    // Check pawn on A2 has Rook as patron
-    let pawn_a2 = board.get_piece(square('a', 2));
-    assert!(pawn_a2.is_some(), "Should have pawn at A2");
-    assert_eq!(pawn_a2.unwrap().pawn_type, Some(PieceKind::Rook), "A2 pawn should have Rook patron");
-
-    // Check pawn on B2 has Bishop as patron
-    let pawn_b2 = board.get_piece(square('b', 2));
-    assert!(pawn_b2.is_some(), "Should have pawn at B2");
-    assert_eq!(pawn_b2.unwrap().pawn_type, Some(PieceKind::Bishop), "B2 pawn should have Bishop patron");
+    // Fire setting: [Knight, Queen, Bishop, Rook]
+    // Cross layout: c1=Queen, d1=Knight, e1=King, f1=Queen
+    // Pawns at c2-f2 inherit patrons from their columns:
+    // C2: Queen (from C1)
+    // D2: Knight (from D1)
+    // E2: King (but King isn't a patron type)
+    // F2: Queen (from F1)
 
     // Check pawn on C2 has Queen as patron
     let pawn_c2 = board.get_piece(square('c', 2));
     assert!(pawn_c2.is_some(), "Should have pawn at C2");
     assert_eq!(pawn_c2.unwrap().pawn_type, Some(PieceKind::Queen), "C2 pawn should have Queen patron");
+
+    // Check pawn on D2 has Knight as patron
+    let pawn_d2 = board.get_piece(square('d', 2));
+    assert!(pawn_d2.is_some(), "Should have pawn at D2");
+    assert_eq!(pawn_d2.unwrap().pawn_type, Some(PieceKind::Knight), "D2 pawn should have Knight patron");
+
+    // Check pawn on F2 has Queen as patron
+    let pawn_f2 = board.get_piece(square('f', 2));
+    assert!(pawn_f2.is_some(), "Should have pawn at F2");
+    assert_eq!(pawn_f2.unwrap().pawn_type, Some(PieceKind::Queen), "F2 pawn should have Queen patron");
 }
 
 /// Verify diagonal systems are correctly assigned from array settings
+/// In cross layout, Blue's queens are at c1 and f1
 #[test]
 fn array_assigns_diagonal_system_to_queens_and_bishops() {
     let board = TABLET_OF_FIRE_FIRE.board();
+
+    // Fire setting: [Knight, Queen, Bishop, Rook]
+    // Cross layout: c1=Queen, d1=Knight, e1=King, f1=Queen
+    // Queens at c1 and f1 should have diagonal systems assigned
 
     // Get the queen on C1 and check its diagonal system
     let queen_c1 = board.get_piece(square('c', 1));
     assert!(queen_c1.is_some(), "Should have queen at C1");
     assert!(queen_c1.unwrap().diagonal_system.is_some(), "Queen should have diagonal system assigned");
 
-    // Get the bishop on B1 and check its diagonal system
-    let bishop_b1 = board.get_piece(square('b', 1));
-    assert!(bishop_b1.is_some(), "Should have bishop at B1");
-    assert!(bishop_b1.unwrap().diagonal_system.is_some(), "Bishop should have diagonal system assigned");
+    // Get the queen on F1 and check its diagonal system
+    let queen_f1 = board.get_piece(square('f', 1));
+    assert!(queen_f1.is_some(), "Should have queen at F1");
+    assert!(queen_f1.unwrap().diagonal_system.is_some(), "Queen should have diagonal system assigned");
 
     // Diagonal system should be determined by starting square
-    // C1 = square 2, B1 = square 1
     assert_eq!(queen_c1.unwrap().diagonal_system, Some(diagonal_system_for_square(square('c', 1))));
-    assert_eq!(bishop_b1.unwrap().diagonal_system, Some(diagonal_system_for_square(square('b', 1))));
+    assert_eq!(queen_f1.unwrap().diagonal_system, Some(diagonal_system_for_square(square('f', 1))));
 }
 
 // ============================================================================
@@ -1482,4 +1492,57 @@ fn concourse_requires_two_enemies_and_one_ally() {
     // With only 1 enemy, no concourse should be detected
     let result = game.detect_concourse(Army::Blue, square('d', 4), PieceKind::Bishop);
     assert!(result.is_none(), "Concourse requires exactly 2 enemies, not 1");
+}
+
+// ============================================================================
+// Starting Position Tests - Check Detection
+// ============================================================================
+
+/// Debug test: Print what attacks each king at the starting position
+#[test]
+fn debug_starting_position_check_status() {
+    let game = Game::from_array_spec(&TABLET_OF_FIRE_FIRE);
+
+    println!("\n=== Starting Position Check Analysis ===\n");
+
+    // Print board layout
+    println!("Army positions:");
+    for army in [Army::Blue, Army::Black, Army::Red, Army::Yellow] {
+        let king_sq = game.board.king_square(army);
+        println!("  {:?}: King at square {:?} ({:?})",
+                 army,
+                 king_sq,
+                 king_sq.map(|s| sq_name(s)));
+    }
+
+    println!("\nCheck status for each army:");
+    for army in [Army::Blue, Army::Black, Army::Red, Army::Yellow] {
+        let in_check = game.king_in_check(army);
+        let king_moves = game.king_moves_bitboard(army);
+        let must_move = game.must_move_king(army);
+        println!("  {:?}: in_check={}, king_moves_bb={:016x}, must_move_king={}",
+                 army, in_check, king_moves, must_move);
+    }
+
+    // Check what's attacking each king
+    println!("\nAttack analysis:");
+    for army in [Army::Blue, Army::Black, Army::Red, Army::Yellow] {
+        if let Some(king_sq) = game.board.king_square(army) {
+            let opponent = army.team().opponent();
+            println!("\n  {:?} king at {}:", army, sq_name(king_sq));
+            for &enemy_army in opponent.armies().iter() {
+                let attacks = game.is_square_attacked_by_army(king_sq, enemy_army);
+                if attacks {
+                    println!("    ATTACKED by {:?}", enemy_army);
+                }
+            }
+        }
+    }
+
+    // Assert that NO king should be in check at game start
+    // This is the expected behavior for a valid starting array
+    for army in [Army::Blue, Army::Black, Army::Red, Army::Yellow] {
+        assert!(!game.king_in_check(army),
+                "{:?} should NOT be in check at game start!", army);
+    }
 }

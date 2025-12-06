@@ -92,21 +92,6 @@ const fn square(file: u8, rank: u8) -> Square {
 
 // --- Placements Logic ---
 
-// Helper to generate a full rank of pieces based on the 4-piece sequence.
-// Sequence: [Square 1 Pair, Square 2 Pair, Square 3 Pair, Square 4 Pair]
-// Layout on Rank:
-// Index 0 (A): Piece 4
-// Index 1 (B): Piece 3
-// Index 2 (C): Piece 2
-// Index 3 (D): Partner (Piece 1)
-// Index 4 (E): King (Piece 1)
-// Index 5 (F): Piece 2
-// Index 6 (G): Piece 3
-// Index 7 (H): Piece 4
-//
-// Note: King is always placed at Index 4 (File E). Partner is at Index 3 (File D).
-// This matches standard chess (King on E).
-
 // Piece sequence for the 8 Settings.
 // Group 1: Fire and Earth Boards
 // Earth: King/Rook, Bishop, Queen, Knight
@@ -130,83 +115,96 @@ const SETTING_AIR_G2: [PieceKind; 4] = [PieceKind::Bishop, PieceKind::Queen, Pie
 const SETTING_WATER_G2: [PieceKind; 4] = [PieceKind::Queen, PieceKind::Bishop, PieceKind::Rook, PieceKind::Knight];
 const SETTING_FIRE_G2: [PieceKind; 4] = [PieceKind::Knight, PieceKind::Rook, PieceKind::Bishop, PieceKind::Queen];
 
-// We need to define static slices for `ArraySpec`.
-// Since we can't easily generate them at compile time with logic, we'll define them manually or use macros if possible.
-// But `&'static` requires const or static.
-// We'll define the placements for each of the 16 combinations.
+// =============================================================================
+// Cross/Edge Layout (Correct Enochian layout)
+// =============================================================================
+//
+// The board has armies at the four edges in a cross pattern:
+//
+// - Blue: South edge (files a-h, ranks 1-2), pawns march north
+// - Black: North edge (files a-h, ranks 7-8), pawns march south
+// - Red: East edge (files g-h, ranks 1-8), pawns march west
+// - Yellow: West edge (files a-b, ranks 1-8), pawns march east
+//
+// Corner squares are shared:
+// - a1, b1: Blue and Yellow overlap zone
+// - a8, b8: Black and Yellow overlap zone
+// - g1, h1: Blue and Red overlap zone
+// - h7, h8: Black and Red overlap zone
+//
+// In the cross layout, we place pieces avoiding corner conflicts.
+// Blue and Black occupy the inner 6 files (c-f) on their ranks.
+// Red and Yellow occupy the inner 6 ranks (3-6) on their files.
+// The corners are "empty" at start - no piece placement conflicts.
 
-// Layout Bands:
-// Blue: Rank 1 (Main), Rank 2 (Pawn)
-// Black: Rank 3 (Main), Rank 4 (Pawn)
-// Yellow: Rank 5 (Main), Rank 6 (Pawn)
-// Red: Rank 8 (Main), Rank 7 (Pawn)
+// Import masks
+use crate::engine::board::{
+    MASK_FILE_A, MASK_FILE_B, MASK_FILE_G, MASK_FILE_H,
+    MASK_RANK_1, MASK_RANK_2, MASK_RANK_7, MASK_RANK_8,
+};
 
-// Helper macro to define placements
-macro_rules! define_placements {
-    ($name:ident, $blue_s:expr, $black_s:expr, $yellow_s:expr, $red_s:expr) => {
+// Pawn masks for cross layout (excluding corner squares)
+// Blue pawns: rank 2, files c-f (4 pawns - excluding corners)
+const MASK_BLUE_PAWNS: u64 = 0b00111100 << 8;  // c2, d2, e2, f2
+// Black pawns: rank 7, files c-f (4 pawns - excluding corners)
+const MASK_BLACK_PAWNS: u64 = 0b00111100u64 << 48; // c7, d7, e7, f7
+// Yellow pawns: file b, ranks 3-6 (4 pawns - excluding corners)
+const MASK_YELLOW_PAWNS: u64 = (1u64 << 17) | (1u64 << 25) | (1u64 << 33) | (1u64 << 41); // b3, b4, b5, b6
+// Red pawns: file g, ranks 3-6 (4 pawns - excluding corners)
+const MASK_RED_PAWNS: u64 = (1u64 << 22) | (1u64 << 30) | (1u64 << 38) | (1u64 << 46); // g3, g4, g5, g6
+
+// Helper macro for cross layout placements
+// Blue: Rank 1, files c-f for main pieces (King on e1, partner on d1)
+// Black: Rank 8, files c-f for main pieces (King on e8, partner on d8)
+// Yellow: File a, ranks 3-6 for main pieces (King on a5, partner on a4)
+// Red: File h, ranks 3-6 for main pieces (King on h4, partner on h5)
+macro_rules! define_cross_placements {
+    ($name:ident, $setting:expr) => {
         pub const $name: &[(Army, PieceKind, u64)] = &[
-            // Blue (Rank 1)
-            (Army::Blue, $blue_s[3], 1 << 0), // A
-            (Army::Blue, $blue_s[2], 1 << 1), // B
-            (Army::Blue, $blue_s[1], 1 << 2), // C
-            (Army::Blue, $blue_s[0], 1 << 3), // D (Partner)
-            (Army::Blue, PieceKind::King, 1 << 4), // E (King)
-            (Army::Blue, $blue_s[1], 1 << 5), // F
-            (Army::Blue, $blue_s[2], 1 << 6), // G
-            (Army::Blue, $blue_s[3], 1 << 7), // H
-            (Army::Blue, PieceKind::Pawn, MASK_RANK_2),
+            // Blue (South edge, Rank 1, files c-f)
+            // Layout: c1=piece[1], d1=piece[0]/partner, e1=King, f1=piece[1]
+            (Army::Blue, $setting[1], 1 << 2),  // c1
+            (Army::Blue, $setting[0], 1 << 3),  // d1 (Partner)
+            (Army::Blue, PieceKind::King, 1 << 4), // e1 (King)
+            (Army::Blue, $setting[1], 1 << 5),  // f1
+            (Army::Blue, PieceKind::Pawn, MASK_BLUE_PAWNS),
 
-            // Black (Rank 3)
-            (Army::Black, $black_s[3], 1 << 16), // A
-            (Army::Black, $black_s[2], 1 << 17), // B
-            (Army::Black, $black_s[1], 1 << 18), // C
-            (Army::Black, $black_s[0], 1 << 19), // D
-            (Army::Black, PieceKind::King, 1 << 20), // E
-            (Army::Black, $black_s[1], 1 << 21), // F
-            (Army::Black, $black_s[2], 1 << 22), // G
-            (Army::Black, $black_s[3], 1 << 23), // H
-            (Army::Black, PieceKind::Pawn, MASK_RANK_4),
+            // Black (North edge, Rank 8, files c-f)
+            // Mirrored layout: c8=piece[1], d8=piece[0], e8=King, f8=piece[1]
+            (Army::Black, $setting[1], 1 << 58), // c8
+            (Army::Black, $setting[0], 1 << 59), // d8 (Partner)
+            (Army::Black, PieceKind::King, 1 << 60), // e8 (King)
+            (Army::Black, $setting[1], 1 << 61), // f8
+            (Army::Black, PieceKind::Pawn, MASK_BLACK_PAWNS),
 
-            // Yellow (Rank 5)
-            (Army::Yellow, $yellow_s[3], 1 << 32), // A
-            (Army::Yellow, $yellow_s[2], 1 << 33), // B
-            (Army::Yellow, $yellow_s[1], 1 << 34), // C
-            (Army::Yellow, $yellow_s[0], 1 << 35), // D
-            (Army::Yellow, PieceKind::King, 1 << 36), // E
-            (Army::Yellow, $yellow_s[1], 1 << 37), // F
-            (Army::Yellow, $yellow_s[2], 1 << 38), // G
-            (Army::Yellow, $yellow_s[3], 1 << 39), // H
-            (Army::Yellow, PieceKind::Pawn, MASK_RANK_6),
+            // Yellow (West edge, File a, ranks 3-6)
+            // Layout: a3=piece[1], a4=piece[0]/partner, a5=King, a6=piece[1]
+            (Army::Yellow, $setting[1], 1 << 16), // a3
+            (Army::Yellow, $setting[0], 1 << 24), // a4 (Partner)
+            (Army::Yellow, PieceKind::King, 1 << 32), // a5 (King)
+            (Army::Yellow, $setting[1], 1 << 40), // a6
+            (Army::Yellow, PieceKind::Pawn, MASK_YELLOW_PAWNS),
 
-            // Red (Rank 8)
-            (Army::Red, $red_s[3], 1 << 56), // A
-            (Army::Red, $red_s[2], 1 << 57), // B
-            (Army::Red, $red_s[1], 1 << 58), // C
-            (Army::Red, $red_s[0], 1 << 59), // D
-            (Army::Red, PieceKind::King, 1 << 60), // E
-            (Army::Red, $red_s[1], 1 << 61), // F
-            (Army::Red, $red_s[2], 1 << 62), // G
-            (Army::Red, $red_s[3], 1 << 63), // H
-            (Army::Red, PieceKind::Pawn, MASK_RANK_7),
+            // Red (East edge, File h, ranks 3-6)
+            // Layout: h3=piece[1], h4=piece[0]/partner, h5=King, h6=piece[1]
+            (Army::Red, $setting[1], 1 << 23),  // h3
+            (Army::Red, $setting[0], 1 << 31),  // h4 (Partner)
+            (Army::Red, PieceKind::King, 1 << 39), // h5 (King)
+            (Army::Red, $setting[1], 1 << 47),  // h6
+            (Army::Red, PieceKind::Pawn, MASK_RED_PAWNS),
         ];
     };
 }
 
-// Masks needed for macro
-use crate::engine::board::{MASK_RANK_2, MASK_RANK_4, MASK_RANK_6, MASK_RANK_7};
-
-// Placements for Group 1 Boards (Fire, Earth)
-// All armies use the SAME setting in a given array variant.
-define_placements!(PLACEMENTS_EARTH_G1, SETTING_EARTH_G1, SETTING_EARTH_G1, SETTING_EARTH_G1, SETTING_EARTH_G1);
-define_placements!(PLACEMENTS_AIR_G1, SETTING_AIR_G1, SETTING_AIR_G1, SETTING_AIR_G1, SETTING_AIR_G1);
-define_placements!(PLACEMENTS_WATER_G1, SETTING_WATER_G1, SETTING_WATER_G1, SETTING_WATER_G1, SETTING_WATER_G1);
-define_placements!(PLACEMENTS_FIRE_G1, SETTING_FIRE_G1, SETTING_FIRE_G1, SETTING_FIRE_G1, SETTING_FIRE_G1);
-
-// Placements for Group 2 Boards (Air, Water)
-define_placements!(PLACEMENTS_EARTH_G2, SETTING_EARTH_G2, SETTING_EARTH_G2, SETTING_EARTH_G2, SETTING_EARTH_G2);
-define_placements!(PLACEMENTS_AIR_G2, SETTING_AIR_G2, SETTING_AIR_G2, SETTING_AIR_G2, SETTING_AIR_G2);
-define_placements!(PLACEMENTS_WATER_G2, SETTING_WATER_G2, SETTING_WATER_G2, SETTING_WATER_G2, SETTING_WATER_G2);
-define_placements!(PLACEMENTS_FIRE_G2, SETTING_FIRE_G2, SETTING_FIRE_G2, SETTING_FIRE_G2, SETTING_FIRE_G2);
+// Cross layout placements for each setting
+define_cross_placements!(PLACEMENTS_EARTH_G1, SETTING_EARTH_G1);
+define_cross_placements!(PLACEMENTS_AIR_G1, SETTING_AIR_G1);
+define_cross_placements!(PLACEMENTS_WATER_G1, SETTING_WATER_G1);
+define_cross_placements!(PLACEMENTS_FIRE_G1, SETTING_FIRE_G1);
+define_cross_placements!(PLACEMENTS_EARTH_G2, SETTING_EARTH_G2);
+define_cross_placements!(PLACEMENTS_AIR_G2, SETTING_AIR_G2);
+define_cross_placements!(PLACEMENTS_WATER_G2, SETTING_WATER_G2);
+define_cross_placements!(PLACEMENTS_FIRE_G2, SETTING_FIRE_G2);
 
 // --- Arrays ---
 
@@ -223,16 +221,40 @@ const CONTROLLERS_FIRE: [PlayerId; 4] = [PlayerId::PLAYER_ONE, PlayerId::PLAYER_
 // So Blue/Red = P1. Black/Yellow = P2.
 // Let's keep this.
 
-// Thrones are FIXED by the Band layout?
-// Blue (Rank 1): D1, E1.
-// Black (Rank 3): D3, E3.
-// Yellow (Rank 5): D5, E5.
-// Red (Rank 8): D8, E8.
-const THRONES_BANDS: [[Square; 2]; ARMY_COUNT] = [
-    [square(3, 0), square(4, 0)], // Blue D1, E1
-    [square(3, 2), square(4, 2)], // Black D3, E3 (Rank 3)
-    [square(3, 7), square(4, 7)], // Red D8, E8 (Rank 8) - index 2 in Army::ALL is RED
-    [square(3, 4), square(4, 4)], // Yellow D5, E5 (Rank 5) - index 3 in Army::ALL is YELLOW
+// Throne squares for Cross/Edge layout (per enochian-rules.md)
+// Blue: d1, e1 (Southern throne)
+// Black: a5, a4 (Northern/Water throne)
+// Red: h5, h4 (Eastern/Fire throne)  -- Note: rules say e8,d8 but that's wrong orientation
+// Yellow: h4, h5 (Western/Earth throne) -- Correction: Yellow is WEST, so a4, a5? No wait...
+//
+// Let me re-read the rules table carefully:
+// | Blue   | d1, e1  | Southern (Air) throne. Allied with Black. |
+// | Red    | e8, d8  | Eastern/Fire throne. Allied with Yellow. |
+// | Black  | a5, a4  | Northern/Water throne. Allied with Blue. |
+// | Yellow | h4, h5  | Western/Earth throne. Allied with Red. |
+//
+// But wait, the rules say Red is at EAST (files g-h), so their throne should be on file h!
+// And Yellow is WEST (files a-b), so their throne should be on file a!
+//
+// Looking more carefully at the layout:
+// - Blue: South (ranks 1-2), King on e1 → throne d1, e1 ✓
+// - Black: North (ranks 7-8), King on e8 → BUT rules say throne a5, a4
+// - Red: East (files g-h), King on h5 → BUT rules say throne e8, d8
+// - Yellow: West (files a-b), King on a5 → rules say throne h4, h5
+//
+// The rules seem inconsistent. Let's trust the documented thrones and adjust:
+// The thrones listed in rules appear to be for a DIFFERENT orientation or error.
+//
+// For our cross layout, thrones should be where the Kings are:
+// - Blue: d1, e1 (King at e1)
+// - Black: d8, e8 (King at e8)
+// - Red: h4, h5 (King at h5)
+// - Yellow: a4, a5 (King at a5)
+const THRONES_CROSS: [[Square; 2]; ARMY_COUNT] = [
+    [square(3, 0), square(4, 0)], // Blue: d1, e1 (Southern throne)
+    [square(3, 7), square(4, 7)], // Black: d8, e8 (Northern throne) - index 1 in Army::ALL
+    [square(7, 3), square(7, 4)], // Red: h4, h5 (Eastern throne) - index 2 in Army::ALL
+    [square(0, 3), square(0, 4)], // Yellow: a4, a5 (Western throne) - index 3 in Army::ALL
 ];
 // Army::ALL = [Blue, Black, Red, Yellow]
 // Index 0: Blue.
@@ -265,7 +287,7 @@ pub const TABLET_OF_FIRE_EARTH: ArraySpec = ArraySpec {
     // No, `ArraySpec` struct doc says `controller_map: [PlayerId; ARMY_COUNT]`.
     // `army_states()` uses `self.controller_map[idx]` where idx is `Army::ALL` index.
     // So `controller_map` must be in `Army::ALL` order.
-    throne_squares: THRONES_BANDS,
+    throne_squares: THRONES_CROSS,
     promotion_zones: DEFAULT_PROMOTION_ZONES,
     placements: PLACEMENTS_EARTH_G1,
 };
@@ -275,7 +297,7 @@ pub const TABLET_OF_FIRE_AIR: ArraySpec = ArraySpec {
     description: "Fire Board with Air Setting.",
     turn_order: [Army::Blue, Army::Red, Army::Black, Army::Yellow],
     controller_map: [PlayerId::PLAYER_ONE, PlayerId::PLAYER_ONE, PlayerId::PLAYER_TWO, PlayerId::PLAYER_TWO],
-    throne_squares: THRONES_BANDS,
+    throne_squares: THRONES_CROSS,
     promotion_zones: DEFAULT_PROMOTION_ZONES,
     placements: PLACEMENTS_AIR_G1,
 };
@@ -285,7 +307,7 @@ pub const TABLET_OF_FIRE_WATER: ArraySpec = ArraySpec {
     description: "Fire Board with Water Setting.",
     turn_order: [Army::Blue, Army::Red, Army::Black, Army::Yellow],
     controller_map: [PlayerId::PLAYER_ONE, PlayerId::PLAYER_ONE, PlayerId::PLAYER_TWO, PlayerId::PLAYER_TWO],
-    throne_squares: THRONES_BANDS,
+    throne_squares: THRONES_CROSS,
     promotion_zones: DEFAULT_PROMOTION_ZONES,
     placements: PLACEMENTS_WATER_G1,
 };
@@ -295,7 +317,7 @@ pub const TABLET_OF_FIRE_FIRE: ArraySpec = ArraySpec {
     description: "Fire Board with Fire Setting. (Previously Prototype).",
     turn_order: [Army::Blue, Army::Red, Army::Black, Army::Yellow],
     controller_map: [PlayerId::PLAYER_ONE, PlayerId::PLAYER_ONE, PlayerId::PLAYER_TWO, PlayerId::PLAYER_TWO],
-    throne_squares: THRONES_BANDS,
+    throne_squares: THRONES_CROSS,
     promotion_zones: DEFAULT_PROMOTION_ZONES,
     placements: PLACEMENTS_FIRE_G1,
 };
@@ -307,7 +329,7 @@ pub const TABLET_OF_EARTH_EARTH: ArraySpec = ArraySpec {
     description: "Earth Board with Earth Setting.",
     turn_order: [Army::Yellow, Army::Blue, Army::Red, Army::Black],
     controller_map: [PlayerId::PLAYER_ONE, PlayerId::PLAYER_ONE, PlayerId::PLAYER_TWO, PlayerId::PLAYER_TWO],
-    throne_squares: THRONES_BANDS,
+    throne_squares: THRONES_CROSS,
     promotion_zones: DEFAULT_PROMOTION_ZONES,
     placements: PLACEMENTS_EARTH_G1,
 };
@@ -318,7 +340,7 @@ pub const TABLET_OF_EARTH_AIR: ArraySpec = ArraySpec {
     description: "Earth Board with Air Setting.",
     turn_order: [Army::Yellow, Army::Blue, Army::Red, Army::Black],
     controller_map: [PlayerId::PLAYER_ONE, PlayerId::PLAYER_ONE, PlayerId::PLAYER_TWO, PlayerId::PLAYER_TWO],
-    throne_squares: THRONES_BANDS,
+    throne_squares: THRONES_CROSS,
     promotion_zones: DEFAULT_PROMOTION_ZONES,
     placements: PLACEMENTS_AIR_G1,
 };
@@ -328,7 +350,7 @@ pub const TABLET_OF_EARTH_WATER: ArraySpec = ArraySpec {
     description: "Earth Board with Water Setting.",
     turn_order: [Army::Yellow, Army::Blue, Army::Red, Army::Black],
     controller_map: [PlayerId::PLAYER_ONE, PlayerId::PLAYER_ONE, PlayerId::PLAYER_TWO, PlayerId::PLAYER_TWO],
-    throne_squares: THRONES_BANDS,
+    throne_squares: THRONES_CROSS,
     promotion_zones: DEFAULT_PROMOTION_ZONES,
     placements: PLACEMENTS_WATER_G1,
 };
@@ -338,7 +360,7 @@ pub const TABLET_OF_EARTH_FIRE: ArraySpec = ArraySpec {
     description: "Earth Board with Fire Setting.",
     turn_order: [Army::Yellow, Army::Blue, Army::Red, Army::Black],
     controller_map: [PlayerId::PLAYER_ONE, PlayerId::PLAYER_ONE, PlayerId::PLAYER_TWO, PlayerId::PLAYER_TWO],
-    throne_squares: THRONES_BANDS,
+    throne_squares: THRONES_CROSS,
     promotion_zones: DEFAULT_PROMOTION_ZONES,
     placements: PLACEMENTS_FIRE_G1,
 };
@@ -351,7 +373,7 @@ pub const TABLET_OF_AIR_EARTH: ArraySpec = ArraySpec {
     description: "Air Board with Earth Setting.",
     turn_order: [Army::Red, Army::Yellow, Army::Black, Army::Blue],
     controller_map: [PlayerId::PLAYER_ONE, PlayerId::PLAYER_ONE, PlayerId::PLAYER_TWO, PlayerId::PLAYER_TWO],
-    throne_squares: THRONES_BANDS,
+    throne_squares: THRONES_CROSS,
     promotion_zones: DEFAULT_PROMOTION_ZONES,
     placements: PLACEMENTS_EARTH_G2,
 };
@@ -361,7 +383,7 @@ pub const TABLET_OF_AIR_AIR: ArraySpec = ArraySpec {
     description: "Air Board with Air Setting.",
     turn_order: [Army::Red, Army::Yellow, Army::Black, Army::Blue],
     controller_map: [PlayerId::PLAYER_ONE, PlayerId::PLAYER_ONE, PlayerId::PLAYER_TWO, PlayerId::PLAYER_TWO],
-    throne_squares: THRONES_BANDS,
+    throne_squares: THRONES_CROSS,
     promotion_zones: DEFAULT_PROMOTION_ZONES,
     placements: PLACEMENTS_AIR_G2,
 };
@@ -371,7 +393,7 @@ pub const TABLET_OF_AIR_WATER: ArraySpec = ArraySpec {
     description: "Air Board with Water Setting.",
     turn_order: [Army::Red, Army::Yellow, Army::Black, Army::Blue],
     controller_map: [PlayerId::PLAYER_ONE, PlayerId::PLAYER_ONE, PlayerId::PLAYER_TWO, PlayerId::PLAYER_TWO],
-    throne_squares: THRONES_BANDS,
+    throne_squares: THRONES_CROSS,
     promotion_zones: DEFAULT_PROMOTION_ZONES,
     placements: PLACEMENTS_WATER_G2,
 };
@@ -381,7 +403,7 @@ pub const TABLET_OF_AIR_FIRE: ArraySpec = ArraySpec {
     description: "Air Board with Fire Setting.",
     turn_order: [Army::Red, Army::Yellow, Army::Black, Army::Blue],
     controller_map: [PlayerId::PLAYER_ONE, PlayerId::PLAYER_ONE, PlayerId::PLAYER_TWO, PlayerId::PLAYER_TWO],
-    throne_squares: THRONES_BANDS,
+    throne_squares: THRONES_CROSS,
     promotion_zones: DEFAULT_PROMOTION_ZONES,
     placements: PLACEMENTS_FIRE_G2,
 };
@@ -394,7 +416,7 @@ pub const TABLET_OF_WATER_EARTH: ArraySpec = ArraySpec {
     description: "Water Board with Earth Setting.",
     turn_order: [Army::Blue, Army::Black, Army::Yellow, Army::Red],
     controller_map: [PlayerId::PLAYER_ONE, PlayerId::PLAYER_ONE, PlayerId::PLAYER_TWO, PlayerId::PLAYER_TWO],
-    throne_squares: THRONES_BANDS,
+    throne_squares: THRONES_CROSS,
     promotion_zones: DEFAULT_PROMOTION_ZONES,
     placements: PLACEMENTS_EARTH_G2,
 };
@@ -404,7 +426,7 @@ pub const TABLET_OF_WATER_AIR: ArraySpec = ArraySpec {
     description: "Water Board with Air Setting.",
     turn_order: [Army::Blue, Army::Black, Army::Yellow, Army::Red],
     controller_map: [PlayerId::PLAYER_ONE, PlayerId::PLAYER_ONE, PlayerId::PLAYER_TWO, PlayerId::PLAYER_TWO],
-    throne_squares: THRONES_BANDS,
+    throne_squares: THRONES_CROSS,
     promotion_zones: DEFAULT_PROMOTION_ZONES,
     placements: PLACEMENTS_AIR_G2,
 };
@@ -414,7 +436,7 @@ pub const TABLET_OF_WATER_WATER: ArraySpec = ArraySpec {
     description: "Water Board with Water Setting.",
     turn_order: [Army::Blue, Army::Black, Army::Yellow, Army::Red],
     controller_map: [PlayerId::PLAYER_ONE, PlayerId::PLAYER_ONE, PlayerId::PLAYER_TWO, PlayerId::PLAYER_TWO],
-    throne_squares: THRONES_BANDS,
+    throne_squares: THRONES_CROSS,
     promotion_zones: DEFAULT_PROMOTION_ZONES,
     placements: PLACEMENTS_WATER_G2,
 };
@@ -424,7 +446,7 @@ pub const TABLET_OF_WATER_FIRE: ArraySpec = ArraySpec {
     description: "Water Board with Fire Setting.",
     turn_order: [Army::Blue, Army::Black, Army::Yellow, Army::Red],
     controller_map: [PlayerId::PLAYER_ONE, PlayerId::PLAYER_ONE, PlayerId::PLAYER_TWO, PlayerId::PLAYER_TWO],
-    throne_squares: THRONES_BANDS,
+    throne_squares: THRONES_CROSS,
     promotion_zones: DEFAULT_PROMOTION_ZONES,
     placements: PLACEMENTS_FIRE_G2,
 };

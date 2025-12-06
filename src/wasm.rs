@@ -171,9 +171,12 @@ impl WasmGame {
                     captures: vec![],
                 }
             } else {
-                let moves_bitboard = self.piece_legal_moves(army, kind);
-                let enemy_mask = self.game.board.all_occupancy
-                    & !self.game.board.occupancy_by_army[army.index()];
+                let moves_bitboard = self.piece_moves_from_square(army, kind, square);
+                // Enemy mask = pieces belonging to the opposing TEAM
+                let opponent_team = army.team().opponent();
+                let enemy_mask = opponent_team.armies().iter()
+                    .map(|&a| self.game.board.occupancy_by_army[a.index()])
+                    .fold(0u64, |acc, occ| acc | occ);
 
                 let mut moves = Vec::new();
                 let mut captures = Vec::new();
@@ -212,19 +215,32 @@ impl WasmGame {
     pub fn apply_move(&mut self, from: u8, to: u8) -> JsValue {
         let army = self.game.current_army();
 
-        // Check for capture before move
-        let captured_piece = self.game.board.piece_at(to).map(|(cap_army, cap_kind)| {
-            PieceData {
-                army: cap_army.display_name().to_string(),
-                kind: kind_name(cap_kind).to_string(),
-                code: format!("{}{}", army_char(cap_army), kind_char(cap_kind)),
-                glyph: piece_glyph(cap_kind).to_string(),
-                frozen: false,
-            }
-        });
+        // Check for piece at destination before move (might be captured or overlaid)
+        let piece_before = self.game.board.piece_at(to);
 
         match self.game.apply_move(army, from, to, None) {
             Ok(msg) => {
+                // Check if piece was actually captured (gone after move) vs overlaid (still there)
+                let piece_after = self.game.board.piece_at(to);
+                let captured_piece = if let Some((cap_army, cap_kind)) = piece_before {
+                    // Only report as captured if the original piece is no longer at destination
+                    // (throne overlays keep both pieces, so original is still there)
+                    let still_there = piece_after.map(|(a, k)| a == cap_army && k == cap_kind).unwrap_or(false);
+                    if still_there {
+                        None // Throne overlay, not a capture
+                    } else {
+                        Some(PieceData {
+                            army: cap_army.display_name().to_string(),
+                            kind: kind_name(cap_kind).to_string(),
+                            code: format!("{}{}", army_char(cap_army), kind_char(cap_kind)),
+                            glyph: piece_glyph(cap_kind).to_string(),
+                            frozen: false,
+                        })
+                    }
+                } else {
+                    None
+                };
+
                 let result = MoveResult {
                     success: true,
                     message: msg,
@@ -258,7 +274,7 @@ impl WasmGame {
         for sq in 0..64u8 {
             if let Some((piece_army, kind)) = self.game.board.piece_at(sq) {
                 if piece_army == army {
-                    let moves_bb = self.piece_legal_moves(army, kind);
+                    let moves_bb = self.piece_moves_from_square(army, kind, sq);
                     let moves: Vec<u8> = (0..64)
                         .filter(|&s| (moves_bb >> s) & 1 != 0)
                         .collect();
@@ -272,21 +288,93 @@ impl WasmGame {
         serde_wasm_bindgen::to_value(&all_moves).unwrap()
     }
 
-    /// Helper to get legal moves bitboard for a piece
-    fn piece_legal_moves(&self, army: Army, kind: PieceKind) -> u64 {
-        match kind {
-            PieceKind::King => compute_king_moves(&self.game.board, army),
-            PieceKind::Queen => compute_queens_moves(&self.game.board, army),
-            PieceKind::Rook => compute_rooks_moves(&self.game.board, army),
-            PieceKind::Bishop => compute_bishops_moves(&self.game.board, army),
-            PieceKind::Knight => compute_knights_moves(&self.game.board, army),
-            PieceKind::Pawn => {
-                let (moves, attacks) = compute_pawns_moves(&self.game.board, army);
-                let enemy_mask = self.game.board.all_occupancy
-                    & !self.game.board.occupancy_by_army[army.index()];
-                moves | (attacks & enemy_mask)
+    /// Helper to get legal moves for a specific piece at a square
+    fn piece_moves_from_square(&self, army: Army, kind: PieceKind, square: Square) -> u64 {
+        let board = &self.game.board;
+        let own_pieces = board.occupancy_by_army[army.index()];
+        let ally = army.ally();
+        let ally_pieces = board.occupancy_by_army[ally.index()];
+        let team_pieces = own_pieces | ally_pieces;
+
+        // For pawns, compute single-piece moves
+        if kind == PieceKind::Pawn {
+            return self.pawn_moves_from_square(army, square);
+        }
+
+        // For other pieces, compute all moves and filter to those reachable from this square
+        let all_moves = match kind {
+            PieceKind::King => compute_king_moves(board, army),
+            PieceKind::Queen => compute_queens_moves(board, army),
+            PieceKind::Rook => compute_rooks_moves(board, army),
+            PieceKind::Bishop => compute_bishops_moves(board, army),
+            PieceKind::Knight => compute_knights_moves(board, army),
+            PieceKind::Pawn => unreachable!(),
+        };
+
+        // Filter out moves to allied squares (except throne overlays)
+        let throne_targets = board.team_king_thrones_for_overlay(army);
+        all_moves & !(team_pieces & !throne_targets)
+    }
+
+    /// Compute moves for a single pawn at a specific square
+    fn pawn_moves_from_square(&self, army: Army, square: Square) -> u64 {
+        let board = &self.game.board;
+        let file = (square % 8) as i8;
+        let rank = (square / 8) as i8;
+
+        let own_pieces = board.occupancy_by_army[army.index()];
+        let ally = army.ally();
+        let ally_pieces = board.occupancy_by_army[ally.index()];
+        let team_pieces = own_pieces | ally_pieces;
+
+        // Get opponent team's pieces for captures
+        let opponent_team = army.team().opponent();
+        let enemy_mask = opponent_team.armies().iter()
+            .map(|&a| board.occupancy_by_army[a.index()])
+            .fold(0u64, |acc, occ| acc | occ);
+
+        let throne_targets = board.team_king_thrones_for_overlay(army);
+
+        // Helper to convert file,rank offset to destination square
+        let offset_square = |df: i8, dr: i8| -> Option<u8> {
+            let nf = file + df;
+            let nr = rank + dr;
+            if nf >= 0 && nf < 8 && nr >= 0 && nr < 8 {
+                Some((nr * 8 + nf) as u8)
+            } else {
+                None
+            }
+        };
+
+        let (forward, diag_left, diag_right) = match army {
+            Army::Blue => (offset_square(0, 1), offset_square(-1, 1), offset_square(1, 1)),
+            Army::Red => (offset_square(0, -1), offset_square(-1, -1), offset_square(1, -1)),
+            Army::Black => (offset_square(1, 0), offset_square(1, 1), offset_square(1, -1)),
+            Army::Yellow => (offset_square(-1, 0), offset_square(-1, 1), offset_square(-1, -1)),
+        };
+
+        let mut moves = 0u64;
+
+        // Forward move (only if square is empty)
+        if let Some(dest) = forward {
+            let dest_mask = 1u64 << dest;
+            if board.all_occupancy & dest_mask == 0 {
+                moves |= dest_mask;
             }
         }
+
+        // Diagonal captures (only if enemy piece is there, or throne overlay)
+        for diag in [diag_left, diag_right] {
+            if let Some(dest) = diag {
+                let dest_mask = 1u64 << dest;
+                // Can capture enemy, or overlay on allied king's throne
+                if (enemy_mask & dest_mask != 0) || (throne_targets & dest_mask != 0 && team_pieces & dest_mask == 0) {
+                    moves |= dest_mask;
+                }
+            }
+        }
+
+        moves
     }
 }
 
