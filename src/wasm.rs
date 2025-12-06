@@ -20,6 +20,25 @@ pub fn init() {
     console_error_panic_hook::set_once();
 }
 
+/// Helper to serialize data to JsValue, returning an error object on failure
+fn to_js_value<T: Serialize>(data: &T) -> JsValue {
+    serde_wasm_bindgen::to_value(data).unwrap_or_else(|e| {
+        // Return an error object that JavaScript can handle
+        let error = SerializationError {
+            error: true,
+            message: format!("Serialization failed: {}", e),
+        };
+        serde_wasm_bindgen::to_value(&error).unwrap_or(JsValue::NULL)
+    })
+}
+
+/// Error response for serialization failures
+#[derive(Serialize)]
+struct SerializationError {
+    error: bool,
+    message: String,
+}
+
 /// Square data for JSON serialization
 #[derive(Serialize, Deserialize)]
 pub struct SquareData {
@@ -123,7 +142,7 @@ impl WasmGame {
             });
         }
 
-        serde_wasm_bindgen::to_value(&squares).unwrap()
+        to_js_value(&squares)
     }
 
     /// Get current game state (turn, frozen armies, status)
@@ -153,7 +172,7 @@ impl WasmGame {
             winner: self.game.winning_team().map(|t| t.name().to_string()),
         };
 
-        serde_wasm_bindgen::to_value(&state).unwrap()
+        to_js_value(&state)
     }
 
     /// Get legal moves for a piece at a given square
@@ -206,7 +225,7 @@ impl WasmGame {
             }
         };
 
-        serde_wasm_bindgen::to_value(&result).unwrap()
+        to_js_value(&result)
     }
 
     /// Apply a move from one square to another
@@ -247,7 +266,7 @@ impl WasmGame {
                     captured: captured_piece,
                     promotion: None,
                 };
-                serde_wasm_bindgen::to_value(&result).unwrap()
+                to_js_value(&result)
             }
             Err(err) => {
                 let result = MoveResult {
@@ -256,7 +275,7 @@ impl WasmGame {
                     captured: None,
                     promotion: None,
                 };
-                serde_wasm_bindgen::to_value(&result).unwrap()
+                to_js_value(&result)
             }
         }
     }
@@ -268,7 +287,7 @@ impl WasmGame {
         let mut all_moves: Vec<(u8, Vec<u8>)> = Vec::new();
 
         if self.game.army_is_frozen(army) {
-            return serde_wasm_bindgen::to_value(&all_moves).unwrap();
+            return to_js_value(&all_moves);
         }
 
         for sq in 0..64u8 {
@@ -285,7 +304,7 @@ impl WasmGame {
             }
         }
 
-        serde_wasm_bindgen::to_value(&all_moves).unwrap()
+        to_js_value(&all_moves)
     }
 
     /// Helper to get legal moves for a specific piece at a square

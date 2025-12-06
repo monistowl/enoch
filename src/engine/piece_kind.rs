@@ -35,7 +35,8 @@ pub fn parse_move(cmd: &str) -> Result<ParsedMove, ParseError> {
     }
 
     let mut chars = cmd.chars();
-    let source = chars.next().unwrap();
+    // Safe: we verified cmd.len() > 1 above
+    let source = chars.next().expect("already checked length > 1");
     let piece = parse_source(source)?;
 
     match piece {
@@ -80,7 +81,8 @@ fn parse_piece(piece: PieceKind, mut chars: Chars) -> Result<ParsedMove, ParseEr
                     state = PieceParserState::PotentialTargetFileParsed;
                 }
                 rank @ '0'..='8' => {
-                    potential_target_rank = rank.to_digit(10).unwrap() as u64;
+                    // Safe: match pattern guarantees valid digit
+                    potential_target_rank = rank.to_digit(10).expect("matched digit pattern") as u64;
                     state = PieceParserState::PotentialTargetRankParsed;
                 }
                 'x' => {
@@ -94,7 +96,8 @@ fn parse_piece(piece: PieceKind, mut chars: Chars) -> Result<ParsedMove, ParseEr
 
             PieceParserState::PotentialTargetFileParsed => match c {
                 rank @ '0'..='8' => {
-                    potential_target_rank = rank.to_digit(10).unwrap() as u64;
+                    // Safe: match pattern guarantees valid digit
+                    potential_target_rank = rank.to_digit(10).expect("matched digit pattern") as u64;
                     state = PieceParserState::PotentialTargetParsed;
                 }
                 'x' if piece != PieceKind::King => {
@@ -163,7 +166,8 @@ fn parse_piece(piece: PieceKind, mut chars: Chars) -> Result<ParsedMove, ParseEr
             },
             PieceParserState::TargetFileParsed => match c {
                 rank @ '0'..='8' => {
-                    potential_target_rank = rank.to_digit(10).unwrap() as u64;
+                    // Safe: match pattern guarantees valid digit
+                    potential_target_rank = rank.to_digit(10).expect("matched digit pattern") as u64;
                     let file_idx = potential_target_file as u64 - 'a' as u64;
                     let rank_idx = potential_target_rank - 1;
                     to = 1 << (rank_idx * 8 + file_idx);
@@ -224,7 +228,8 @@ fn parse_pawn(source: char, mut chars: Chars) -> Result<ParsedMove, ParseError> 
         match state {
             PawnParserState::Initial => match c {
                 rank @ '1'..='8' => {
-                    target_rank = rank.to_digit(10).unwrap() as u64;
+                    // Safe: match pattern guarantees valid digit
+                    target_rank = rank.to_digit(10).expect("matched digit pattern") as u64;
                     let file_idx = target_file as u64 - 'a' as u64;
                     let rank_idx = target_rank - 1;
                     to = 1 << (rank_idx * 8 + file_idx);
@@ -244,7 +249,8 @@ fn parse_pawn(source: char, mut chars: Chars) -> Result<ParsedMove, ParseError> 
                     if let Some(c) = chars.next() {
                         match c {
                             rank @ '1'..='8' => {
-                                target_rank = rank.to_digit(10).unwrap() as u64;
+                                // Safe: match pattern guarantees valid digit
+                                target_rank = rank.to_digit(10).expect("matched digit pattern") as u64;
                                 let file_idx = target_file as u64 - 'a' as u64;
                                 let rank_idx = target_rank - 1;
                                 to = 1 << (rank_idx * 8 + file_idx);
