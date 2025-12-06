@@ -86,20 +86,23 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 40px;
-            height: 40px;
-            border: none;
+            width: 36px;
+            height: 36px;
+            border: 2px solid var(--outline-color);
             background: transparent;
-            color: var(--text-color);
-            font-size: 1.5rem;
+            color: var(--text-primary);
+            font-size: 1.25rem;
+            font-weight: bold;
             cursor: pointer;
-            border-radius: 6px;
-            transition: background 0.2s;
+            border-radius: 50%;
+            transition: all 0.1s ease;
             text-decoration: none;
+            line-height: 1;
         }
 
         .opa-btn:hover {
-            background: var(--hover-bg);
+            background: var(--outline-color);
+            color: var(--bg-deep);
         }
 
         /* Main Game Area */
@@ -359,9 +362,9 @@
             }
 
             .opa-btn {
-                width: 36px;
-                height: 36px;
-                font-size: 1.25rem;
+                width: 32px;
+                height: 32px;
+                font-size: 1rem;
             }
 
             .opa-main {
