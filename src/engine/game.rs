@@ -189,6 +189,39 @@ impl Game {
         self.state.army_frozen[army.index()]
     }
 
+    /// Check if we're in 4-player mode (each player controls one army).
+    /// In 2-player mode, allies share a controller; in 4-player mode, each army has its own.
+    pub fn is_four_player_mode(&self) -> bool {
+        // In 4-player mode, Blue and Black have different controllers, and Red and Yellow have different controllers
+        let blue_ctrl = self.config.controller_map[Army::Blue.index()];
+        let black_ctrl = self.config.controller_map[Army::Black.index()];
+        let red_ctrl = self.config.controller_map[Army::Red.index()];
+        let yellow_ctrl = self.config.controller_map[Army::Yellow.index()];
+
+        // If any ally pair has different controllers, it's 4-player mode
+        blue_ctrl != black_ctrl || red_ctrl != yellow_ctrl
+    }
+
+    /// Ally captures their teammate's king (Rule 11.3).
+    /// The ally gains control of both elemental sides without freezing pieces.
+    /// The captured king is removed, but pieces remain active under ally's control.
+    pub fn ally_capture_king(&mut self, capturing_army: Army, captured_army: Army) {
+        // Remove the king from the board
+        if let Some(square) = self.state.king_square(captured_army) {
+            // If king was on own throne with overlay piece, clear the overlay too
+            if let Some(throne_idx) = self.board.throne_index_for(captured_army, square) {
+                self.board.clear_throne_overlay(captured_army, throne_idx);
+            }
+            self.board.clear_square(square);
+        }
+        self.state.set_king_square(captured_army, None);
+
+        // Transfer control to the capturing ally (not freeze!)
+        let controller = self.board.controller_for(capturing_army);
+        self.board.set_controller(captured_army, controller);
+        // Pieces are NOT frozen - they remain active under ally's control
+    }
+
     pub fn king_moves_bitboard(&self, army: Army) -> u64 {
         if self.army_is_frozen(army) {
             return 0;
@@ -367,9 +400,26 @@ impl Game {
         }
     }
 
+    /// Check if a pawn can be promoted at a given square.
+    /// Per Rule 10.1a-b: Promotion only occurs if the player has already lost one or more pawns.
+    /// If a player still controls four pawns, promotion is delayed until a pawn is lost.
     pub fn can_promote_at(&self, army: Army, square: Square) -> bool {
         let zone = self.board.promotion_zones[army.index()];
-        (zone >> square) & 1 != 0
+        let in_zone = (zone >> square) & 1 != 0;
+        if !in_zone {
+            return false;
+        }
+
+        // Rule 10.1a-b: Must have lost at least one pawn to promote
+        // (i.e., current pawn count must be < 4)
+        let pawn_count = self.board.piece_counts(army)[PieceKind::Pawn.index()];
+        pawn_count < 4
+    }
+
+    /// Check if the army can promote any pawn (has lost at least one pawn).
+    pub fn can_promote_pawns(&self, army: Army) -> bool {
+        let pawn_count = self.board.piece_counts(army)[PieceKind::Pawn.index()];
+        pawn_count < 4
     }
 
     pub fn promote_pawn(&mut self, army: Army, pawn_square: Square, target: PieceKind) -> bool {
@@ -572,8 +622,26 @@ impl Game {
             if target_army == army {
                 return Err("Cannot capture own piece".to_string());
             }
+
+            // Check for ally captures
+            let is_ally = target_army.team() == army.team();
+            if is_ally && target_kind != PieceKind::King {
+                // Rule 11.2: Cannot capture ally's non-king pieces
+                return Err("Cannot capture ally's piece".to_string());
+            }
+
             if target_kind == PieceKind::King {
-                self.capture_king(target_army);
+                if is_ally {
+                    // Rule 11.3: Ally can capture ally's king in 4-player mode
+                    if !self.is_four_player_mode() {
+                        return Err("Cannot capture ally's king in 2-player mode".to_string());
+                    }
+                    // Ally captures ally's king - transfer control without freezing
+                    self.ally_capture_king(army, target_army);
+                } else {
+                    // Enemy captures king - freeze the army
+                    self.capture_king(target_army);
+                }
             } else {
                 self.board.remove_piece(target_army, target_kind, to);
             }

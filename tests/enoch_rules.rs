@@ -1,8 +1,8 @@
 use enoch::engine::{
     board::{Board, OverlayPiece, diagonal_system_for_square},
-    game::{Game, GameConfig},
+    game::{Game, GameConfig, Mode},
     moves::can_capture_piece,
-    types::{Army, DiagonalSystem, Piece, PieceKind, Square},
+    types::{Army, DiagonalSystem, Piece, PieceKind, PlayerId, Square},
 };
 
 fn square(file: char, rank: u8) -> Square {
@@ -846,4 +846,214 @@ fn array_assigns_diagonal_system_to_queens_and_bishops() {
     // C1 = square 2, B1 = square 1
     assert_eq!(queen_c1.unwrap().diagonal_system, Some(diagonal_system_for_square(square('c', 1))));
     assert_eq!(bishop_b1.unwrap().diagonal_system, Some(diagonal_system_for_square(square('b', 1))));
+}
+
+// ============================================================================
+// Promotion Limit Tests (Rule 10.1a-b)
+// ============================================================================
+
+/// Test that promotion is blocked when army has all 4 pawns (Rule 10.1a-b).
+/// A pawn reaching the promotion zone should NOT be promoted if no pawns were lost.
+#[test]
+fn promotion_blocked_with_four_pawns() {
+    // Blue has king + 4 pawns (one at rank 7 about to promote)
+    let placements = &[
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('e', 1))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Pawn, pawn_type: Some(PieceKind::Queen), diagonal_system: None }, bit(square('a', 7))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Pawn, pawn_type: Some(PieceKind::Rook), diagonal_system: None }, bit(square('b', 2))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Pawn, pawn_type: Some(PieceKind::Bishop), diagonal_system: None }, bit(square('c', 2))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Pawn, pawn_type: Some(PieceKind::Knight), diagonal_system: None }, bit(square('d', 2))),
+    ];
+    let mut game = build_game_with_pieces(placements);
+
+    // With 4 pawns, can_promote_at should return false even for a square in the promotion zone
+    assert!(!game.can_promote_at(Army::Blue, square('a', 8)), "Should not be able to promote with 4 pawns");
+
+    // Move pawn to promotion zone
+    let result = game.apply_move(Army::Blue, square('a', 7), square('a', 8), None);
+    assert!(result.is_ok(), "Pawn should be able to move to promotion zone");
+
+    // The pawn should NOT have been promoted - still a pawn
+    let piece = game.board.piece_at(square('a', 8));
+    assert_eq!(piece, Some((Army::Blue, PieceKind::Pawn)), "Pawn should not promote when army has 4 pawns");
+}
+
+/// Test that promotion is allowed when army has lost at least one pawn.
+#[test]
+fn promotion_allowed_with_fewer_than_four_pawns() {
+    // Blue has king + 3 pawns (one lost, one at rank 7)
+    let placements = &[
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('e', 1))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Pawn, pawn_type: Some(PieceKind::Queen), diagonal_system: None }, bit(square('a', 7))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Pawn, pawn_type: Some(PieceKind::Rook), diagonal_system: None }, bit(square('b', 2))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Pawn, pawn_type: Some(PieceKind::Bishop), diagonal_system: None }, bit(square('c', 2))),
+        // Only 3 pawns - one was "lost"
+    ];
+    let mut game = build_game_with_pieces(placements);
+
+    // With 3 pawns, can_promote_at should return true for promotion zone
+    assert!(game.can_promote_at(Army::Blue, square('a', 8)), "Should be able to promote with 3 pawns");
+
+    // Move pawn to promotion zone
+    let result = game.apply_move(Army::Blue, square('a', 7), square('a', 8), None);
+    assert!(result.is_ok(), "Pawn move should succeed");
+
+    // The pawn should have been promoted to its patron (Queen)
+    let piece = game.board.piece_at(square('a', 8));
+    assert_eq!(piece, Some((Army::Blue, PieceKind::Queen)), "Pawn should promote to patron Queen");
+}
+
+/// Test the can_promote_pawns helper method.
+#[test]
+fn can_promote_pawns_checks_pawn_count() {
+    // Army with 4 pawns
+    let placements_4 = &[
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('e', 1))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Pawn, pawn_type: None, diagonal_system: None }, bit(square('a', 2))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Pawn, pawn_type: None, diagonal_system: None }, bit(square('b', 2))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Pawn, pawn_type: None, diagonal_system: None }, bit(square('c', 2))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Pawn, pawn_type: None, diagonal_system: None }, bit(square('d', 2))),
+    ];
+    let game_4 = build_game_with_pieces(placements_4);
+    assert!(!game_4.can_promote_pawns(Army::Blue), "Army with 4 pawns cannot promote");
+
+    // Army with 3 pawns
+    let placements_3 = &[
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('e', 1))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Pawn, pawn_type: None, diagonal_system: None }, bit(square('a', 2))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Pawn, pawn_type: None, diagonal_system: None }, bit(square('b', 2))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Pawn, pawn_type: None, diagonal_system: None }, bit(square('c', 2))),
+    ];
+    let game_3 = build_game_with_pieces(placements_3);
+    assert!(game_3.can_promote_pawns(Army::Blue), "Army with 3 pawns can promote");
+}
+
+// ============================================================================
+// Ally Self-Capture Tests (Rule 11.3)
+// ============================================================================
+
+fn build_four_player_game_with_pieces(placements: &[(Army, Piece, u64)]) -> Game {
+    let board = Board::new(placements);
+    // 4-player mode: each army has a different controller
+    let config = GameConfig {
+        armies: Army::ALL,
+        turn_order: [Army::Blue, Army::Red, Army::Black, Army::Yellow],
+        controller_map: [
+            PlayerId::new(0),  // Blue
+            PlayerId::new(1),  // Black - different from Blue
+            PlayerId::new(2),  // Red
+            PlayerId::new(3),  // Yellow - different from Red
+        ],
+        mode: Mode::Normal,
+    };
+    Game::with_config(board, config)
+}
+
+/// Test that ally can capture ally's king in 4-player mode (Rule 11.3).
+#[test]
+fn ally_can_capture_ally_king_in_four_player_mode() {
+    // Blue and Black are allies (Team Air)
+    // Set up Black's king to be capturable by Blue's rook
+    let placements = &[
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('e', 1))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Rook, pawn_type: None, diagonal_system: None }, bit(square('a', 4))),
+        (Army::Black, Piece { army: Army::Black, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('h', 4))), // Capturable
+        (Army::Black, Piece { army: Army::Black, kind: PieceKind::Pawn, pawn_type: None, diagonal_system: None }, bit(square('g', 5))),
+    ];
+    let mut game = build_four_player_game_with_pieces(placements);
+
+    // Verify it's 4-player mode
+    assert!(game.is_four_player_mode(), "Should be 4-player mode");
+
+    // Blue rook captures Black's king
+    let result = game.apply_move(Army::Blue, square('a', 4), square('h', 4), None);
+    assert!(result.is_ok(), "Blue should be able to capture ally Black's king: {:?}", result);
+
+    // Black's king should be removed
+    assert!(game.state.king_square(Army::Black).is_none(), "Black's king should be captured");
+
+    // Black's pieces should NOT be frozen
+    assert!(!game.army_is_frozen(Army::Black), "Black's army should NOT be frozen after ally capture");
+
+    // Black should now be controlled by Blue's controller
+    let blue_ctrl = game.board.controller_for(Army::Blue);
+    let black_ctrl = game.board.controller_for(Army::Black);
+    assert_eq!(blue_ctrl, black_ctrl, "Black should now be controlled by Blue's controller");
+}
+
+fn build_two_player_game_with_pieces(placements: &[(Army, Piece, u64)]) -> Game {
+    let board = Board::new(placements);
+    // 2-player mode: allies share the same controller
+    // Player 1 controls Team Air (Blue + Black)
+    // Player 2 controls Team Earth (Red + Yellow)
+    let config = GameConfig {
+        armies: Army::ALL,
+        turn_order: [Army::Blue, Army::Red, Army::Black, Army::Yellow],
+        controller_map: [
+            PlayerId::new(0),  // Blue - Player 1
+            PlayerId::new(0),  // Black - Player 1 (same as Blue - allies)
+            PlayerId::new(1),  // Red - Player 2
+            PlayerId::new(1),  // Yellow - Player 2 (same as Red - allies)
+        ],
+        mode: Mode::Normal,
+    };
+    Game::with_config(board, config)
+}
+
+/// Test that ally cannot capture ally's king in 2-player mode.
+#[test]
+fn ally_cannot_capture_ally_king_in_two_player_mode() {
+    let placements = &[
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('e', 1))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Rook, pawn_type: None, diagonal_system: None }, bit(square('a', 4))),
+        (Army::Black, Piece { army: Army::Black, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('h', 4))),
+    ];
+    let mut game = build_two_player_game_with_pieces(placements);
+
+    // Verify it's 2-player mode
+    assert!(!game.is_four_player_mode(), "Should be 2-player mode");
+
+    // Blue rook tries to capture Black's king - should fail
+    let result = game.apply_move(Army::Blue, square('a', 4), square('h', 4), None);
+    assert!(result.is_err(), "Blue should NOT be able to capture ally's king in 2-player mode");
+    assert!(result.unwrap_err().contains("2-player mode"), "Error should mention 2-player mode");
+}
+
+/// Test that ally cannot capture ally's non-king pieces (Rule 11.2).
+#[test]
+fn ally_cannot_capture_ally_non_king_pieces() {
+    let placements = &[
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('e', 1))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Rook, pawn_type: None, diagonal_system: None }, bit(square('a', 4))),
+        (Army::Black, Piece { army: Army::Black, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('e', 8))),
+        (Army::Black, Piece { army: Army::Black, kind: PieceKind::Pawn, pawn_type: None, diagonal_system: None }, bit(square('h', 4))), // Pawn on rook's path
+    ];
+    let mut game = build_four_player_game_with_pieces(placements);
+
+    // Blue rook tries to capture Black's pawn - should fail
+    let result = game.apply_move(Army::Blue, square('a', 4), square('h', 4), None);
+    assert!(result.is_err(), "Blue should NOT be able to capture ally's pawn");
+    assert!(result.unwrap_err().contains("ally"), "Error should mention ally");
+}
+
+/// Test that ally capture in 4-player mode keeps pieces active (not frozen).
+#[test]
+fn ally_captured_army_pieces_remain_active() {
+    let placements = &[
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('e', 1))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Rook, pawn_type: None, diagonal_system: None }, bit(square('a', 4))),
+        (Army::Black, Piece { army: Army::Black, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('h', 4))),
+        (Army::Black, Piece { army: Army::Black, kind: PieceKind::Rook, pawn_type: None, diagonal_system: None }, bit(square('b', 8))),
+    ];
+    let mut game = build_four_player_game_with_pieces(placements);
+
+    // Blue captures Black's king
+    game.apply_move(Army::Blue, square('a', 4), square('h', 4), None).unwrap();
+
+    // Black's rook should still be able to move (not frozen)
+    // Black's pieces are now controlled by Blue's controller
+    // We can verify by checking piece_counts - should still have pieces
+    let black_rook_count = game.board.piece_counts(Army::Black)[PieceKind::Rook.index()];
+    assert_eq!(black_rook_count, 1, "Black's rook should still exist");
+    assert!(!game.army_is_frozen(Army::Black), "Black should not be frozen");
 }
