@@ -15,6 +15,12 @@ fn bit(square: Square) -> u64 {
     1u64 << square
 }
 
+fn sq_name(sq: Square) -> String {
+    let file = (b'a' + (sq % 8)) as char;
+    let rank = (sq / 8) + 1;
+    format!("{}{}", file, rank)
+}
+
 fn build_game_with_pieces(placements: &[(Army, Piece, u64)]) -> Game {
     let board = Board::new(placements);
     Game::with_config(board, GameConfig::default())
@@ -158,6 +164,68 @@ fn prisoner_exchange_restores_kings() {
     assert!(game.state.king_square(Army::Red).is_some());
     assert!(!game.army_is_frozen(Army::Blue));
     assert!(!game.army_is_frozen(Army::Red));
+}
+
+/// Test Rule 8.5(b): If throne is occupied, king returns to nearest unthreatened square.
+#[test]
+fn prisoner_exchange_avoids_occupied_throne() {
+    // Blue's thrones are d1, e1. Put a piece on d1 so king can't return there.
+    // King should return to e1 (the second throne).
+    let placements = &[
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Rook, pawn_type: None, diagonal_system: None }, bit(square('d', 1))),
+        (Army::Red, Piece { army: Army::Red, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('e', 8))),
+    ];
+    let mut game = build_game_with_pieces(placements);
+
+    // Capture both kings (Blue's king doesn't exist yet, Red's does)
+    game.state.set_king_square(Army::Blue, None);
+    game.state.set_frozen(Army::Blue, true);
+    game.board.set_frozen(Army::Blue, true);
+    game.capture_king(Army::Red);
+
+    // Exchange prisoners
+    let swapped = game.exchange_prisoners(Army::Blue, Army::Red);
+    assert!(swapped);
+
+    // Blue's king should be on e1 (second throne) since d1 is occupied
+    let blue_king_sq = game.state.king_square(Army::Blue).expect("Blue king should exist");
+    assert_eq!(blue_king_sq, square('e', 1), "Blue king should return to e1 since d1 is occupied");
+}
+
+/// Test Rule 8.5(b): If throne is threatened, king returns to nearest safe square.
+#[test]
+fn prisoner_exchange_avoids_threatened_throne() {
+    // Blue's thrones are d1, e1. Put Yellow rooks threatening both thrones.
+    // Yellow is on Team Earth (enemy of Blue) and won't be frozen in this test.
+    // A rook on a1 threatens d1, another on h1 threatens e1 - both thrones attacked.
+    let placements = &[
+        (Army::Yellow, Piece { army: Army::Yellow, kind: PieceKind::Rook, pawn_type: None, diagonal_system: None }, bit(square('a', 1))),
+        (Army::Yellow, Piece { army: Army::Yellow, kind: PieceKind::Rook, pawn_type: None, diagonal_system: None }, bit(square('h', 1))),
+    ];
+    let mut game = build_game_with_pieces(placements);
+
+    // Capture Blue's king (set it as not existing)
+    game.state.set_king_square(Army::Blue, None);
+    game.state.set_frozen(Army::Blue, true);
+    game.board.set_frozen(Army::Blue, true);
+
+    // Capture Red's king as well for a valid exchange (Red is Yellow's ally, both Team Earth)
+    game.state.set_king_square(Army::Red, None);
+    game.state.set_frozen(Army::Red, true);
+    game.board.set_frozen(Army::Red, true);
+
+    // Exchange prisoners - Blue and Red exchange
+    let swapped = game.exchange_prisoners(Army::Blue, Army::Red);
+    assert!(swapped);
+
+    // Blue's king should NOT be on d1 or e1 (both threatened by Yellow rooks on rank 1)
+    // Yellow is NOT frozen, so its rooks can attack.
+    let blue_king_sq = game.state.king_square(Army::Blue).expect("Blue king should exist");
+    assert!(
+        blue_king_sq != square('d', 1) && blue_king_sq != square('e', 1),
+        "Blue king at {} should not be on a threatened throne square",
+        sq_name(blue_king_sq)
+    );
 }
 
 /// Test that when a king is in check but completely blocked (no pseudo-legal moves),

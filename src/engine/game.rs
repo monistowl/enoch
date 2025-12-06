@@ -756,11 +756,52 @@ impl Game {
         self.state.is_stalemated(army)
     }
 
+    /// Find the best return square for a king after prisoner exchange (Rule 8.5b).
+    /// Priority: throne squares first (if safe), then nearest unoccupied unthreatened square.
+    fn find_return_square(&self, army: Army) -> Square {
+        let thrones = self.board.armies[army.index()].throne_squares;
+        let opponent = army.team().opponent();
+
+        // First, try both throne squares in order
+        for &throne in &thrones {
+            let occupied = self.board.piece_at(throne).is_some();
+            let threatened = self.is_square_attacked_by_team(throne, opponent);
+            if !occupied && !threatened {
+                return throne;
+            }
+        }
+
+        // If both thrones are blocked/threatened, find nearest safe square
+        // Use Manhattan distance from primary throne
+        let primary_throne = thrones[0];
+        let throne_file = (primary_throne % 8) as i8;
+        let throne_rank = (primary_throne / 8) as i8;
+
+        let mut best_square = primary_throne; // Fallback
+        let mut best_distance = i8::MAX;
+
+        for sq in 0u8..64 {
+            let occupied = self.board.piece_at(sq).is_some();
+            let threatened = self.is_square_attacked_by_team(sq, opponent);
+            if !occupied && !threatened {
+                let file = (sq % 8) as i8;
+                let rank = (sq / 8) as i8;
+                let distance = (file - throne_file).abs() + (rank - throne_rank).abs();
+                if distance < best_distance {
+                    best_distance = distance;
+                    best_square = sq;
+                }
+            }
+        }
+
+        best_square
+    }
+
     pub fn restore_king_to_throne(&mut self, army: Army) {
-        let throne = self.board.armies[army.index()].throne_squares[0];
-        self.board.clear_square(throne);
-        self.board.place_piece(army, PieceKind::King, throne);
-        self.state.set_king_square(army, Some(throne));
+        let return_square = self.find_return_square(army);
+        self.board.clear_square(return_square);
+        self.board.place_piece(army, PieceKind::King, return_square);
+        self.state.set_king_square(army, Some(return_square));
         self.unfreeze_army(army);
     }
 
