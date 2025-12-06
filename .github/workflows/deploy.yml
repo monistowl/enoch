@@ -41,6 +41,10 @@ jobs:
         with:
           tool: zola@0.21.0
 
+      - name: Check links
+        run: zola check
+        working-directory: site
+
       - name: Build site
         run: zola build
         working-directory: site

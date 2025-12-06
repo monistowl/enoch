@@ -9,6 +9,14 @@ compile_sass = true
 minify_html = false
 build_search_index = false
 
+# Link checking - catch broken internal links at build time
+[link_checker]
+# Check internal links (catches broken relative paths)
+internal_level = "error"
+# Warn on external links (don't fail build for external issues)
+external_level = "warn"
+skip_prefixes = ["https://fonts.googleapis.com", "https://fonts.gstatic.com"]
+
 generate_feeds = false
 
 [markdown]
