@@ -487,26 +487,31 @@ pub fn compute_pawns_moves(board: &Board, army: Army) -> (u64, u64) {
         let file = (index % 8) as i8;
         let rank = (index / 8) as i8;
 
+        // Cross/Edge layout pawn directions:
+        // Blue (South edge, ranks 1-2): march north (+rank)
+        // Black (North edge, ranks 7-8): march south (-rank)
+        // Yellow (West edge, files a-b): march east (+file)
+        // Red (East edge, files g-h): march west (-file)
         let (forward, diag_left, diag_right) = match army {
             Army::Blue => (
-                offset_square(file, rank, 0, 1),
-                offset_square(file, rank, -1, 1),
-                offset_square(file, rank, 1, 1),
-            ),
-            Army::Red => (
-                offset_square(file, rank, 0, -1),
-                offset_square(file, rank, -1, -1),
-                offset_square(file, rank, 1, -1),
+                offset_square(file, rank, 0, 1),   // North
+                offset_square(file, rank, -1, 1), // NW
+                offset_square(file, rank, 1, 1),  // NE
             ),
             Army::Black => (
-                offset_square(file, rank, 1, 0),
-                offset_square(file, rank, 1, 1),
-                offset_square(file, rank, 1, -1),
+                offset_square(file, rank, 0, -1),  // South
+                offset_square(file, rank, -1, -1), // SW
+                offset_square(file, rank, 1, -1),  // SE
             ),
             Army::Yellow => (
-                offset_square(file, rank, -1, 0),
-                offset_square(file, rank, -1, 1),
-                offset_square(file, rank, -1, -1),
+                offset_square(file, rank, 1, 0),  // East
+                offset_square(file, rank, 1, 1),  // NE
+                offset_square(file, rank, 1, -1), // SE
+            ),
+            Army::Red => (
+                offset_square(file, rank, -1, 0),  // West
+                offset_square(file, rank, -1, 1),  // NW
+                offset_square(file, rank, -1, -1), // SW
             ),
         };
 

@@ -72,23 +72,32 @@ fn bishop_moves_follow_aries_diagonal() {
 
 #[test]
 fn pawns_move_in_army_direction() {
+    // Cross/Edge layout directions:
+    // Blue (South edge): march north (+rank)
+    // Black (North edge): march south (-rank)
+    // Yellow (West edge): march east (+file)
+    // Red (East edge): march west (-file)
     let mut board = Board::new(&[]);
     board.place_piece(Army::Blue, PieceKind::Pawn, square('d', 2));
-    board.place_piece(Army::Red, PieceKind::Pawn, square('e', 7));
-    board.place_piece(Army::Black, PieceKind::Pawn, square('g', 5));
+    board.place_piece(Army::Black, PieceKind::Pawn, square('e', 7));
     board.place_piece(Army::Yellow, PieceKind::Pawn, square('b', 5));
+    board.place_piece(Army::Red, PieceKind::Pawn, square('g', 5));
 
+    // Blue: d2 -> d3 (north)
     let (blue_moves, _) = moves::compute_pawns_moves(&board, Army::Blue);
     assert_eq!(blue_moves, bit(square('d', 3)));
 
-    let (red_moves, _) = moves::compute_pawns_moves(&board, Army::Red);
-    assert_eq!(red_moves, bit(square('e', 6)));
-
+    // Black: e7 -> e6 (south)
     let (black_moves, _) = moves::compute_pawns_moves(&board, Army::Black);
-    assert_eq!(black_moves, bit(square('h', 5)));
+    assert_eq!(black_moves, bit(square('e', 6)));
 
+    // Yellow: b5 -> c5 (east)
     let (yellow_moves, _) = moves::compute_pawns_moves(&board, Army::Yellow);
-    assert_eq!(yellow_moves, bit(square('a', 5)));
+    assert_eq!(yellow_moves, bit(square('c', 5)));
+
+    // Red: g5 -> f5 (west)
+    let (red_moves, _) = moves::compute_pawns_moves(&board, Army::Red);
+    assert_eq!(red_moves, bit(square('f', 5)));
 }
 
 #[test]

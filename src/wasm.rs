@@ -365,11 +365,16 @@ impl WasmGame {
             }
         };
 
+        // Cross/Edge layout pawn directions:
+        // Blue (South edge): march north (+rank)
+        // Black (North edge): march south (-rank)
+        // Yellow (West edge): march east (+file)
+        // Red (East edge): march west (-file)
         let (forward, diag_left, diag_right) = match army {
             Army::Blue => (offset_square(0, 1), offset_square(-1, 1), offset_square(1, 1)),
-            Army::Red => (offset_square(0, -1), offset_square(-1, -1), offset_square(1, -1)),
-            Army::Black => (offset_square(1, 0), offset_square(1, 1), offset_square(1, -1)),
-            Army::Yellow => (offset_square(-1, 0), offset_square(-1, 1), offset_square(-1, -1)),
+            Army::Black => (offset_square(0, -1), offset_square(-1, -1), offset_square(1, -1)),
+            Army::Yellow => (offset_square(1, 0), offset_square(1, 1), offset_square(1, -1)),
+            Army::Red => (offset_square(-1, 0), offset_square(-1, 1), offset_square(-1, -1)),
         };
 
         let mut moves = 0u64;
