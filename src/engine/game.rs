@@ -317,8 +317,34 @@ impl Game {
             }
             self.board.clear_square(square);
         }
+
+        // Rule 8.9: If captured army was controlling its ally, revert ally control
+        // to original controller
+        self.revert_controlled_armies(army);
+
         self.freeze_army(army);
         self.state.set_king_square(army, None);
+    }
+
+    /// Rule 8.9: When a king is captured, if that army was controlling its ally,
+    /// revert the ally's controller back to the original controller.
+    fn revert_controlled_armies(&mut self, captured_army: Army) {
+        let captured_controller = self.board.controller_for(captured_army);
+        let team = captured_army.team();
+
+        for &ally in team.armies().iter() {
+            if ally == captured_army {
+                continue;
+            }
+
+            // Check if the captured army was controlling this ally
+            let ally_controller = self.board.controller_for(ally);
+            if ally_controller == captured_controller {
+                // Revert to original controller from config
+                let original = self.config.controller_map[ally.index()];
+                self.board.set_controller(ally, original);
+            }
+        }
     }
 
     pub fn seize_throne_at(&mut self, army: Army, square: Square) {

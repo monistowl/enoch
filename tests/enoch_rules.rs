@@ -933,17 +933,22 @@ fn can_promote_pawns_checks_pawn_count() {
 // ============================================================================
 
 fn build_four_player_game_with_pieces(placements: &[(Army, Piece, u64)]) -> Game {
-    let board = Board::new(placements);
+    let mut board = Board::new(placements);
     // 4-player mode: each army has a different controller
+    let controller_map = [
+        PlayerId::new(0),  // Blue
+        PlayerId::new(1),  // Black - different from Blue
+        PlayerId::new(2),  // Red
+        PlayerId::new(3),  // Yellow - different from Red
+    ];
+    // Sync board's controller state with the config
+    for army in Army::ALL {
+        board.set_controller(army, controller_map[army.index()]);
+    }
     let config = GameConfig {
         armies: Army::ALL,
         turn_order: [Army::Blue, Army::Red, Army::Black, Army::Yellow],
-        controller_map: [
-            PlayerId::new(0),  // Blue
-            PlayerId::new(1),  // Black - different from Blue
-            PlayerId::new(2),  // Red
-            PlayerId::new(3),  // Yellow - different from Red
-        ],
+        controller_map,
         mode: Mode::Normal,
     };
     Game::with_config(board, config)
@@ -1056,4 +1061,86 @@ fn ally_captured_army_pieces_remain_active() {
     let black_rook_count = game.board.piece_counts(Army::Black)[PieceKind::Rook.index()];
     assert_eq!(black_rook_count, 1, "Black's rook should still exist");
     assert!(!game.army_is_frozen(Army::Black), "Black should not be frozen");
+}
+
+// ============================================================================
+// Control Reversion Tests (Rule 8.9)
+// ============================================================================
+
+/// Test Rule 8.9: When a controlling king is captured, ally's army reverts to original controller.
+#[test]
+fn control_reverts_when_controlling_king_captured() {
+    // Setup: Blue has seized Black's throne (controls Black)
+    // Then Red captures Blue's king - Black should revert to original controller
+    let placements = &[
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('d', 3))), // On Black's throne
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Pawn, pawn_type: None, diagonal_system: None }, bit(square('c', 2))),
+        (Army::Black, Piece { army: Army::Black, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('a', 5))),
+        (Army::Black, Piece { army: Army::Black, kind: PieceKind::Pawn, pawn_type: None, diagonal_system: None }, bit(square('b', 4))),
+        (Army::Red, Piece { army: Army::Red, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('h', 8))),
+        (Army::Red, Piece { army: Army::Red, kind: PieceKind::Rook, pawn_type: None, diagonal_system: None }, bit(square('d', 8))), // Can capture Blue king
+        (Army::Yellow, Piece { army: Army::Yellow, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('h', 1))),
+    ];
+
+    let board = Board::new(placements);
+    // Use a config where Blue and Black have different original controllers
+    let config = GameConfig {
+        armies: Army::ALL,
+        turn_order: [Army::Blue, Army::Red, Army::Black, Army::Yellow],
+        controller_map: [
+            PlayerId::new(0),  // Blue - Player 0
+            PlayerId::new(1),  // Black - Player 1 (different from Blue originally)
+            PlayerId::new(2),  // Red
+            PlayerId::new(3),  // Yellow
+        ],
+        mode: Mode::Normal,
+    };
+    let mut game = Game::with_config(board, config);
+
+    // Simulate Blue having seized Black's throne (transferred control)
+    game.board.set_controller(Army::Black, PlayerId::new(0)); // Black now controlled by Blue's controller
+
+    // Verify Blue controls Black
+    assert_eq!(game.board.controller_for(Army::Blue), game.board.controller_for(Army::Black),
+               "Blue should be controlling Black before capture");
+
+    // Skip to Red's turn and capture Blue's king
+    game.state.current_turn_index = 1; // Red's turn
+    let result = game.apply_move(Army::Red, square('d', 8), square('d', 3), None);
+    assert!(result.is_ok(), "Red should capture Blue's king: {:?}", result);
+
+    // Blue's army should be frozen
+    assert!(game.army_is_frozen(Army::Blue), "Blue should be frozen after king capture");
+
+    // Black's controller should revert to original (Player 1)
+    let black_ctrl = game.board.controller_for(Army::Black);
+    assert_eq!(black_ctrl, PlayerId::new(1), "Black's controller should revert to original Player 1");
+}
+
+/// Test that control reversion doesn't affect armies that weren't being controlled.
+#[test]
+fn control_reversion_only_affects_controlled_allies() {
+    let placements = &[
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('e', 1))),
+        (Army::Black, Piece { army: Army::Black, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('a', 5))),
+        (Army::Red, Piece { army: Army::Red, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('h', 8))),
+        (Army::Red, Piece { army: Army::Red, kind: PieceKind::Rook, pawn_type: None, diagonal_system: None }, bit(square('e', 8))),
+        (Army::Yellow, Piece { army: Army::Yellow, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('h', 1))),
+    ];
+
+    let mut game = build_four_player_game_with_pieces(placements);
+
+    // Black should have its own controller initially
+    let original_black_ctrl = game.board.controller_for(Army::Black);
+
+    // Red captures Blue's king
+    game.state.current_turn_index = 1; // Red's turn
+    game.apply_move(Army::Red, square('e', 8), square('e', 1), None).unwrap();
+
+    // Blue should be frozen
+    assert!(game.army_is_frozen(Army::Blue));
+
+    // Black's controller should be unchanged (Blue wasn't controlling Black)
+    assert_eq!(game.board.controller_for(Army::Black), original_black_ctrl,
+               "Black's controller should be unchanged since Blue wasn't controlling it");
 }
