@@ -1,46 +1,52 @@
 // Enochian Chess - Theme System
 // ==============================
-// CSS Custom Properties for dark/light mode support
+// Retro high-contrast theme inspired by classic black & white Macs
+// Bold outlines, saturated colors, no gradients or soft shadows
 
 @import 'variables';
 
-// Dark Theme (Default)
+// Dark Theme (Default) - Classic Mac "inverted" look
 :root {
-  // Backgrounds
-  --bg-deep: #{$bg-deep};
-  --bg-surface: #{$bg-surface};
-  --bg-elevated: #{$bg-elevated};
-  --bg-hover: #{$bg-hover};
+  // Backgrounds - pure black base
+  --bg-deep: #000000;
+  --bg-surface: #111111;
+  --bg-elevated: #1a1a1a;
+  --bg-hover: #2a2a2a;
 
-  // Text
-  --text-primary: #{$text-primary};
-  --text-secondary: #{$text-secondary};
-  --text-muted: #{$text-muted};
-  --text-faint: #{$text-faint};
+  // Text - pure white for maximum contrast
+  --text-primary: #ffffff;
+  --text-secondary: #e0e0e0;
+  --text-muted: #a0a0a0;
+  --text-faint: #666666;
 
-  // Elemental Colors (consistent across themes)
-  --air-blue: #{$air-blue};
-  --air-blue-dim: #{$air-blue-dim};
-  --air-blue-glow: #{$air-blue-glow};
+  // Elemental Colors - SATURATED for retro punch
+  --air-blue: #0066ff;
+  --air-blue-dim: #0044aa;
+  --air-blue-glow: #3399ff;
 
-  --water-black: #{$water-black};
-  --water-indigo: #{$water-indigo};
-  --water-deep: #{$water-deep};
+  --water-black: #6666aa;
+  --water-indigo: #8888cc;
+  --water-deep: #444488;
 
-  --fire-red: #{$fire-red};
-  --fire-red-dim: #{$fire-red-dim};
-  --fire-red-glow: #{$fire-red-glow};
+  --fire-red: #ff3300;
+  --fire-red-dim: #cc2200;
+  --fire-red-glow: #ff6644;
 
-  --earth-yellow: #{$earth-yellow};
-  --earth-yellow-dim: #{$earth-yellow-dim};
-  --earth-yellow-glow: #{$earth-yellow-glow};
+  --earth-yellow: #ffcc00;
+  --earth-yellow-dim: #cc9900;
+  --earth-yellow-glow: #ffdd44;
 
-  // Borders & Shadows
-  --border-color: #{$bg-elevated};
-  --shadow-color: rgba(0, 0, 0, 0.5);
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.5);
+  // Borders - bold 2px black/white lines, no shadows
+  --border-color: #444444;
+  --border-bold: #ffffff;
+  --shadow-color: transparent;
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: none;
+
+  // Retro-specific
+  --outline-width: 2px;
+  --outline-color: #ffffff;
 
   // Theme indicator
   --theme-icon: "☽";
@@ -49,43 +55,48 @@
   color-scheme: dark;
 }
 
-// Light Theme
+// Light Theme - Classic Mac "System 7" look
 [data-theme="light"] {
-  // Backgrounds - warm parchment tones
-  --bg-deep: #f5f0e8;
-  --bg-surface: #ebe6de;
-  --bg-elevated: #e0dbd3;
-  --bg-hover: #d5d0c8;
+  // Backgrounds - pure white base
+  --bg-deep: #ffffff;
+  --bg-surface: #f0f0f0;
+  --bg-elevated: #e0e0e0;
+  --bg-hover: #d0d0d0;
 
-  // Text - dark ink
-  --text-primary: #1a1a1f;
-  --text-secondary: #3a3a42;
-  --text-muted: #5a5a64;
-  --text-faint: #8a8a94;
+  // Text - pure black for maximum contrast
+  --text-primary: #000000;
+  --text-secondary: #222222;
+  --text-muted: #555555;
+  --text-faint: #888888;
 
-  // Elemental colors - slightly adjusted for light bg
-  --air-blue: #3a6ca8;
-  --air-blue-dim: #2a4c78;
-  --air-blue-glow: #4a7cb8;
+  // Elemental colors - high saturation for light bg
+  --air-blue: #0000dd;
+  --air-blue-dim: #0000aa;
+  --air-blue-glow: #0033ff;
 
-  --water-indigo: #4a4a7a;
-  --water-black: #3d3d5a;
-  --water-deep: #2d2d4a;
+  --water-indigo: #4444aa;
+  --water-black: #333388;
+  --water-deep: #222266;
 
-  --fire-red: #b44a3a;
-  --fire-red-dim: #842a1a;
-  --fire-red-glow: #c45a4a;
+  --fire-red: #dd0000;
+  --fire-red-dim: #aa0000;
+  --fire-red-glow: #ff2222;
 
-  --earth-yellow: #a4822a;
-  --earth-yellow-dim: #74520a;
-  --earth-yellow-glow: #b4922a;
+  --earth-yellow: #cc9900;
+  --earth-yellow-dim: #996600;
+  --earth-yellow-glow: #ddaa00;
 
-  // Borders & Shadows
-  --border-color: #d0cbc3;
-  --shadow-color: rgba(0, 0, 0, 0.15);
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.1);
-  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.12);
-  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.15);
+  // Borders - bold black lines, no shadows
+  --border-color: #aaaaaa;
+  --border-bold: #000000;
+  --shadow-color: transparent;
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: none;
+
+  // Retro-specific
+  --outline-width: 2px;
+  --outline-color: #000000;
 
   // Theme indicator
   --theme-icon: "☀";

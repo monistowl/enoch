@@ -79,11 +79,11 @@
   stroke-width: 1;
 }
 
-// Attack indicator
+// Attack indicator - bold red for captures
 .attack-indicator {
-  fill: rgba(196, 90, 74, 0.3);
-  stroke: var(--fire-red);
-  stroke-width: 1;
+  fill: #ff0000;
+  stroke: #000000;
+  stroke-width: 2;
 }
 
 // Board Preview (Homepage)
@@ -120,25 +120,28 @@
     width: 100%;
     height: auto;
     display: block;
-    border-radius: $radius-md;
-    box-shadow: var(--shadow-lg);
+    border-radius: 0; // No rounded corners for retro look
+    box-shadow: none;
     background-color: var(--bg-surface);
+    border: var(--outline-width) solid var(--outline-color);
   }
 
-  // Square styles
+  // Square styles - high contrast checkerboard
   &__square {
-    transition: fill 0.15s ease;
+    transition: fill 0.1s ease;
 
     &--light {
-      fill: #c8b898; // Light wood tone
+      fill: #e8e8e8; // Near white
     }
 
     &--dark {
-      fill: #8b6914; // Dark wood tone
+      fill: #404040; // Dark gray (not pure black to allow piece visibility)
     }
 
     &--highlighted {
-      fill: rgba(196, 160, 74, 0.5) !important;
+      fill: #ffcc00 !important; // Bold yellow for captures
+      stroke: #000000;
+      stroke-width: 2;
     }
 
     &--legal {
@@ -146,51 +149,55 @@
     }
 
     &--last-move {
-      fill: rgba(74, 124, 184, 0.3) !important;
+      fill: #6699ff !important; // Bold blue tint
     }
 
     // Selected has highest priority (comes last)
     &--selected {
-      fill: rgba(74, 124, 184, 0.6) !important;
+      fill: #3399ff !important; // Saturated selection blue
+      stroke: #ffffff;
+      stroke-width: 2;
     }
   }
 
-  // Legal move indicator
+  // Legal move indicator - bold circles
   &__legal-indicator {
-    fill: rgba(74, 124, 184, 0.5);
-    stroke: var(--air-blue);
-    stroke-width: 1;
+    fill: #00cc00; // Saturated green
+    stroke: #000000;
+    stroke-width: 2;
     pointer-events: none;
   }
 
-  // Piece styles
+  // Piece styles - bold saturated colors with hard outlines
   &__piece {
     font-size: 36px;
     font-weight: bold;
     pointer-events: none;
-    filter: drop-shadow(1px 1px 1px rgba(0, 0, 0, 0.5));
+    // Bold black stroke for crisp retro look
+    stroke: #000000;
+    stroke-width: 0.5px;
+    paint-order: stroke fill;
 
     &--blue {
-      fill: var(--air-blue-glow);
+      fill: #0099ff; // Saturated cyan-blue
     }
 
     &--red {
-      fill: var(--fire-red-glow);
+      fill: #ff3300; // Saturated red-orange
     }
 
     &--black {
-      fill: #9a9ac8;
+      fill: #aa88ff; // Saturated purple/indigo
     }
 
     &--yellow {
-      fill: var(--earth-yellow-glow);
+      fill: #ffcc00; // Saturated gold
     }
 
     // Frozen army pieces (king captured)
     &--frozen {
-      opacity: 0.5;
-      filter: grayscale(0.7) brightness(1.2) drop-shadow(0 0 3px rgba(150, 200, 255, 0.6));
-      animation: frozenShimmer 3s ease-in-out infinite;
+      opacity: 0.4;
+      filter: grayscale(1);
     }
   }
 
@@ -202,7 +209,7 @@
     pointer-events: none;
   }
 
-  // Controls
+  // Controls - retro style with bold borders
   &__controls {
     display: flex;
     align-items: center;
@@ -211,7 +218,8 @@
     margin-top: $space-4;
     padding: $space-3;
     background-color: var(--bg-surface);
-    border-radius: $radius-md;
+    border: var(--outline-width) solid var(--outline-color);
+    border-radius: 0;
   }
 
   &__btn {
@@ -221,16 +229,17 @@
     padding: $space-2 $space-4;
     background-color: var(--bg-elevated);
     color: var(--text-primary);
-    border: 1px solid var(--border-color);
-    border-radius: $radius-sm;
+    border: 2px solid var(--outline-color);
+    border-radius: 0;
     font-family: $font-body;
     font-size: $text-sm;
+    font-weight: bold;
     cursor: pointer;
-    transition: all $transition-fast;
+    transition: all 0.1s ease;
 
     &:hover:not(:disabled) {
-      background-color: var(--bg-hover);
-      border-color: var(--air-blue);
+      background-color: var(--outline-color);
+      color: var(--bg-deep);
     }
 
     &--disabled,
@@ -268,28 +277,33 @@
   }
 
   &__turn-army {
-    font-weight: $weight-semibold;
+    font-weight: bold;
     padding: $space-1 $space-2;
-    border-radius: $radius-sm;
+    border-radius: 0;
+    border: 2px solid;
 
     &--blue {
-      background-color: rgba(74, 124, 184, 0.2);
-      color: var(--air-blue-glow);
+      background-color: #0099ff;
+      color: #000000;
+      border-color: #000000;
     }
 
     &--black {
-      background-color: rgba(74, 74, 106, 0.3);
-      color: #9a9ac8;
+      background-color: #aa88ff;
+      color: #000000;
+      border-color: #000000;
     }
 
     &--red {
-      background-color: rgba(196, 90, 74, 0.2);
-      color: var(--fire-red-glow);
+      background-color: #ff3300;
+      color: #000000;
+      border-color: #000000;
     }
 
     &--yellow {
-      background-color: rgba(196, 160, 74, 0.2);
-      color: var(--earth-yellow-glow);
+      background-color: #ffcc00;
+      color: #000000;
+      border-color: #000000;
     }
   }
 
@@ -361,16 +375,22 @@
   80% { transform: translateX(5px); }
 }
 
-// Light theme adjustments
+// Light theme adjustments - maintain high contrast
 [data-theme="light"] {
   .board-widget__square {
     &--light {
-      fill: #f0d9b5; // Lighter wood
+      fill: #ffffff; // Pure white
     }
 
     &--dark {
-      fill: #b58863; // Warmer dark wood
+      fill: #333333; // Near black
     }
+  }
+
+  // Pieces need darker outlines on light bg
+  .board-widget__piece {
+    stroke: #000000;
+    stroke-width: 1px;
   }
 }
 
@@ -472,7 +492,8 @@
     gap: $space-3;
     padding: $space-3;
     background-color: var(--bg-surface);
-    border-radius: $radius-md;
+    border: 2px solid var(--outline-color);
+    border-radius: 0;
     margin-top: $space-3;
   }
 
@@ -488,44 +509,44 @@
   }
 
   &__turn-army {
-    font-weight: $weight-semibold;
+    font-weight: bold;
     font-size: $text-sm;
     padding: $space-1 $space-2;
-    border-radius: $radius-sm;
+    border-radius: 0;
+    border: 2px solid #000000;
 
     &--blue {
-      background-color: rgba(74, 124, 184, 0.2);
-      color: var(--air-blue-glow);
+      background-color: #0099ff;
+      color: #000000;
     }
 
     &--black {
-      background-color: rgba(74, 74, 106, 0.3);
-      color: #9a9ac8;
+      background-color: #aa88ff;
+      color: #000000;
     }
 
     &--red {
-      background-color: rgba(196, 90, 74, 0.2);
-      color: var(--fire-red-glow);
+      background-color: #ff3300;
+      color: #000000;
     }
 
     &--yellow {
-      background-color: rgba(196, 160, 74, 0.2);
-      color: var(--earth-yellow-glow);
+      background-color: #ffcc00;
+      color: #000000;
     }
   }
 
   &__check {
-    font-weight: $weight-bold;
+    font-weight: bold;
     font-size: $text-sm;
     text-transform: uppercase;
     letter-spacing: 0.15em;
     padding: $space-1 $space-3;
-    background-color: rgba(244, 67, 54, 0.25);
-    color: #ff1744;
-    border: 1px solid rgba(244, 67, 54, 0.4);
-    border-radius: $radius-sm;
-    animation: checkAlert 0.5s ease-in-out infinite;
-    box-shadow: 0 0 8px rgba(244, 67, 54, 0.4);
+    background-color: #ff0000;
+    color: #ffffff;
+    border: 2px solid #000000;
+    border-radius: 0;
+    animation: checkBlink 0.5s step-end infinite;
   }
 
   &__frozen {
@@ -535,33 +556,35 @@
   }
 
   &__winner {
-    font-weight: $weight-bold;
+    font-weight: bold;
     font-size: $text-base;
     padding: $space-2 $space-4;
-    background-color: rgba(76, 175, 80, 0.2);
-    color: #4caf50;
-    border-radius: $radius-sm;
-    animation: winnerGlow 2s ease-in-out infinite;
+    background-color: #00cc00;
+    color: #000000;
+    border: 2px solid #000000;
+    border-radius: 0;
+    animation: winnerBlink 1s step-end infinite;
   }
 
   &__btn {
     padding: $space-2 $space-4;
     background-color: var(--bg-elevated);
     color: var(--text-primary);
-    border: 1px solid var(--border-color);
-    border-radius: $radius-sm;
+    border: 2px solid var(--outline-color);
+    border-radius: 0;
     font-family: $font-body;
     font-size: $text-sm;
+    font-weight: bold;
     cursor: pointer;
-    transition: all $transition-fast;
+    transition: all 0.1s ease;
 
     &:hover {
-      background-color: var(--bg-hover);
-      border-color: var(--air-blue);
+      background-color: var(--outline-color);
+      color: var(--bg-deep);
     }
 
     &:active {
-      transform: scale(0.98);
+      transform: none;
     }
   }
 
@@ -627,13 +650,25 @@
   50% { box-shadow: 0 0 15px rgba(76, 175, 80, 0.5); }
 }
 
+// Retro blink animations (step-end for that classic Mac feel)
+@keyframes checkBlink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0.5; }
+}
+
+@keyframes winnerBlink {
+  0%, 50% { background-color: #00cc00; }
+  51%, 100% { background-color: #00ff00; }
+}
+
 .captures-widget {
   display: flex;
   flex-direction: column;
   align-items: center;
   padding: $space-3;
   background-color: var(--bg-surface);
-  border-radius: $radius-md;
+  border: 2px solid var(--outline-color);
+  border-radius: 0;
   min-width: 80px;
 
   &__header {
@@ -679,22 +714,22 @@
   &__piece {
     font-size: 24px;
     line-height: 1;
-    filter: drop-shadow(1px 1px 1px rgba(0, 0, 0, 0.3));
+    text-shadow: 1px 1px 0 #000000;
 
     &--blue {
-      color: var(--air-blue-glow);
+      color: #0099ff;
     }
 
     &--black {
-      color: #9a9ac8;
+      color: #aa88ff;
     }
 
     &--red {
-      color: var(--fire-red-glow);
+      color: #ff3300;
     }
 
     &--yellow {
-      color: var(--earth-yellow-glow);
+      color: #ffcc00;
     }
   }
 
@@ -710,13 +745,13 @@
   }
 }
 
-// Move history widget
+// Move history widget - retro style
 .history-widget {
   margin-top: $space-4;
   padding: $space-3;
   background-color: var(--bg-surface);
-  border: 1px solid var(--border-color);
-  border-radius: $radius-md;
+  border: 2px solid var(--outline-color);
+  border-radius: 0;
 
   &__header {
     display: flex;
@@ -762,10 +797,10 @@
   &__move {
     display: inline;
 
-    &--blue { color: var(--air-blue-glow); }
-    &--black { color: var(--text-primary); }
-    &--red { color: var(--fire-red-glow); }
-    &--yellow { color: var(--earth-yellow-glow); }
+    &--blue { color: #0099ff; font-weight: bold; }
+    &--black { color: #aa88ff; font-weight: bold; }
+    &--red { color: #ff3300; font-weight: bold; }
+    &--yellow { color: #ffcc00; font-weight: bold; }
 
     &::after {
       content: ' · ';
