@@ -4,7 +4,7 @@ description = "The complete rulebook for Enochian Chess"
 template = "section.html"
 +++
 
-This is the comprehensive reference for Enochian Chess. If you're new, start with the [Quick Start](/quick-start/) guide first.
+This is the comprehensive reference for Enochian Chess. If you're new, start with the [Quick Start](@/quick-start.md) guide first.
 
 ## Board Geometry
 
@@ -256,5 +256,5 @@ If no piece of the rolled type can legally move, you may re-roll (up to a config
 ---
 
 <div style="margin-top: 2rem;">
-    <a href="/rules/pieces/" class="btn btn--secondary">Learn About Each Piece →</a>
+    <a href="pieces/" class="btn btn--secondary">Learn About Each Piece →</a>
 </div>

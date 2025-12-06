@@ -86,4 +86,4 @@ In Enochian Chess:
 
 ---
 
-**Previous:** [← Board & Armies](/learn/board-setup) | **Next:** [Captures & Threats →](/learn/captures)
+**Previous:** [← Board & Armies](../board-setup/) | **Next:** [Captures & Threats →](../captures/)

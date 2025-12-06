@@ -70,4 +70,4 @@ Teams work together to capture enemy kings. When a king falls, its entire army f
 
 ---
 
-**Next:** [How Pieces Move →](/learn/movement)
+**Next:** [How Pieces Move →](../movement/)

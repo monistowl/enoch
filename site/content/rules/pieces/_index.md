@@ -7,42 +7,42 @@ template = "section.html"
 Enochian Chess uses the same six piece types as standard chess, but several behave quite differently. The most dramatic change is the **Queen**, which leaps rather than slides.
 
 <div class="card-grid">
-    <a href="/rules/pieces/king/" class="piece-card piece-card--king">
+    <a href="king/" class="piece-card piece-card--king">
         <div class="piece-card__glyph">♔</div>
         <div class="piece-card__content">
             <div class="piece-card__name">King</div>
             <div class="piece-card__summary">One square any direction. Can be captured.</div>
         </div>
     </a>
-    <a href="/rules/pieces/queen/" class="piece-card piece-card--queen">
+    <a href="queen/" class="piece-card piece-card--queen">
         <div class="piece-card__glyph">♕</div>
         <div class="piece-card__content">
             <div class="piece-card__name">Queen</div>
             <div class="piece-card__summary">Leaps exactly 2 squares. Cannot capture queens.</div>
         </div>
     </a>
-    <a href="/rules/pieces/bishop/" class="piece-card piece-card--bishop">
+    <a href="bishop/" class="piece-card piece-card--bishop">
         <div class="piece-card__glyph">♗</div>
         <div class="piece-card__content">
             <div class="piece-card__name">Bishop</div>
             <div class="piece-card__summary">Diagonal slider. Restricted to one network.</div>
         </div>
     </a>
-    <a href="/rules/pieces/rook/" class="piece-card piece-card--rook">
+    <a href="rook/" class="piece-card piece-card--rook">
         <div class="piece-card__glyph">♖</div>
         <div class="piece-card__content">
             <div class="piece-card__name">Rook</div>
             <div class="piece-card__summary">Orthogonal slider. Standard chess movement.</div>
         </div>
     </a>
-    <a href="/rules/pieces/knight/" class="piece-card piece-card--knight">
+    <a href="knight/" class="piece-card piece-card--knight">
         <div class="piece-card__glyph">♘</div>
         <div class="piece-card__content">
             <div class="piece-card__name">Knight</div>
             <div class="piece-card__summary">L-shaped leap. Standard chess movement.</div>
         </div>
     </a>
-    <a href="/rules/pieces/pawn/" class="piece-card piece-card--pawn">
+    <a href="pawn/" class="piece-card piece-card--pawn">
         <div class="piece-card__glyph">♙</div>
         <div class="piece-card__content">
             <div class="piece-card__name">Pawn</div>

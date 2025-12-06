@@ -80,4 +80,4 @@ You cannot capture your own teammate's pieces, even if they're in your way!
 
 ---
 
-**Previous:** [← How Pieces Move](/learn/movement)
+**Previous:** [← How Pieces Move](../movement/)

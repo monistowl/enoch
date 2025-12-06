@@ -70,6 +70,6 @@ This engine aims to make Enochian Chess accessible to all these audiences, prese
 ---
 
 <div style="margin-top: 2rem;">
-    <a href="/rules/" class="btn btn--primary">Read the Full Rules</a>
-    <a href="/arrays/" class="btn btn--secondary">Explore Starting Arrays</a>
+    <a href="../rules/" class="btn btn--primary">Read the Full Rules</a>
+    <a href="../arrays/" class="btn btn--secondary">Explore Starting Arrays</a>
 </div>

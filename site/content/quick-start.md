@@ -88,14 +88,14 @@ Only when the king has no legal moves can other pieces intervene.
 
 That's enough to play your first game. As you play, you'll encounter more nuances:
 
-- [Diagonal networks](/rules/pieces/bishop/) restrict which bishops can capture which queens
-- [Thrones](/rules/#thrones) let you resurrect frozen allies
-- [Privileged pawns](/rules/#privileged-pawn) can promote to anything when your army is depleted
+- [Diagonal networks](@/rules/pieces/bishop.md) restrict which bishops can capture which queens
+- [Thrones](@/rules/_index.md#thrones) let you resurrect frozen allies
+- [Privileged pawns](@/rules/_index.md#privileged-pawn) can promote to anything when your army is depleted
 
 But for now, just play. The elegance of Enochian Chess reveals itself at the board.
 
 <div style="margin-top: 2rem;">
-    <a href="/rules/" class="btn btn--primary">Read the Full Rules</a>
+    <a href="../rules/" class="btn btn--primary">Read the Full Rules</a>
 </div>
 
 ---
