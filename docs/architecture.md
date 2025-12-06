@@ -38,7 +38,7 @@ The following changes have been completed to transform the engine:
 ### 2. Move Generation (`src/engine/moves.rs`)
 
 *   **Queen:** Implemented the two-square Alibaba leap.
-*   **Bishop/Queen Interaction:** Implemented "Concourse of Bishoping" (Aries/Cancer diagonal systems).
+*   **Bishop/Queen Interaction:** Implemented Aries/Cancer diagonal systems for capture restrictions.
 *   **Pawn:** Removed double-step/en passant. Implemented single-step and diagonal capture per army direction.
 
 ### 3. Game Rules (`src/engine/game.rs`)

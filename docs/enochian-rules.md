@@ -101,6 +101,40 @@ Queens and bishops are permanently attached to one of the two systems. Arrays
 define the attachment per-piece. Legal move generation must ensure captures only
 occur across compatible systems.
 
+## Concourse Formations (Not Yet Implemented)
+
+Zalewski describes special formations when four pieces of the same type form a
+2×2 square:
+
+### Concourse of Bishoping (Rule 5.10)
+- If three Bishops are on adjacent squares and the fourth Bishop moves to
+  complete a 2×2 formation:
+  - The player completing the formation captures the two enemy Bishops
+  - Takes control of the ally Bishop's moves
+- Allied Bishops move on the same diagonal course
+- Enemy Bishops move on different courses
+- There are only 5 positions on the board where a concourse can occur (not
+  specified in available documentation)
+
+### Concourse of Queens (Rule 5.11)
+- Same rules as Concourse of Bishoping, but with four Queens
+
+> ⚠️ **Not implemented:** These formation rules require detecting when a move
+> completes a 2×2 square of same-piece-type, identifying friend vs foe in the
+> formation, and handling multi-capture plus control transfer. The exact 5 valid
+> positions are not documented in available sources.
+
+## Withdrawal (Rules 9.1-9.3)
+
+Players may withdraw from the game under certain conditions:
+
+1. **4-player mode (Rule 9.1-9.2):** Any player can withdraw at any time. Their
+   pieces transfer to ally control, and they lose their turn in the rotation.
+   If withdrawing with only a bare king, the ally takes both turns.
+
+2. **2-player mode (Rule 9.3):** Can only withdraw an army reduced to just its
+   king. The withdrawn king becomes frozen and that army loses its turn.
+
 ## Frozen Armies, Thrones, and Control
 
 1. **King capture:** When a king is captured, all pieces belonging to that army
