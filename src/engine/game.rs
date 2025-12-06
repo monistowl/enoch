@@ -67,6 +67,15 @@ impl Default for GameConfig {
     }
 }
 
+/// Result of detecting a Concourse formation (Rules 5.10-5.11)
+#[derive(Debug, Clone)]
+pub struct ConcourseResult {
+    pub piece_kind: PieceKind,
+    pub enemy1: (Square, Army),
+    pub enemy2: (Square, Army),
+    pub ally: (Square, Army),
+}
+
 #[derive(Debug, Clone)]
 pub struct GameState {
     pub current_turn_index: usize,
@@ -303,6 +312,135 @@ impl Game {
             let total_pieces: u32 = piece_counts.iter().sum();
             total_pieces == 1 && piece_counts[PieceKind::King.index()] == 1
         }
+    }
+
+    /// Check if a move to `square` by `moving_army` completes a Concourse formation (Rules 5.10-5.11).
+    /// A Concourse occurs when 4 Bishops or 4 Queens occupy a 2×2 square.
+    /// Returns Some((enemy1, enemy2, ally)) if a concourse is detected, where:
+    /// - enemy1, enemy2 are enemy piece positions to capture
+    /// - ally is the ally piece position whose control is gained
+    pub fn detect_concourse(&self, moving_army: Army, square: Square, piece_kind: PieceKind) -> Option<ConcourseResult> {
+        // Only bishops and queens can form a concourse
+        if piece_kind != PieceKind::Bishop && piece_kind != PieceKind::Queen {
+            return None;
+        }
+
+        let file = (square % 8) as i8;
+        let rank = (square / 8) as i8;
+
+        // Check all 2×2 formations that include the destination square
+        // A 2×2 has corners at (r, c), (r+1, c), (r, c+1), (r+1, c+1)
+        // The destination could be any of these 4 corners
+        let offsets: [(i8, i8); 4] = [
+            (0, 0),   // destination is bottom-left
+            (-1, 0),  // destination is top-left
+            (0, -1),  // destination is bottom-right
+            (-1, -1), // destination is top-right
+        ];
+
+        for (dr, dc) in offsets {
+            let base_rank = rank + dr;
+            let base_file = file + dc;
+
+            // Check bounds for the entire 2×2
+            if base_rank < 0 || base_rank > 6 || base_file < 0 || base_file > 6 {
+                continue;
+            }
+
+            let corners: [Square; 4] = [
+                (base_rank as u8 * 8 + base_file as u8),           // bottom-left
+                ((base_rank as u8 + 1) * 8 + base_file as u8),     // top-left
+                (base_rank as u8 * 8 + (base_file as u8 + 1)),     // bottom-right
+                ((base_rank as u8 + 1) * 8 + (base_file as u8 + 1)), // top-right
+            ];
+
+            // Check if all 4 corners have pieces of the same kind
+            let mut pieces: Vec<(Square, Army)> = Vec::new();
+            let mut all_same_kind = true;
+
+            for &corner in &corners {
+                if let Some((army, kind)) = self.board.piece_at(corner) {
+                    if kind == piece_kind {
+                        pieces.push((corner, army));
+                    } else {
+                        all_same_kind = false;
+                        break;
+                    }
+                } else if corner != square {
+                    // Empty square that's not our destination
+                    all_same_kind = false;
+                    break;
+                } else {
+                    // This is the destination square - count the moving piece
+                    pieces.push((corner, moving_army));
+                }
+            }
+
+            if !all_same_kind || pieces.len() != 4 {
+                continue;
+            }
+
+            // We have 4 pieces of the same kind in a 2×2!
+            // Identify enemies vs ally
+            let moving_team = moving_army.team();
+            let mut enemies: Vec<(Square, Army)> = Vec::new();
+            let mut allies: Vec<(Square, Army)> = Vec::new();
+
+            for (sq, army) in pieces {
+                if sq == square {
+                    continue; // Skip the moving piece
+                }
+                if army.team() == moving_team {
+                    allies.push((sq, army));
+                } else {
+                    enemies.push((sq, army));
+                }
+            }
+
+            // A valid concourse has exactly 2 enemies and 1 ally
+            if enemies.len() == 2 && allies.len() == 1 {
+                return Some(ConcourseResult {
+                    piece_kind,
+                    enemy1: enemies[0],
+                    enemy2: enemies[1],
+                    ally: allies[0],
+                });
+            }
+        }
+
+        None
+    }
+
+    /// Apply the effects of a Concourse formation (Rules 5.10-5.11).
+    /// Captures the two enemy pieces and transfers control of the ally piece.
+    pub fn apply_concourse(&mut self, moving_army: Army, result: &ConcourseResult) -> String {
+        let (enemy1_sq, enemy1_army) = result.enemy1;
+        let (enemy2_sq, enemy2_army) = result.enemy2;
+        let (_ally_sq, ally_army) = result.ally;
+
+        // Capture the two enemy pieces
+        self.board.remove_piece(enemy1_army, result.piece_kind, enemy1_sq);
+        self.board.remove_piece(enemy2_army, result.piece_kind, enemy2_sq);
+
+        // Transfer control of ally's army to the moving player
+        // Note: The rule says "takes control of the ally Bishop" - this could mean:
+        // 1. Just control of that specific piece's moves, or
+        // 2. Control of the entire ally army
+        // Based on Enochian Chess conventions, we'll interpret this as gaining control
+        // of the ally army (similar to seizing a throne)
+        let controller = self.board.controller_for(moving_army);
+        self.board.set_controller(ally_army, controller);
+
+        format!(
+            "Concourse of {}! {} captures enemy {} at {} and {}, gains control of {} {}",
+            if result.piece_kind == PieceKind::Bishop { "Bishoping" } else { "Queens" },
+            moving_army.display_name(),
+            if result.piece_kind == PieceKind::Bishop { "Bishops" } else { "Queens" },
+            Self::square_notation(enemy1_sq),
+            Self::square_notation(enemy2_sq),
+            ally_army.display_name(),
+            if result.piece_kind == PieceKind::Bishop { "Bishop" } else { "Queen" },
+        )
     }
 
     pub fn king_moves_bitboard(&self, army: Army) -> u64 {
@@ -779,18 +917,32 @@ impl Game {
             }
         }
 
+        // Check for Concourse formation (Rules 5.10-5.11)
+        let concourse_msg = if let Some(concourse) = self.detect_concourse(army, to, piece_kind) {
+            Some(self.apply_concourse(army, &concourse))
+        } else {
+            None
+        };
+
         self.state.sync_with_board(&self.board);
         for &other in Army::ALL.iter() {
             self.update_stalemate_status(other);
         }
         self.advance_to_next_army();
 
-        Ok(format!(
+        // Build the return message
+        let base_msg = format!(
             "{} moved {} to {}",
             army.display_name(),
             Self::piece_name(piece_kind),
             Self::square_notation(to)
-        ))
+        );
+
+        if let Some(concourse) = concourse_msg {
+            Ok(format!("{}. {}", base_msg, concourse))
+        } else {
+            Ok(base_msg)
+        }
     }
 
     fn advance_to_next_army(&mut self) {

@@ -1260,3 +1260,158 @@ fn cannot_withdraw_twice() {
     let result2 = game.withdraw_army(Army::Blue);
     assert!(result2.is_err(), "Cannot withdraw an army that has already withdrawn");
 }
+
+// ============================================================================
+// Concourse Formation Tests (Rules 5.10-5.11)
+// ============================================================================
+
+/// Test that detect_concourse finds a valid bishop concourse formation.
+#[test]
+fn detect_concourse_finds_bishop_formation() {
+    // Set up a 2x2 formation of 4 bishops at d4, d5, e4, e5
+    // Blue bishop at d4 (moving), Black bishop at e4 (ally)
+    // Red bishop at d5 (enemy), Yellow bishop at e5 (enemy)
+    let placements = &[
+        // Kings for each army (required)
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('a', 1))),
+        (Army::Black, Piece { army: Army::Black, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('a', 8))),
+        (Army::Red, Piece { army: Army::Red, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('h', 8))),
+        (Army::Yellow, Piece { army: Army::Yellow, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('h', 1))),
+        // The 3 existing bishops that form part of the 2x2
+        (Army::Black, Piece { army: Army::Black, kind: PieceKind::Bishop, pawn_type: None, diagonal_system: None }, bit(square('e', 4))),
+        (Army::Red, Piece { army: Army::Red, kind: PieceKind::Bishop, pawn_type: None, diagonal_system: None }, bit(square('d', 5))),
+        (Army::Yellow, Piece { army: Army::Yellow, kind: PieceKind::Bishop, pawn_type: None, diagonal_system: None }, bit(square('e', 5))),
+        // Blue bishop will move to d4 to complete the formation
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Bishop, pawn_type: None, diagonal_system: None }, bit(square('c', 3))),
+    ];
+
+    let game = build_two_player_game_with_pieces(placements);
+
+    // Detect concourse at d4 (where Blue's bishop would move)
+    let result = game.detect_concourse(Army::Blue, square('d', 4), PieceKind::Bishop);
+    assert!(result.is_some(), "Should detect a concourse formation");
+
+    let concourse = result.unwrap();
+    assert_eq!(concourse.piece_kind, PieceKind::Bishop);
+    // Should have 2 enemies (Red and Yellow)
+    assert!(concourse.enemy1.1 == Army::Red || concourse.enemy1.1 == Army::Yellow);
+    assert!(concourse.enemy2.1 == Army::Red || concourse.enemy2.1 == Army::Yellow);
+    assert_ne!(concourse.enemy1.1, concourse.enemy2.1);
+    // Should have 1 ally (Black)
+    assert_eq!(concourse.ally.1, Army::Black);
+}
+
+/// Test that detect_concourse finds a valid queen concourse formation.
+#[test]
+fn detect_concourse_finds_queen_formation() {
+    // Similar setup but with queens
+    let placements = &[
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('a', 1))),
+        (Army::Black, Piece { army: Army::Black, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('a', 8))),
+        (Army::Red, Piece { army: Army::Red, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('h', 8))),
+        (Army::Yellow, Piece { army: Army::Yellow, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('h', 1))),
+        // 3 queens already in position
+        (Army::Black, Piece { army: Army::Black, kind: PieceKind::Queen, pawn_type: None, diagonal_system: None }, bit(square('e', 4))),
+        (Army::Red, Piece { army: Army::Red, kind: PieceKind::Queen, pawn_type: None, diagonal_system: None }, bit(square('d', 5))),
+        (Army::Yellow, Piece { army: Army::Yellow, kind: PieceKind::Queen, pawn_type: None, diagonal_system: None }, bit(square('e', 5))),
+        // Blue queen will move to d4
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Queen, pawn_type: None, diagonal_system: None }, bit(square('b', 2))),
+    ];
+
+    let game = build_two_player_game_with_pieces(placements);
+
+    let result = game.detect_concourse(Army::Blue, square('d', 4), PieceKind::Queen);
+    assert!(result.is_some(), "Should detect a queen concourse formation");
+    assert_eq!(result.unwrap().piece_kind, PieceKind::Queen);
+}
+
+/// Test that apply_concourse captures enemy pieces and transfers control.
+#[test]
+fn apply_concourse_captures_enemies_and_transfers_control() {
+    let placements = &[
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('a', 1))),
+        (Army::Black, Piece { army: Army::Black, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('a', 8))),
+        (Army::Red, Piece { army: Army::Red, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('h', 8))),
+        (Army::Yellow, Piece { army: Army::Yellow, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('h', 1))),
+        // 3 bishops already in position
+        (Army::Black, Piece { army: Army::Black, kind: PieceKind::Bishop, pawn_type: None, diagonal_system: None }, bit(square('e', 4))),
+        (Army::Red, Piece { army: Army::Red, kind: PieceKind::Bishop, pawn_type: None, diagonal_system: None }, bit(square('d', 5))),
+        (Army::Yellow, Piece { army: Army::Yellow, kind: PieceKind::Bishop, pawn_type: None, diagonal_system: None }, bit(square('e', 5))),
+        // Blue bishop at c3 will move to d4
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Bishop, pawn_type: None, diagonal_system: None }, bit(square('c', 3))),
+    ];
+
+    let mut game = build_two_player_game_with_pieces(placements);
+
+    // Get controllers before concourse
+    let blue_ctrl = game.board.controller_for(Army::Blue);
+
+    // Count bishops before
+    let red_bishops_before = game.board.piece_counts(Army::Red)[PieceKind::Bishop.index()];
+    let yellow_bishops_before = game.board.piece_counts(Army::Yellow)[PieceKind::Bishop.index()];
+
+    // Move Blue's bishop to d4 to complete the concourse
+    let result = game.apply_move(Army::Blue, square('c', 3), square('d', 4), None);
+    assert!(result.is_ok(), "Move should succeed: {:?}", result);
+    assert!(result.unwrap().contains("Concourse"), "Result should mention Concourse");
+
+    // Enemy bishops should be captured
+    let red_bishops_after = game.board.piece_counts(Army::Red)[PieceKind::Bishop.index()];
+    let yellow_bishops_after = game.board.piece_counts(Army::Yellow)[PieceKind::Bishop.index()];
+    assert_eq!(red_bishops_after, red_bishops_before - 1, "Red bishop should be captured");
+    assert_eq!(yellow_bishops_after, yellow_bishops_before - 1, "Yellow bishop should be captured");
+
+    // Black's controller should now match Blue's controller
+    let black_ctrl_after = game.board.controller_for(Army::Black);
+    assert_eq!(black_ctrl_after, blue_ctrl, "Black should be controlled by Blue's player after concourse");
+}
+
+/// Test that concourse is NOT detected for other piece types.
+#[test]
+fn concourse_not_detected_for_rooks_or_knights() {
+    let placements = &[
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('a', 1))),
+        (Army::Black, Piece { army: Army::Black, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('a', 8))),
+        (Army::Red, Piece { army: Army::Red, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('h', 8))),
+        (Army::Yellow, Piece { army: Army::Yellow, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('h', 1))),
+        // 4 rooks in a 2x2
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Rook, pawn_type: None, diagonal_system: None }, bit(square('d', 4))),
+        (Army::Black, Piece { army: Army::Black, kind: PieceKind::Rook, pawn_type: None, diagonal_system: None }, bit(square('e', 4))),
+        (Army::Red, Piece { army: Army::Red, kind: PieceKind::Rook, pawn_type: None, diagonal_system: None }, bit(square('d', 5))),
+        (Army::Yellow, Piece { army: Army::Yellow, kind: PieceKind::Rook, pawn_type: None, diagonal_system: None }, bit(square('e', 5))),
+    ];
+
+    let game = build_two_player_game_with_pieces(placements);
+
+    // Rooks should NOT trigger concourse
+    let result = game.detect_concourse(Army::Blue, square('d', 4), PieceKind::Rook);
+    assert!(result.is_none(), "Rooks should not form a concourse");
+
+    // Knights should NOT trigger concourse
+    let result = game.detect_concourse(Army::Blue, square('d', 4), PieceKind::Knight);
+    assert!(result.is_none(), "Knights should not form a concourse");
+}
+
+/// Test that concourse requires exactly 2 enemies and 1 ally.
+#[test]
+fn concourse_requires_two_enemies_and_one_ally() {
+    // Set up with 3 allies and 1 enemy - should NOT trigger concourse
+    let placements = &[
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('a', 1))),
+        (Army::Black, Piece { army: Army::Black, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('a', 8))),
+        (Army::Red, Piece { army: Army::Red, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('h', 8))),
+        (Army::Yellow, Piece { army: Army::Yellow, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('h', 1))),
+        // 3 Air team bishops (Blue allies with Black)
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Bishop, pawn_type: None, diagonal_system: None }, bit(square('d', 4))),
+        (Army::Black, Piece { army: Army::Black, kind: PieceKind::Bishop, pawn_type: None, diagonal_system: None }, bit(square('e', 4))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Bishop, pawn_type: None, diagonal_system: None }, bit(square('d', 5))),
+        // Only 1 enemy bishop
+        (Army::Red, Piece { army: Army::Red, kind: PieceKind::Bishop, pawn_type: None, diagonal_system: None }, bit(square('e', 5))),
+    ];
+
+    let game = build_two_player_game_with_pieces(placements);
+
+    // With only 1 enemy, no concourse should be detected
+    let result = game.detect_concourse(Army::Blue, square('d', 4), PieceKind::Bishop);
+    assert!(result.is_none(), "Concourse requires exactly 2 enemies, not 1");
+}

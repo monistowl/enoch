@@ -101,7 +101,7 @@ Queens and bishops are permanently attached to one of the two systems. Arrays
 define the attachment per-piece. Legal move generation must ensure captures only
 occur across compatible systems.
 
-## Concourse Formations (Not Yet Implemented)
+## Concourse Formations (Rules 5.10-5.11)
 
 Zalewski describes special formations when four pieces of the same type form a
 2×2 square:
@@ -109,20 +109,21 @@ Zalewski describes special formations when four pieces of the same type form a
 ### Concourse of Bishoping (Rule 5.10)
 - If three Bishops are on adjacent squares and the fourth Bishop moves to
   complete a 2×2 formation:
-  - The player completing the formation captures the two enemy Bishops
-  - Takes control of the ally Bishop's moves
+  - The player completing the formation **captures the two enemy Bishops**
+  - **Takes control of the ally's army** (similar to seizing a throne)
 - Allied Bishops move on the same diagonal course
 - Enemy Bishops move on different courses
-- There are only 5 positions on the board where a concourse can occur (not
-  specified in available documentation)
+- The original text mentions "5 positions" where concourse can occur, but the
+  engine implements detection for any valid 2×2 formation
 
 ### Concourse of Queens (Rule 5.11)
 - Same rules as Concourse of Bishoping, but with four Queens
 
-> ⚠️ **Not implemented:** These formation rules require detecting when a move
-> completes a 2×2 square of same-piece-type, identifying friend vs foe in the
-> formation, and handling multi-capture plus control transfer. The exact 5 valid
-> positions are not documented in available sources.
+### Requirements for a Valid Concourse
+- Exactly 4 pieces of the same type (all Bishops or all Queens) in a 2×2 square
+- The formation must contain exactly 2 enemy pieces and 1 ally piece
+  (plus the moving piece)
+- Rooks, Knights, Pawns, and Kings cannot form a concourse
 
 ## Withdrawal (Rules 9.1-9.3)
 
