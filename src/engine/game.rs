@@ -74,6 +74,10 @@ pub struct GameState {
     pub king_positions: [Option<Square>; ARMY_COUNT],
     pub stalemated_armies: [bool; ARMY_COUNT],
     pub divination_die: Option<u8>,
+    /// Armies that have withdrawn from the game (Rule 9.1-9.3).
+    /// A withdrawn army's pieces are controlled by the ally, but the army itself
+    /// is marked as withdrawn for turn order purposes.
+    pub withdrawn_armies: [bool; ARMY_COUNT],
 }
 
 impl GameState {
@@ -84,6 +88,7 @@ impl GameState {
             king_positions: [None; ARMY_COUNT],
             stalemated_armies: [false; ARMY_COUNT],
             divination_die: None,
+            withdrawn_armies: [false; ARMY_COUNT],
         }
     }
 
@@ -122,6 +127,14 @@ impl GameState {
 
     pub fn is_stalemated(&self, army: Army) -> bool {
         self.stalemated_armies[army.index()]
+    }
+
+    pub fn is_withdrawn(&self, army: Army) -> bool {
+        self.withdrawn_armies[army.index()]
+    }
+
+    pub fn set_withdrawn(&mut self, army: Army, withdrawn: bool) {
+        self.withdrawn_armies[army.index()] = withdrawn;
     }
 
     pub fn kings_alive(&self, team: Team) -> usize {
@@ -220,6 +233,76 @@ impl Game {
         let controller = self.board.controller_for(capturing_army);
         self.board.set_controller(captured_army, controller);
         // Pieces are NOT frozen - they remain active under ally's control
+    }
+
+    /// Withdraw an army from the game (Rules 9.1-9.3).
+    ///
+    /// In 4-player mode (Rule 9.1-9.2):
+    /// - Army's pieces are transferred to ally's control
+    /// - Army is marked as withdrawn
+    /// - If `bare_king` is true (Rule 9.1), the ally takes both turns and controls the King
+    ///
+    /// In 2-player mode (Rule 9.3):
+    /// - Only applies when withdrawing an army that has only its king left
+    /// - The withdrawn army's king becomes frozen
+    /// - The withdrawing player loses that army's turn
+    ///
+    /// Returns an error if:
+    /// - The army is already frozen or withdrawn
+    /// - In 2-player mode, trying to withdraw an army that isn't reduced to just a king
+    pub fn withdraw_army(&mut self, army: Army) -> Result<(), &'static str> {
+        // Can't withdraw an already-frozen or withdrawn army
+        if self.army_is_frozen(army) {
+            return Err("Cannot withdraw: army is already frozen");
+        }
+        if self.state.is_withdrawn(army) {
+            return Err("Cannot withdraw: army has already withdrawn");
+        }
+
+        let ally = army.ally();
+        let ally_controller = self.board.controller_for(ally);
+
+        if self.is_four_player_mode() {
+            // Rule 9.1 & 9.2: Transfer control to ally
+            self.board.set_controller(army, ally_controller);
+            self.state.set_withdrawn(army, true);
+            // Note: Turn handling for "both turns" (Rule 9.1) should be managed by
+            // the turn advancement logic, checking is_withdrawn() and bare_king status
+        } else {
+            // Rule 9.3 (2-player mode): Can only withdraw if reduced to just king
+            // Check if army has only its king left
+            let piece_counts = self.board.piece_counts(army);
+            let total_pieces: u32 = piece_counts.iter().sum();
+            let has_only_king = total_pieces == 1 && piece_counts[PieceKind::King.index()] == 1;
+
+            if !has_only_king {
+                return Err("In 2-player mode, can only withdraw an army reduced to just its king");
+            }
+
+            // Freeze the army's king and mark as withdrawn
+            self.state.set_frozen(army, true);
+            self.state.set_withdrawn(army, true);
+            // Note: The withdrawing player loses this army's turn
+        }
+
+        Ok(())
+    }
+
+    /// Check if an army can withdraw (has valid withdrawal conditions)
+    pub fn can_withdraw(&self, army: Army) -> bool {
+        if self.army_is_frozen(army) || self.state.is_withdrawn(army) {
+            return false;
+        }
+
+        if self.is_four_player_mode() {
+            // In 4-player mode, any non-frozen army can withdraw at any time
+            true
+        } else {
+            // In 2-player mode, can only withdraw if reduced to just king
+            let piece_counts = self.board.piece_counts(army);
+            let total_pieces: u32 = piece_counts.iter().sum();
+            total_pieces == 1 && piece_counts[PieceKind::King.index()] == 1
+        }
     }
 
     pub fn king_moves_bitboard(&self, army: Army) -> u64 {

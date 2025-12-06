@@ -25,6 +25,9 @@ pub struct ArmyStateFen {
     /// Throne overlay pieces (one per throne square, indexed 0 and 1)
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub throne_overlay: Option<[Option<OverlayPieceFen>; 2]>,
+    /// Whether the army has withdrawn from the game (Rule 9.1-9.3)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub is_withdrawn: Option<bool>,
 }
 
 /// Serializable representation of an overlay piece
@@ -79,6 +82,13 @@ impl EnochFen {
                 None
             };
 
+            // Only serialize withdrawn status if true
+            let is_withdrawn = if game.state.is_withdrawn(army) {
+                Some(true)
+            } else {
+                None
+            };
+
             army_states.push(ArmyStateFen {
                 army,
                 controller: game.board.controller_for(army),
@@ -87,6 +97,7 @@ impl EnochFen {
                 is_stalemated: game.state.stalemated_armies[idx],
                 king_square: game.state.king_square(army),
                 throne_overlay,
+                is_withdrawn,
             });
         }
 
@@ -161,6 +172,11 @@ impl EnochFen {
         for state in &self.army_states {
             game.state.set_stalemate(state.army, state.is_stalemated);
             game.state.set_king_square(state.army, state.king_square);
+
+            // Restore withdrawn status
+            if state.is_withdrawn.unwrap_or(false) {
+                game.state.set_withdrawn(state.army, true);
+            }
 
             // Restore throne overlay pieces
             if let Some(overlay) = &state.throne_overlay {

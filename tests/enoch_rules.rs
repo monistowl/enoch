@@ -1144,3 +1144,119 @@ fn control_reversion_only_affects_controlled_allies() {
     assert_eq!(game.board.controller_for(Army::Black), original_black_ctrl,
                "Black's controller should be unchanged since Blue wasn't controlling it");
 }
+
+// ============================================================================
+// Withdrawal Tests (Rules 9.1-9.3)
+// ============================================================================
+
+/// Test withdrawal in 4-player mode transfers control to ally (Rule 9.1-9.2).
+#[test]
+fn withdrawal_in_four_player_mode_transfers_control_to_ally() {
+    let placements = &[
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('e', 1))),
+        (Army::Black, Piece { army: Army::Black, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('a', 5))),
+        (Army::Red, Piece { army: Army::Red, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('h', 8))),
+        (Army::Yellow, Piece { army: Army::Yellow, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('h', 1))),
+    ];
+
+    let mut game = build_four_player_game_with_pieces(placements);
+
+    // Get Blue's controller before withdrawal
+    let blue_ctrl_before = game.board.controller_for(Army::Blue);
+    let black_ctrl = game.board.controller_for(Army::Black);
+
+    // Blue withdraws
+    let result = game.withdraw_army(Army::Blue);
+    assert!(result.is_ok(), "Blue should be able to withdraw: {:?}", result);
+
+    // Blue should now be controlled by Black's controller (ally)
+    assert_eq!(game.board.controller_for(Army::Blue), black_ctrl,
+               "After withdrawal, Blue should be controlled by Black's player");
+
+    // Blue should be marked as withdrawn
+    assert!(game.state.is_withdrawn(Army::Blue), "Blue should be marked as withdrawn");
+
+    // Blue should NOT be frozen (pieces remain active under ally)
+    assert!(!game.army_is_frozen(Army::Blue), "Blue should not be frozen after withdrawal");
+}
+
+/// Test withdrawal in 2-player mode requires only king remaining (Rule 9.3).
+#[test]
+fn withdrawal_in_two_player_mode_requires_bare_king() {
+    let placements = &[
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('e', 1))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Pawn, pawn_type: Some(PieceKind::Queen), diagonal_system: None }, bit(square('e', 2))),
+        (Army::Black, Piece { army: Army::Black, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('a', 5))),
+        (Army::Red, Piece { army: Army::Red, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('h', 8))),
+        (Army::Yellow, Piece { army: Army::Yellow, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('h', 1))),
+    ];
+
+    let mut game = build_two_player_game_with_pieces(placements);
+
+    // Blue has a king AND a pawn, so cannot withdraw in 2-player mode
+    let result = game.withdraw_army(Army::Blue);
+    assert!(result.is_err(), "Blue should NOT be able to withdraw with pieces other than king");
+}
+
+/// Test withdrawal in 2-player mode with only king freezes that king (Rule 9.3).
+#[test]
+fn withdrawal_in_two_player_mode_freezes_bare_king() {
+    let placements = &[
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('e', 1))),
+        (Army::Black, Piece { army: Army::Black, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('a', 5))),
+        (Army::Red, Piece { army: Army::Red, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('h', 8))),
+        (Army::Yellow, Piece { army: Army::Yellow, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('h', 1))),
+    ];
+
+    let mut game = build_two_player_game_with_pieces(placements);
+
+    // Blue has only its king, so can withdraw in 2-player mode
+    let result = game.withdraw_army(Army::Blue);
+    assert!(result.is_ok(), "Blue should be able to withdraw with only king: {:?}", result);
+
+    // Blue should be both withdrawn AND frozen
+    assert!(game.state.is_withdrawn(Army::Blue), "Blue should be marked as withdrawn");
+    assert!(game.army_is_frozen(Army::Blue), "Blue's king should be frozen after withdrawal in 2-player mode");
+}
+
+/// Test can_withdraw correctly reports withdrawal availability.
+#[test]
+fn can_withdraw_reports_correct_availability() {
+    // In 4-player mode, any non-frozen army can withdraw
+    let placements = &[
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('e', 1))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Rook, pawn_type: None, diagonal_system: None }, bit(square('a', 1))),
+        (Army::Black, Piece { army: Army::Black, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('a', 5))),
+        (Army::Red, Piece { army: Army::Red, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('h', 8))),
+        (Army::Yellow, Piece { army: Army::Yellow, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('h', 1))),
+    ];
+
+    let game = build_four_player_game_with_pieces(placements);
+    assert!(game.can_withdraw(Army::Blue), "In 4-player mode, any army can withdraw");
+
+    // In 2-player mode, only bare king armies can withdraw
+    let game_2p = build_two_player_game_with_pieces(placements);
+    assert!(!game_2p.can_withdraw(Army::Blue), "In 2-player mode, Blue with rook cannot withdraw");
+    assert!(game_2p.can_withdraw(Army::Black), "In 2-player mode, Black with only king can withdraw");
+}
+
+/// Test that an already-withdrawn army cannot withdraw again.
+#[test]
+fn cannot_withdraw_twice() {
+    let placements = &[
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('e', 1))),
+        (Army::Black, Piece { army: Army::Black, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('a', 5))),
+        (Army::Red, Piece { army: Army::Red, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('h', 8))),
+        (Army::Yellow, Piece { army: Army::Yellow, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('h', 1))),
+    ];
+
+    let mut game = build_four_player_game_with_pieces(placements);
+
+    // First withdrawal should succeed
+    let result1 = game.withdraw_army(Army::Blue);
+    assert!(result1.is_ok());
+
+    // Second withdrawal should fail
+    let result2 = game.withdraw_army(Army::Blue);
+    assert!(result2.is_err(), "Cannot withdraw an army that has already withdrawn");
+}

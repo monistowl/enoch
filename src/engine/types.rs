@@ -49,6 +49,16 @@ impl Army {
             Army::Red | Army::Yellow => Team::Earth,
         }
     }
+
+    /// Returns the allied army (the other army on the same team)
+    pub fn ally(self) -> Army {
+        match self {
+            Army::Blue => Army::Black,
+            Army::Black => Army::Blue,
+            Army::Red => Army::Yellow,
+            Army::Yellow => Army::Red,
+        }
+    }
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug, Hash, Serialize, Deserialize)]
