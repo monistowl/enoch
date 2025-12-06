@@ -14,11 +14,18 @@ const ROOK_VALUE: i32 = 500;
 const QUEEN_VALUE: i32 = 900;
 const KING_VALUE: i32 = 20000;
 
+/// AI player for Enochian Chess.
+/// Currently uses single-ply material evaluation.
+/// TODO: Implement minimax with alpha-beta pruning using depth parameter.
 pub struct Ai {
+    /// Search depth for future minimax implementation
+    #[allow(dead_code)]
     depth: u8,
 }
 
 impl Ai {
+    /// Create a new AI with the given search depth.
+    /// Note: depth is currently unused (single-ply only) but reserved for future minimax.
     pub fn new(depth: u8) -> Self {
         Self { depth }
     }

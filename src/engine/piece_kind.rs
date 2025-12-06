@@ -221,6 +221,8 @@ fn parse_pawn(source: char, mut chars: Chars) -> Result<ParsedMove, ParseError> 
     }
 
     let mut state = PawnParserState::Initial;
+    // Note: target_rank is always assigned before use, but Rust requires initialization
+    #[allow(unused_assignments)]
     let mut target_rank: u64 = 0;
     let mut target_file = source;
 

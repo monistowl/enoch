@@ -1,6 +1,5 @@
-use crate::engine::arrays::available_arrays;
-use crate::engine::game::{Game, Mode};
-use crate::engine::types::{Army, PieceKind, PlayerId, Square, Team};
+use crate::engine::game::Mode;
+use crate::engine::types::{Army, PieceKind, Team};
 use crate::ui::app::{App, InputMode};
 use ratatui::layout::{Alignment, Constraint, Direction, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style};
@@ -171,7 +170,7 @@ fn render_info_panel(frame: &mut Frame, app: &App, area: Rect) {
     frame.render_widget(history, info_chunks[1]);
 }
 
-fn render_captures(app: &App, team: Team) -> Paragraph {
+fn render_captures(app: &App, team: Team) -> Paragraph<'_> {
     let title = format!("{} Captures", team.name());
     let mut captured_text = Vec::new();
     
@@ -212,7 +211,7 @@ fn render_captures(app: &App, team: Team) -> Paragraph {
         .wrap(Wrap { trim: true })
 }
 
-fn render_history(app: &App) -> Text {
+fn render_history(app: &App) -> Text<'_> {
     let mut lines = Vec::new();
     for (i, cmd) in app.command_history.iter().rev().take(10).enumerate() {
         lines.push(Line::from(format!("{}. {}", app.command_history.len() - i, cmd)));
@@ -242,7 +241,7 @@ fn style_for_army(army: Army) -> Style {
     }
 }
 
-fn build_status_lines(app: &App) -> Text {
+fn build_status_lines(app: &App) -> Text<'_> {
     let mut lines = Vec::new();
     let current_army = app.game.state.current_army(&app.game.config);
     
@@ -316,7 +315,7 @@ fn die_piece_name(die: u8) -> &'static str {
     }
 }
 
-fn text_from_board(app: &App) -> Text {
+fn text_from_board(app: &App) -> Text<'_> {
     let mut lines = Vec::new();
     let current_army = app.game.current_army();
     for rank in (0..8).rev() {
@@ -431,16 +430,4 @@ fn piece_character(army: Army, kind: PieceKind) -> char {
     } else {
         letter
     }
-}
-
-fn controller_label(id: PlayerId) -> &'static str {
-    match id.0 {
-        0 => "P1",
-        1 => "P2",
-        _ => "P?",
-    }
-}
-
-fn command_help() -> String {
-    "/new <array>  /save <path>  /load <path>  /mode <div|normal>  /ai  army: e2-e4".to_string()
 }

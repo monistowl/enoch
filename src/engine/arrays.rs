@@ -208,19 +208,6 @@ define_cross_placements!(PLACEMENTS_FIRE_G2, SETTING_FIRE_G2);
 
 // --- Arrays ---
 
-// Controller Maps and Thrones for Boards
-// Fire Board: Blue S, Red N, Black W (Rank 3), Yellow E (Rank 5)
-// Note: "Black W" and "Yellow E" labels refer to typical position, but here they are bands.
-// Turn Order: Blue -> Red -> Black -> Yellow
-const CONTROLLERS_FIRE: [PlayerId; 4] = [PlayerId::PLAYER_ONE, PlayerId::PLAYER_ONE, PlayerId::PLAYER_TWO, PlayerId::PLAYER_TWO]; // Blue/Red P1, Black/Yellow P2?
-// Wait, default was: Blue P1, Black P1, Red P2, Yellow P2.
-// Let's stick to default controller map for consistency unless specified.
-// Prototype used: Blue P1, Red P1, Black P2, Yellow P2.
-// But `TABLET_OF_FIRE_PROTOTYPE` in old file had: [Blue, Red, Black, Yellow] order.
-// Controller map: [P1, P1, P2, P2].
-// So Blue/Red = P1. Black/Yellow = P2.
-// Let's keep this.
-
 // Throne squares for Cross/Edge layout (per enochian-rules.md)
 // Blue: d1, e1 (Southern throne)
 // Black: a5, a4 (Northern/Water throne)
