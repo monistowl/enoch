@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use crate::engine::types::{Army, PieceKind, PlayerId, Square, Piece, ARMY_COUNT};
 use crate::engine::game::{Game, GameConfig, Mode};
-use crate::engine::board::{Board, ArmyState, DEFAULT_PROMOTION_ZONES};
+use crate::engine::board::{Board, ArmyState, OverlayPiece, DEFAULT_PROMOTION_ZONES};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct EnochFen {
@@ -22,6 +22,16 @@ pub struct ArmyStateFen {
     pub is_frozen: bool,
     pub is_stalemated: bool,
     pub king_square: Option<Square>,
+    /// Throne overlay pieces (one per throne square, indexed 0 and 1)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub throne_overlay: Option<[Option<OverlayPieceFen>; 2]>,
+}
+
+/// Serializable representation of an overlay piece
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct OverlayPieceFen {
+    pub army: Army,
+    pub kind: PieceKind,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -47,6 +57,18 @@ impl EnochFen {
         let mut army_states = Vec::new();
         for army in Army::ALL {
             let idx = army.index();
+
+            // Serialize throne overlay if any pieces exist
+            let overlay = &game.board.throne_overlay[idx];
+            let throne_overlay = if overlay[0].is_some() || overlay[1].is_some() {
+                Some([
+                    overlay[0].map(|o| OverlayPieceFen { army: o.army, kind: o.kind }),
+                    overlay[1].map(|o| OverlayPieceFen { army: o.army, kind: o.kind }),
+                ])
+            } else {
+                None
+            };
+
             army_states.push(ArmyStateFen {
                 army,
                 controller: game.board.controller_for(army),
@@ -54,6 +76,7 @@ impl EnochFen {
                 is_frozen: game.state.army_frozen[idx],
                 is_stalemated: game.state.stalemated_armies[idx],
                 king_square: game.state.king_square(army),
+                throne_overlay,
             });
         }
 
@@ -121,12 +144,21 @@ impl EnochFen {
         };
 
         let mut game = Game::with_config(board, config);
-        
+
         game.state.current_turn_index = self.current_turn_index;
         game.state.divination_die = self.divination_die;
         for state in &self.army_states {
             game.state.set_stalemate(state.army, state.is_stalemated);
             game.state.set_king_square(state.army, state.king_square);
+
+            // Restore throne overlay pieces
+            if let Some(overlay) = &state.throne_overlay {
+                let idx = state.army.index();
+                game.board.throne_overlay[idx] = [
+                    overlay[0].as_ref().map(|o| OverlayPiece { army: o.army, kind: o.kind }),
+                    overlay[1].as_ref().map(|o| OverlayPiece { army: o.army, kind: o.kind }),
+                ];
+            }
         }
         
         Ok(game)

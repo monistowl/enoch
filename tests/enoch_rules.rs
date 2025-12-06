@@ -1,5 +1,5 @@
 use enoch::engine::{
-    board::Board,
+    board::{Board, OverlayPiece},
     game::{Game, GameConfig},
     types::{Army, Piece, PieceKind, Square},
 };
@@ -318,4 +318,163 @@ fn stalemate_clears_after_any_move() {
     lone_game.update_stalemate_status(Army::Blue);
     // King in center has 8 moves, not stalemated
     assert!(!lone_game.army_in_stalemate(Army::Blue), "Lone king can move");
+}
+
+// =============================================================================
+// THRONE DOUBLE-OCCUPANCY TESTS
+// =============================================================================
+
+/// Test that a piece can move to share a throne with an allied king.
+/// Blue's throne squares are d1 and e1. If Blue king is on d1, a Blue piece can overlay.
+#[test]
+fn throne_overlay_allows_allied_piece_to_share_throne() {
+    // Blue king on d1 (Blue's throne), Blue rook on c1 that can slide to d1
+    let placements = &[
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None }, bit(square('d', 1))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Rook, pawn_type: None }, bit(square('c', 1))),
+    ];
+    let mut game = build_game_with_pieces(placements);
+
+    // Rook should be able to move to d1 (throne with own king)
+    let result = game.apply_move(Army::Blue, square('c', 1), square('d', 1), None);
+    assert!(result.is_ok(), "Rook should be able to share king's throne: {:?}", result);
+
+    // King should still be on d1
+    assert_eq!(game.board.piece_at(square('d', 1)), Some((Army::Blue, PieceKind::King)));
+
+    // Rook should be in the overlay
+    let overlay = game.board.get_throne_overlay(Army::Blue, 0);
+    assert_eq!(overlay, Some(OverlayPiece { army: Army::Blue, kind: PieceKind::Rook }));
+}
+
+/// Test that allied team member (Black for Blue) can also share throne.
+#[test]
+fn throne_overlay_allows_teammate_to_share_throne() {
+    // Blue king on d1 (Blue's throne), Black knight nearby
+    // Team Air = Blue + Black
+    let placements = &[
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None }, bit(square('d', 1))),
+        (Army::Black, Piece { army: Army::Black, kind: PieceKind::Knight, pawn_type: None }, bit(square('c', 3))),
+    ];
+    let mut game = build_game_with_pieces(placements);
+
+    // Skip to Black's turn (turn order: Blue, Red, Black, Yellow)
+    game.state.current_turn_index = 2; // Black's turn
+
+    // Black knight at c3 can jump to d1 (L-shape move)
+    let result = game.apply_move(Army::Black, square('c', 3), square('d', 1), None);
+    assert!(result.is_ok(), "Black knight should share Blue king's throne: {:?}", result);
+
+    // Verify overlay contains Black's knight
+    let overlay = game.board.get_throne_overlay(Army::Blue, 0);
+    assert_eq!(overlay, Some(OverlayPiece { army: Army::Black, kind: PieceKind::Knight }));
+}
+
+/// Test that king moving away from throne restores the overlay piece.
+#[test]
+fn throne_overlay_restores_piece_when_king_leaves() {
+    // Setup: Blue king on d1, rook already in overlay
+    let placements = &[
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None }, bit(square('d', 1))),
+    ];
+    let mut game = build_game_with_pieces(placements);
+
+    // Manually set overlay (simulating a piece that moved there earlier)
+    game.board.set_throne_overlay(Army::Blue, 0, OverlayPiece { army: Army::Blue, kind: PieceKind::Rook });
+
+    // King moves away from d1 to e1
+    let result = game.apply_move(Army::Blue, square('d', 1), square('e', 1), None);
+    assert!(result.is_ok(), "King should be able to leave throne: {:?}", result);
+
+    // Rook should now be visible at d1
+    assert_eq!(game.board.piece_at(square('d', 1)), Some((Army::Blue, PieceKind::Rook)));
+
+    // Overlay should be cleared
+    let overlay = game.board.get_throne_overlay(Army::Blue, 0);
+    assert!(overlay.is_none(), "Overlay should be cleared after king leaves");
+}
+
+/// Test that capturing a king on double-occupied throne removes both pieces.
+#[test]
+fn throne_overlay_both_captured_when_king_taken() {
+    // Setup: Blue king on d1 with rook in overlay, Red queen can capture
+    let placements = &[
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None }, bit(square('d', 1))),
+        (Army::Red, Piece { army: Army::Red, kind: PieceKind::Queen, pawn_type: None }, bit(square('d', 3))),
+    ];
+    let mut game = build_game_with_pieces(placements);
+
+    // Set up overlay
+    game.board.set_throne_overlay(Army::Blue, 0, OverlayPiece { army: Army::Blue, kind: PieceKind::Rook });
+
+    // Skip to Red's turn
+    game.state.current_turn_index = 1;
+
+    // Red queen captures Blue king at d1
+    let result = game.apply_move(Army::Red, square('d', 3), square('d', 1), None);
+    assert!(result.is_ok(), "Queen should capture king: {:?}", result);
+
+    // Blue army should be frozen
+    assert!(game.army_is_frozen(Army::Blue));
+
+    // Both king AND overlay piece should be gone
+    // Queen is now at d1
+    assert_eq!(game.board.piece_at(square('d', 1)), Some((Army::Red, PieceKind::Queen)));
+
+    // Overlay should be cleared
+    let overlay = game.board.get_throne_overlay(Army::Blue, 0);
+    assert!(overlay.is_none(), "Overlay should be cleared when king captured");
+}
+
+/// Test that only one overlay piece is allowed per throne.
+#[test]
+fn throne_overlay_rejects_second_piece() {
+    // Setup: Blue king on d1 with rook already in overlay
+    let placements = &[
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None }, bit(square('d', 1))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Bishop, pawn_type: None }, bit(square('c', 2))),
+    ];
+    let mut game = build_game_with_pieces(placements);
+
+    // Set up existing overlay
+    game.board.set_throne_overlay(Army::Blue, 0, OverlayPiece { army: Army::Blue, kind: PieceKind::Rook });
+
+    // Bishop tries to move to d1 (already has overlay)
+    let result = game.apply_move(Army::Blue, square('c', 2), square('d', 1), None);
+    assert!(result.is_err(), "Should reject second overlay piece");
+}
+
+/// Test that enemy pieces cannot move to double-occupy enemy throne.
+#[test]
+fn throne_overlay_rejects_enemy_piece() {
+    // Blue king on d1, Red rook tries to move there
+    let placements = &[
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None }, bit(square('d', 1))),
+        (Army::Red, Piece { army: Army::Red, kind: PieceKind::Rook, pawn_type: None }, bit(square('d', 3))),
+    ];
+    let mut game = build_game_with_pieces(placements);
+
+    // Skip to Red's turn
+    game.state.current_turn_index = 1;
+
+    // Red rook captures king (doesn't overlay - it's a capture)
+    let result = game.apply_move(Army::Red, square('d', 3), square('d', 1), None);
+    assert!(result.is_ok(), "Red should capture Blue king");
+    assert!(game.army_is_frozen(Army::Blue), "Blue should be frozen after king capture");
+}
+
+/// Test that king not on OWN throne doesn't allow overlay.
+#[test]
+fn throne_overlay_requires_own_throne() {
+    // Blue king on e8 (Red's throne area, not Blue's throne)
+    // Blue's thrones are d1 and e1
+    let placements = &[
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None }, bit(square('e', 2))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Rook, pawn_type: None }, bit(square('d', 2))),
+    ];
+    let mut game = build_game_with_pieces(placements);
+
+    // Rook tries to move to e2 where king is (but not a throne)
+    let result = game.apply_move(Army::Blue, square('d', 2), square('e', 2), None);
+    assert!(result.is_err(), "Should reject overlay when king not on throne");
 }

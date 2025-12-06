@@ -111,12 +111,14 @@ const fn precompute_knight_moves(index: u8) -> u64 {
 pub fn compute_knights_moves(board: &Board, army: Army) -> u64 {
     let mut moves = 0u64;
     let own_pieces = board.occupancy_by_army[army as usize];
+    // Allied king thrones are valid targets for double-occupancy
+    let throne_targets = board.team_king_thrones_for_overlay(army);
     let mut knights = board.by_army_kind[army as usize][PieceKind::Knight as usize];
 
     while knights != 0 {
         let index = knights.trailing_zeros();
-        // Add the knight's precomputed moves, excluding occupied by own
-        moves |= KNIGHT_MOVES[index as usize] & !own_pieces;
+        // Add the knight's precomputed moves, excluding occupied by own (but allowing throne targets)
+        moves |= KNIGHT_MOVES[index as usize] & (!own_pieces | throne_targets);
 
         // Remove the processed knight (use lsb approach)
         knights &= knights - 1;
@@ -182,6 +184,7 @@ fn compute_sliding_moves(
     directions: &[(i8, i8)], // Change to (dx, dy) tuples for iterative movement
     own_pieces: u64,
     occupied: u64,
+    throne_targets: u64, // Allied king thrones available for double-occupancy
 ) -> u64 {
     let mut moves = 0u64;
 
@@ -212,7 +215,12 @@ fn compute_sliding_moves(
                 if occupied & dest_mask != 0 {
                     // There's a piece on this square
                     if own_pieces & dest_mask != 0 {
-                        // It's our own piece, cannot move to or through it
+                        // It's our own piece - but check if it's a throne target for double-occupancy
+                        if throne_targets & dest_mask != 0 {
+                            // This is a king on throne, we can move here (overlay)
+                            moves |= dest_mask;
+                        }
+                        // Cannot move through own pieces (including throne targets)
                         break;
                     } else {
                         // It's an opponent's piece, can capture but cannot move through
@@ -233,7 +241,8 @@ pub fn compute_rooks_moves(board: &Board, army: Army) -> u64 {
     let rooks = board.by_army_kind[army as usize][PieceKind::Rook as usize];
     let own_pieces = board.occupancy_by_army[army as usize];
     let occupied = board.all_occupancy;
-    compute_sliding_moves(rooks, &ROOK_RAYS_DIRECTIONS, own_pieces, occupied)
+    let throne_targets = board.team_king_thrones_for_overlay(army);
+    compute_sliding_moves(rooks, &ROOK_RAYS_DIRECTIONS, own_pieces, occupied, throne_targets)
 }
 
 const fn precompute_bishop_rays(index: u8) -> [u64; 4] {
@@ -287,6 +296,7 @@ pub fn compute_bishops_moves(board: &Board, army: Army) -> u64 {
     let mut moves = 0u64;
     let mut bishops = board.by_army_kind[army.index()][PieceKind::Bishop.index()];
     let own_pieces = board.occupancy_by_army[army.index()];
+    let throne_targets = board.team_king_thrones_for_overlay(army);
 
     const VECTORS: [(i8, i8); 4] = [(1, 1), (1, -1), (-1, -1), (-1, 1)];
 
@@ -308,7 +318,14 @@ pub fn compute_bishops_moves(board: &Board, army: Army) -> u64 {
                 }
                 let dest = (search_rank as u64 * 8 + search_file as u64) as Square;
                 let dest_mask = 1u64 << dest;
+
+                // Check own pieces, but allow throne targets for double-occupancy
                 if own_pieces & dest_mask != 0 {
+                    if throne_targets & dest_mask != 0 {
+                        // This is a king on throne, we can move here (overlay)
+                        moves |= dest_mask;
+                    }
+                    // Cannot move through own pieces (including throne targets)
                     break;
                 }
 
@@ -358,6 +375,7 @@ pub fn compute_queens_moves(board: &Board, army: Army) -> u64 {
     let mut moves = 0u64;
     let mut queens = board.by_army_kind[army.index()][PieceKind::Queen.index()];
     let own_pieces = board.occupancy_by_army[army.index()];
+    let throne_targets = board.team_king_thrones_for_overlay(army);
 
     while queens != 0 {
         let index = queens.trailing_zeros() as u8;
@@ -369,7 +387,13 @@ pub fn compute_queens_moves(board: &Board, army: Army) -> u64 {
             let dest = targets.trailing_zeros() as Square;
             targets &= targets - 1;
             let dest_mask = 1u64 << dest;
+
+            // Check own pieces, but allow throne targets for double-occupancy
             if own_pieces & dest_mask != 0 {
+                if throne_targets & dest_mask != 0 {
+                    // This is a king on throne, we can move here (overlay)
+                    moves |= dest_mask;
+                }
                 continue;
             }
 
@@ -405,6 +429,7 @@ pub fn compute_pawns_moves(board: &Board, army: Army) -> (u64, u64) {
     let mut moves = 0u64;
     let mut attack_moves = 0u64;
     let own_pieces = board.occupancy_by_army[army.index()];
+    let throne_targets = board.team_king_thrones_for_overlay(army);
     let mut pawns = board.by_army_kind[army.index()][PieceKind::Pawn.index()];
 
     while pawns != 0 {
@@ -447,7 +472,8 @@ pub fn compute_pawns_moves(board: &Board, army: Army) -> (u64, u64) {
         for diag in [diag_left, diag_right] {
             if let Some(dest) = diag {
                 let dest_mask = 1u64 << dest;
-                if own_pieces & dest_mask == 0 {
+                // Allow throne targets for double-occupancy (pawn moves diagonally to overlay)
+                if own_pieces & dest_mask == 0 || throne_targets & dest_mask != 0 {
                     attack_moves |= dest_mask;
                 }
             }

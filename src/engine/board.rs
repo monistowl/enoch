@@ -21,6 +21,13 @@ impl ArmyState {
     }
 }
 
+/// Represents a piece stored in the throne overlay (hidden under a king on its throne).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct OverlayPiece {
+    pub army: Army,
+    pub kind: PieceKind,
+}
+
 #[derive(Debug, Clone, Copy)]
 pub struct Board {
     pub by_army_kind: [[u64; PIECE_KIND_COUNT]; ARMY_COUNT],
@@ -30,6 +37,10 @@ pub struct Board {
     pub free: u64,
     pub armies: [ArmyState; ARMY_COUNT],
     pub promotion_zones: [u64; ARMY_COUNT],
+    /// Throne overlay: stores a piece "under" a king on its own throne.
+    /// Indexed by [army][throne_index], where throne_index is 0 or 1.
+    /// A king on its own throne can share the square with one allied piece.
+    pub throne_overlay: [[Option<OverlayPiece>; 2]; ARMY_COUNT],
 }
 
 impl Board {
@@ -63,6 +74,7 @@ impl Board {
             free: !all_occupancy,
             armies: army_states,
             promotion_zones,
+            throne_overlay: [[None; 2]; ARMY_COUNT],
         }
     }
 
@@ -192,6 +204,81 @@ impl Board {
             }
         }
         None
+    }
+
+    /// Returns the throne index (0 or 1) for a given square within an army's thrones.
+    /// Returns None if the square is not one of the army's throne squares.
+    pub fn throne_index_for(&self, army: Army, square: Square) -> Option<usize> {
+        let thrones = self.armies[army.index()].throne_squares;
+        if square == thrones[0] {
+            Some(0)
+        } else if square == thrones[1] {
+            Some(1)
+        } else {
+            None
+        }
+    }
+
+    /// Gets the overlay piece at a throne square, if any.
+    pub fn get_throne_overlay(&self, army: Army, throne_index: usize) -> Option<OverlayPiece> {
+        self.throne_overlay[army.index()][throne_index]
+    }
+
+    /// Sets an overlay piece at a throne square.
+    pub fn set_throne_overlay(&mut self, army: Army, throne_index: usize, piece: OverlayPiece) {
+        self.throne_overlay[army.index()][throne_index] = Some(piece);
+    }
+
+    /// Clears the overlay piece at a throne square, returning it if present.
+    pub fn clear_throne_overlay(&mut self, army: Army, throne_index: usize) -> Option<OverlayPiece> {
+        self.throne_overlay[army.index()][throne_index].take()
+    }
+
+    /// Checks if the king of the given army is on one of its own throne squares.
+    /// Returns the throne index if so.
+    pub fn king_on_own_throne(&self, army: Army) -> Option<usize> {
+        let king_square = self.king_square(army)?;
+        self.throne_index_for(army, king_square)
+    }
+
+    /// Checks if a square is a throne with a king on it (for double-occupancy).
+    /// Returns (throne_owner_army, throne_index) if the square is a throne with its own king.
+    pub fn is_king_occupied_throne(&self, square: Square) -> Option<(Army, usize)> {
+        let throne_army = self.throne_owner(square)?;
+        let throne_idx = self.throne_index_for(throne_army, square)?;
+        let king_square = self.king_square(throne_army)?;
+        if king_square == square {
+            Some((throne_army, throne_idx))
+        } else {
+            None
+        }
+    }
+
+    /// Returns a bitboard mask of team king-occupied thrones available for double-occupancy.
+    /// These are squares where any same-team king sits on their own throne AND no overlay piece exists.
+    /// Allied pieces (same team) can target these squares to share the throne with the king.
+    /// Note: Kings cannot move to overlay positions (only non-king pieces can).
+    pub fn team_king_thrones_for_overlay(&self, moving_army: Army) -> u64 {
+        let team = moving_army.team();
+        let mut mask = 0u64;
+
+        for army in Army::ALL {
+            // Must be same team (includes own army and allied army)
+            if army.team() != team {
+                continue;
+            }
+
+            // Check if this army's king is on their own throne
+            if let Some(throne_idx) = self.king_on_own_throne(army) {
+                // Only allow if no overlay piece already exists
+                if self.throne_overlay[army.index()][throne_idx].is_none() {
+                    let throne_square = self.armies[army.index()].throne_squares[throne_idx];
+                    mask |= 1u64 << throne_square;
+                }
+            }
+        }
+
+        mask
     }
 }
 

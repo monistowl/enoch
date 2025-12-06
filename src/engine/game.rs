@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use crate::engine::arrays::{ArraySpec, default_array};
-use crate::engine::board::Board;
+use crate::engine::board::{Board, OverlayPiece};
 use crate::engine::fen::EnochFen;
 use crate::engine::moves::{
     compute_bishops_moves, compute_king_moves, compute_knights_moves, compute_pawns_moves,
@@ -277,6 +277,11 @@ impl Game {
 
     pub fn capture_king(&mut self, army: Army) {
         if let Some(square) = self.state.king_square(army) {
+            // If king was on own throne with overlay piece, clear the overlay too
+            // (both pieces are captured when double-occupied throne is taken)
+            if let Some(throne_idx) = self.board.throne_index_for(army, square) {
+                self.board.clear_throne_overlay(army, throne_idx);
+            }
             self.board.clear_square(square);
         }
         self.freeze_army(army);
@@ -509,7 +514,37 @@ impl Game {
             return Err("Destination is not a legal move".to_string());
         }
 
+        // Check if moving to a throne with an ally's king (double-occupancy)
+        let throne_overlay_target = self.board.is_king_occupied_throne(to);
+
         if let Some((target_army, target_kind)) = self.board.piece_at(to) {
+            // Check for throne double-occupancy: same team king on their own throne
+            if let Some((throne_army, throne_idx)) = throne_overlay_target {
+                if target_army.team() == army.team() && target_kind == PieceKind::King {
+                    // This is a valid throne overlay move - store the moving piece in overlay
+                    // Don't remove the king, just store our piece in the overlay
+                    self.board.remove_piece(army, piece_kind, from);
+                    self.board.set_throne_overlay(
+                        throne_army,
+                        throne_idx,
+                        OverlayPiece { army, kind: piece_kind },
+                    );
+
+                    self.state.sync_with_board(&self.board);
+                    for &other in Army::ALL.iter() {
+                        self.update_stalemate_status(other);
+                    }
+                    self.advance_to_next_army();
+
+                    return Ok(format!(
+                        "{} moved {} to share {}'s throne",
+                        army.display_name(),
+                        Self::piece_name(piece_kind),
+                        target_army.display_name()
+                    ));
+                }
+            }
+
             if target_army == army {
                 return Err("Cannot capture own piece".to_string());
             }
@@ -517,6 +552,16 @@ impl Game {
                 self.capture_king(target_army);
             } else {
                 self.board.remove_piece(target_army, target_kind, to);
+            }
+        }
+
+        // Check if king is leaving a throne with an overlay piece
+        if piece_kind == PieceKind::King {
+            if let Some(throne_idx) = self.board.king_on_own_throne(army) {
+                // Restore overlay piece to the board before moving the king
+                if let Some(overlay) = self.board.clear_throne_overlay(army, throne_idx) {
+                    self.board.place_piece(overlay.army, overlay.kind, from);
+                }
             }
         }
 
