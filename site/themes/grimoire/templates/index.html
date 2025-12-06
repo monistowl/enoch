@@ -61,7 +61,7 @@
             justify-content: space-between;
             height: var(--opa-header-height);
             padding: 0 0.75rem;
-            background: var(--sidebar-bg);
+            background: var(--bg-surface);
             border-bottom: 1px solid var(--border-color);
             flex-shrink: 0;
             z-index: 100;
@@ -189,7 +189,7 @@
             width: var(--opa-nav-width);
             max-width: 85vw;
             height: 100%;
-            background: var(--sidebar-bg);
+            background: var(--bg-surface);
             border-right: 1px solid var(--border-color);
             transform: translateX(-100%);
             transition: transform 0.3s ease;
@@ -269,7 +269,7 @@
         }
 
         .opa-modal {
-            background: var(--bg-color);
+            background: var(--bg-surface);
             border: 1px solid var(--border-color);
             border-radius: 12px;
             max-width: 600px;
@@ -280,6 +280,7 @@
             flex-direction: column;
             transform: scale(0.95);
             transition: transform 0.3s;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
         }
 
         .opa-modal-overlay.open .opa-modal {
@@ -292,7 +293,7 @@
             justify-content: space-between;
             padding: 1rem 1.25rem;
             border-bottom: 1px solid var(--border-color);
-            background: var(--sidebar-bg);
+            background: var(--bg-surface);
         }
 
         .opa-modal-title {
@@ -308,6 +309,7 @@
             overflow-y: auto;
             font-size: 0.95rem;
             line-height: 1.6;
+            background: var(--bg-surface);
         }
 
         .opa-modal-body h3 {
@@ -342,8 +344,8 @@
             font-size: 0.9em;
         }
 
-        .team-fire { color: #e74c3c; }
-        .team-earth { color: #27ae60; }
+        .team-air { color: #5dade2; }
+        .team-earth { color: #f39c12; }
         .army-blue { color: #3498db; }
         .army-black { color: #95a5a6; }
         .army-red { color: #e74c3c; }
@@ -419,12 +421,12 @@
             <div class="opa-modal-body">
                 <h3>Teams</h3>
                 <ul>
-                    <li><strong class="team-fire">Fire:</strong> <span class="army-blue">Blue</span> + <span class="army-yellow">Yellow</span></li>
-                    <li><strong class="team-earth">Earth:</strong> <span class="army-black">Black</span> + <span class="army-red">Red</span></li>
+                    <li><strong class="team-air">Air:</strong> <span class="army-blue">Blue</span> + <span class="army-black">Black</span></li>
+                    <li><strong class="team-earth">Earth:</strong> <span class="army-red">Red</span> + <span class="army-yellow">Yellow</span></li>
                 </ul>
 
                 <h3>Turn Order</h3>
-                <p><span class="army-blue">Blue</span> then <span class="army-black">Black</span> then <span class="army-red">Red</span> then <span class="army-yellow">Yellow</span>, repeat</p>
+                <p><span class="army-blue">Blue</span> → <span class="army-red">Red</span> → <span class="army-black">Black</span> → <span class="army-yellow">Yellow</span>, repeat</p>
 
                 <h3>Victory</h3>
                 <p>Checkmate <strong>both</strong> enemy kings to win for your team.</p>

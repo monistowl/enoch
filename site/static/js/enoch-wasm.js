@@ -128,13 +128,16 @@ function enochWasmGame() {
       const boardState = this.wasmGame.getBoardState();
       this.position = new Array(64).fill(null);
 
+      // Map piece kind to standard chess notation letter
+      const kindToLetter = { King: 'K', Queen: 'Q', Rook: 'R', Bishop: 'B', Knight: 'N', Pawn: 'P' };
+
       for (const sq of boardState) {
         if (sq.piece) {
           this.position[sq.index] = {
             code: sq.piece.code,
             army: armyCode(sq.piece.army), // B, K, R, Y (Black uses K to avoid collision with Blue)
             armyName: sq.piece.army,
-            type: sq.piece.kind[0], // First char: K, Q, R, B, N, P
+            type: kindToLetter[sq.piece.kind] || sq.piece.kind[0], // K, Q, R, B, N, P
             glyph: sq.piece.glyph,
             colorClass: sq.piece.army.toLowerCase(),
             frozen: sq.piece.frozen,
@@ -280,9 +283,10 @@ function enochWasmGame() {
 
     // Format move for display
     formatMove(move) {
-      const pieceSymbols = { K: 'K', Q: 'Q', R: 'R', B: 'B', N: 'N', P: '' };
-      const piece = pieceSymbols[move.piece] || '';
-      const capture = move.captured ? 'x' : '';
+      // Use Unicode chess glyphs for piece symbols
+      const pieceGlyphs = { K: '♚', Q: '♛', R: '♜', B: '♝', N: '♞', P: '' };
+      const piece = pieceGlyphs[move.piece] || '';
+      const capture = move.captured ? '×' : '';
       return `${piece}${capture}${move.to}`;
     },
 
