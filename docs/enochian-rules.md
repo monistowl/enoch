@@ -180,40 +180,61 @@ The YAML companion file captures arrays via:
    * Supply `promotion_zones` (you can reuse `DEFAULT_PROMOTION_ZONES` from `board.rs`).
    * List the piece placements as bitboards (`Square` indices converted to `1u64 << square`).
 2. Update the YAML spec (`docs/enochian-rules.yaml`) so agents can parse the new array data programmatically (name, description, placements, throne overrides).
-3. If you need to make the array selectable from the UI or CLI later, expose it through `arrays::ArraySpec` and call `Game::from_array_spec` (the default entry is `TABLET_OF_FIRE_PROTOTYPE`).
+3. If you need to make the array selectable from the UI or CLI later, expose it through `arrays::ArraySpec` and call `Game::from_array_spec` (the default is `TABLET_OF_FIRE_FIRE`).
 
-### Example: Tablet of Fire (prototype transcription)
+### Band layout
 
-The repository currently includes a **prototype transcription** for the Tablet of
-Fire array so the engine has concrete data to parse. It preserves the canonical
-turn order `Blue → Red → Black → Yellow`, but to keep the layout conflict-free
-until we import the historical diagrams, armies are stacked in south-to-north
-bands:
+All arrays use a "south-to-north bands" layout where armies are stacked
+horizontally across the board:
 
-- Blue major pieces occupy rank 1 and blue pawns occupy rank 2.
-- Black major pieces occupy rank 3 and black pawns occupy rank 4 (they still
-  march “north” toward rank 8 even though they start in the south-central band).
-- Yellow major pieces live on rank 5 with pawns on rank 6.
-- Red major pieces occupy rank 8 and pawns occupy rank 7.
-- Thrones are still respected (e.g., `d1/e1` for Blue, `e8/d8` for Red), so the
-  sample array keeps the bookkeeping hooks we need for sequestration and
-  prisoner exchanges.
+- **Blue**: Major pieces on rank 1, pawns on rank 2 (marching north)
+- **Black**: Major pieces on rank 3, pawns on rank 4 (marching north)
+- **Yellow**: Major pieces on rank 5, pawns on rank 6 (marching north)
+- **Red**: Major pieces on rank 8, pawns on rank 7 (marching south)
 
-> 🔎 **TODO:** Replace the prototype layout with the exact Zalewski diagrams once
-> the project imports `Enochian Chess.html`. See `enoch-3py`.
-
-The YAML file mirrors this information so code can load the array without
-scraping the Markdown.
+Throne squares are positioned per army:
+- Blue: `d1`, `e1`
+- Black: `d3`, `e3`
+- Yellow: `d5`, `e5`
+- Red: `d8`, `e8`
 
 ### Available arrays
 
-The engine ships with an [`ArraySpec`](src/engine/arrays.rs) registry so you can
-instantiate any documented layout.
+The engine ships with an [`ArraySpec`](src/engine/arrays.rs) registry containing
+all 16 standard Enochian Chess starting positions (4 boards × 4 settings).
 
-- **Tablet of Fire (prototype)** – full placements derived from the prototype transcription in this repo. Used by `Game::default()`.
-- **Tablet of Water (placeholder)** – clockwise turn order `Blue → Black → Yellow → Red`; layout data still needs transcription.
-- **Tablet of Air (placeholder)** – counter-clockwise order `Red → Yellow → Black → Blue`; waiting on diagram details.
-- **Tablet of Earth (placeholder)** – counter-clockwise order `Yellow → Blue → Red → Black`; layout TBD.
+#### Board types
 
-Use the `available_arrays()` helper in `src/engine/arrays.rs` to enumerate the
-registry, and `find_array_by_name(name)` to select a specific table (see `Game::from_array_spec` in `src/engine/game.rs`).
+Each board has a unique turn order:
+
+| Board | Turn Order | Notes |
+| ----- | ---------- | ----- |
+| **Fire** | Blue → Red → Black → Yellow | Deosil (clockwise) from South |
+| **Earth** | Yellow → Blue → Red → Black | Widdershins from West |
+| **Air** | Red → Yellow → Black → Blue | Widdershins from East |
+| **Water** | Blue → Black → Yellow → Red | Deosil from South |
+
+#### Settings (piece arrangements)
+
+Fire/Earth boards use **Group 1** settings; Air/Water boards use **Group 2**:
+
+| Setting | Group 1 (Fire/Earth) | Group 2 (Air/Water) |
+| ------- | -------------------- | ------------------- |
+| **Earth** | KR, B, Q, N | KR, N, Q, B |
+| **Air** | KB, R, N, Q | KB, Q, N, R |
+| **Water** | KQ, N, R, B | KQ, B, R, N |
+| **Fire** | KN, Q, B, R | KN, R, B, Q |
+
+The first piece in each setting is the King's partner (shares the throne).
+
+#### Array constants
+
+All 16 combinations are available:
+- `TABLET_OF_FIRE_EARTH`, `TABLET_OF_FIRE_AIR`, `TABLET_OF_FIRE_WATER`, `TABLET_OF_FIRE_FIRE`
+- `TABLET_OF_EARTH_EARTH`, `TABLET_OF_EARTH_AIR`, `TABLET_OF_EARTH_WATER`, `TABLET_OF_EARTH_FIRE`
+- `TABLET_OF_AIR_EARTH`, `TABLET_OF_AIR_AIR`, `TABLET_OF_AIR_WATER`, `TABLET_OF_AIR_FIRE`
+- `TABLET_OF_WATER_EARTH`, `TABLET_OF_WATER_AIR`, `TABLET_OF_WATER_WATER`, `TABLET_OF_WATER_FIRE`
+
+Use `available_arrays()` to enumerate the registry, and `find_array_by_name(name)`
+to select a specific table (see `Game::from_array_spec` in `src/engine/game.rs`).
+The default array is `TABLET_OF_FIRE_FIRE`.

@@ -669,3 +669,181 @@ fn knight_captures_bishop_allowed() {
     };
     assert!(can_capture_piece(&attacker, &target), "Knight should be able to capture bishop");
 }
+
+// ============================================================================
+// Starting Array Tests
+// ============================================================================
+
+use enoch::engine::arrays::{
+    TABLET_OF_FIRE_EARTH, TABLET_OF_FIRE_AIR, TABLET_OF_FIRE_WATER, TABLET_OF_FIRE_FIRE,
+    TABLET_OF_EARTH_EARTH, TABLET_OF_EARTH_AIR, TABLET_OF_EARTH_WATER, TABLET_OF_EARTH_FIRE,
+    TABLET_OF_AIR_EARTH, TABLET_OF_AIR_AIR, TABLET_OF_AIR_WATER, TABLET_OF_AIR_FIRE,
+    TABLET_OF_WATER_EARTH, TABLET_OF_WATER_AIR, TABLET_OF_WATER_WATER, TABLET_OF_WATER_FIRE,
+    ALL_ARRAYS,
+};
+
+/// Verify all 16 arrays can be instantiated into valid games.
+#[test]
+fn all_arrays_create_valid_games() {
+    for array_spec in ALL_ARRAYS {
+        let game = Game::from_array_spec(array_spec);
+
+        // Each army should have 8 pieces (4 major + 4 pawns) except for double-occupancy on throne
+        for army in Army::ALL {
+            let total_pieces: u32 = game.board.piece_counts(army).iter().sum();
+            assert!(total_pieces >= 8, "Army {:?} in {} should have at least 8 pieces, has {}",
+                    army, array_spec.name, total_pieces);
+        }
+
+        // Each army should have exactly one king
+        for army in Army::ALL {
+            let king_count = game.board.piece_counts(army)[PieceKind::King.index()];
+            assert_eq!(king_count, 1, "Army {:?} in {} should have exactly 1 king",
+                      army, array_spec.name);
+        }
+    }
+}
+
+/// Verify Fire Board turn order: Blue → Red → Black → Yellow
+#[test]
+fn fire_board_turn_order() {
+    assert_eq!(TABLET_OF_FIRE_FIRE.turn_order, [Army::Blue, Army::Red, Army::Black, Army::Yellow]);
+    assert_eq!(TABLET_OF_FIRE_EARTH.turn_order, [Army::Blue, Army::Red, Army::Black, Army::Yellow]);
+    assert_eq!(TABLET_OF_FIRE_AIR.turn_order, [Army::Blue, Army::Red, Army::Black, Army::Yellow]);
+    assert_eq!(TABLET_OF_FIRE_WATER.turn_order, [Army::Blue, Army::Red, Army::Black, Army::Yellow]);
+}
+
+/// Verify Earth Board turn order: Yellow → Blue → Red → Black
+#[test]
+fn earth_board_turn_order() {
+    assert_eq!(TABLET_OF_EARTH_EARTH.turn_order, [Army::Yellow, Army::Blue, Army::Red, Army::Black]);
+    assert_eq!(TABLET_OF_EARTH_AIR.turn_order, [Army::Yellow, Army::Blue, Army::Red, Army::Black]);
+    assert_eq!(TABLET_OF_EARTH_WATER.turn_order, [Army::Yellow, Army::Blue, Army::Red, Army::Black]);
+    assert_eq!(TABLET_OF_EARTH_FIRE.turn_order, [Army::Yellow, Army::Blue, Army::Red, Army::Black]);
+}
+
+/// Verify Air Board turn order: Red → Yellow → Black → Blue
+#[test]
+fn air_board_turn_order() {
+    assert_eq!(TABLET_OF_AIR_EARTH.turn_order, [Army::Red, Army::Yellow, Army::Black, Army::Blue]);
+    assert_eq!(TABLET_OF_AIR_AIR.turn_order, [Army::Red, Army::Yellow, Army::Black, Army::Blue]);
+    assert_eq!(TABLET_OF_AIR_WATER.turn_order, [Army::Red, Army::Yellow, Army::Black, Army::Blue]);
+    assert_eq!(TABLET_OF_AIR_FIRE.turn_order, [Army::Red, Army::Yellow, Army::Black, Army::Blue]);
+}
+
+/// Verify Water Board turn order: Blue → Black → Yellow → Red
+#[test]
+fn water_board_turn_order() {
+    assert_eq!(TABLET_OF_WATER_EARTH.turn_order, [Army::Blue, Army::Black, Army::Yellow, Army::Red]);
+    assert_eq!(TABLET_OF_WATER_AIR.turn_order, [Army::Blue, Army::Black, Army::Yellow, Army::Red]);
+    assert_eq!(TABLET_OF_WATER_WATER.turn_order, [Army::Blue, Army::Black, Army::Yellow, Army::Red]);
+    assert_eq!(TABLET_OF_WATER_FIRE.turn_order, [Army::Blue, Army::Black, Army::Yellow, Army::Red]);
+}
+
+/// Helper to get piece at square from an array's board
+fn get_piece_at(array: &enoch::engine::arrays::ArraySpec, file: char, rank: u8) -> Option<PieceKind> {
+    let board = array.board();
+    board.piece_at(square(file, rank)).map(|(_, kind)| kind)
+}
+
+/// Verify Fire/Earth boards use Group 1 settings - test Earth setting (KR, B, Q, N)
+/// Position D1 should have King's partner (Rook for Earth setting)
+#[test]
+fn fire_earth_setting_piece_layout() {
+    // Earth setting on Fire board: KR (D/E), B, Q, N
+    // Blue pieces on rank 1: N(A), Q(B), B(C), R(D), K(E), B(F), Q(G), N(H)
+    let board = TABLET_OF_FIRE_EARTH.board();
+
+    // Blue army on rank 1
+    assert_eq!(board.piece_at(square('a', 1)).map(|(_, k)| k), Some(PieceKind::Knight), "A1 should be Knight");
+    assert_eq!(board.piece_at(square('b', 1)).map(|(_, k)| k), Some(PieceKind::Queen), "B1 should be Queen");
+    assert_eq!(board.piece_at(square('c', 1)).map(|(_, k)| k), Some(PieceKind::Bishop), "C1 should be Bishop");
+    assert_eq!(board.piece_at(square('d', 1)).map(|(_, k)| k), Some(PieceKind::Rook), "D1 should be Rook (King's partner)");
+    assert_eq!(board.piece_at(square('e', 1)).map(|(_, k)| k), Some(PieceKind::King), "E1 should be King");
+    assert_eq!(board.piece_at(square('f', 1)).map(|(_, k)| k), Some(PieceKind::Bishop), "F1 should be Bishop");
+    assert_eq!(board.piece_at(square('g', 1)).map(|(_, k)| k), Some(PieceKind::Queen), "G1 should be Queen");
+    assert_eq!(board.piece_at(square('h', 1)).map(|(_, k)| k), Some(PieceKind::Knight), "H1 should be Knight");
+}
+
+/// Verify Fire setting on Fire board (KN, Q, B, R)
+#[test]
+fn fire_fire_setting_piece_layout() {
+    // Fire setting: KN (D/E), Q, B, R
+    // Blue pieces on rank 1: R(A), B(B), Q(C), N(D), K(E), Q(F), B(G), R(H)
+    let board = TABLET_OF_FIRE_FIRE.board();
+
+    assert_eq!(board.piece_at(square('a', 1)).map(|(_, k)| k), Some(PieceKind::Rook), "A1 should be Rook");
+    assert_eq!(board.piece_at(square('b', 1)).map(|(_, k)| k), Some(PieceKind::Bishop), "B1 should be Bishop");
+    assert_eq!(board.piece_at(square('c', 1)).map(|(_, k)| k), Some(PieceKind::Queen), "C1 should be Queen");
+    assert_eq!(board.piece_at(square('d', 1)).map(|(_, k)| k), Some(PieceKind::Knight), "D1 should be Knight (King's partner)");
+    assert_eq!(board.piece_at(square('e', 1)).map(|(_, k)| k), Some(PieceKind::King), "E1 should be King");
+    assert_eq!(board.piece_at(square('f', 1)).map(|(_, k)| k), Some(PieceKind::Queen), "F1 should be Queen");
+    assert_eq!(board.piece_at(square('g', 1)).map(|(_, k)| k), Some(PieceKind::Bishop), "G1 should be Bishop");
+    assert_eq!(board.piece_at(square('h', 1)).map(|(_, k)| k), Some(PieceKind::Rook), "H1 should be Rook");
+}
+
+/// Verify Air/Water boards use Group 2 settings - test Earth setting (KR, N, Q, B)
+/// Note: Group 2 has Knight and Bishop swapped compared to Group 1
+#[test]
+fn air_earth_setting_piece_layout() {
+    // Earth setting on Air board (Group 2): KR (D/E), N, Q, B
+    // Blue pieces on rank 1: B(A), Q(B), N(C), R(D), K(E), N(F), Q(G), B(H)
+    let board = TABLET_OF_AIR_EARTH.board();
+
+    assert_eq!(board.piece_at(square('a', 1)).map(|(_, k)| k), Some(PieceKind::Bishop), "A1 should be Bishop");
+    assert_eq!(board.piece_at(square('b', 1)).map(|(_, k)| k), Some(PieceKind::Queen), "B1 should be Queen");
+    assert_eq!(board.piece_at(square('c', 1)).map(|(_, k)| k), Some(PieceKind::Knight), "C1 should be Knight");
+    assert_eq!(board.piece_at(square('d', 1)).map(|(_, k)| k), Some(PieceKind::Rook), "D1 should be Rook (King's partner)");
+    assert_eq!(board.piece_at(square('e', 1)).map(|(_, k)| k), Some(PieceKind::King), "E1 should be King");
+    assert_eq!(board.piece_at(square('f', 1)).map(|(_, k)| k), Some(PieceKind::Knight), "F1 should be Knight");
+    assert_eq!(board.piece_at(square('g', 1)).map(|(_, k)| k), Some(PieceKind::Queen), "G1 should be Queen");
+    assert_eq!(board.piece_at(square('h', 1)).map(|(_, k)| k), Some(PieceKind::Bishop), "H1 should be Bishop");
+}
+
+/// Verify patron pieces are correctly assigned from array settings
+#[test]
+fn array_assigns_patron_to_pawns() {
+    let board = TABLET_OF_FIRE_FIRE.board();
+
+    // In Fire setting (KN, Q, B, R), the patron for each column:
+    // A/H columns: Rook pawns
+    // B/G columns: Bishop pawns
+    // C/F columns: Queen pawns
+    // D/E columns: Knight pawn (D) and King pawn (E) - but King isn't a patron, so no patron
+
+    // Check pawn on A2 has Rook as patron
+    let pawn_a2 = board.get_piece(square('a', 2));
+    assert!(pawn_a2.is_some(), "Should have pawn at A2");
+    assert_eq!(pawn_a2.unwrap().pawn_type, Some(PieceKind::Rook), "A2 pawn should have Rook patron");
+
+    // Check pawn on B2 has Bishop as patron
+    let pawn_b2 = board.get_piece(square('b', 2));
+    assert!(pawn_b2.is_some(), "Should have pawn at B2");
+    assert_eq!(pawn_b2.unwrap().pawn_type, Some(PieceKind::Bishop), "B2 pawn should have Bishop patron");
+
+    // Check pawn on C2 has Queen as patron
+    let pawn_c2 = board.get_piece(square('c', 2));
+    assert!(pawn_c2.is_some(), "Should have pawn at C2");
+    assert_eq!(pawn_c2.unwrap().pawn_type, Some(PieceKind::Queen), "C2 pawn should have Queen patron");
+}
+
+/// Verify diagonal systems are correctly assigned from array settings
+#[test]
+fn array_assigns_diagonal_system_to_queens_and_bishops() {
+    let board = TABLET_OF_FIRE_FIRE.board();
+
+    // Get the queen on C1 and check its diagonal system
+    let queen_c1 = board.get_piece(square('c', 1));
+    assert!(queen_c1.is_some(), "Should have queen at C1");
+    assert!(queen_c1.unwrap().diagonal_system.is_some(), "Queen should have diagonal system assigned");
+
+    // Get the bishop on B1 and check its diagonal system
+    let bishop_b1 = board.get_piece(square('b', 1));
+    assert!(bishop_b1.is_some(), "Should have bishop at B1");
+    assert!(bishop_b1.unwrap().diagonal_system.is_some(), "Bishop should have diagonal system assigned");
+
+    // Diagonal system should be determined by starting square
+    // C1 = square 2, B1 = square 1
+    assert_eq!(queen_c1.unwrap().diagonal_system, Some(diagonal_system_for_square(square('c', 1))));
+    assert_eq!(bishop_b1.unwrap().diagonal_system, Some(diagonal_system_for_square(square('b', 1))));
+}
