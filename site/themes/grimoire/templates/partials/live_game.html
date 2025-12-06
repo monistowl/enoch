@@ -22,54 +22,78 @@
   <!-- Game ready -->
   <template x-if="wasmReady">
     <div class="game-widget__content">
-      <!-- Air team captures (Blue + Black) -->
-      <div class="captures-widget captures-widget--air">
-        <div class="captures-widget__label">Air</div>
-        <div class="captures-widget__pieces">
-          <template x-for="piece in captures.Air" :key="piece.code">
-            <span class="captures-widget__piece" :class="'captures-widget__piece--' + piece.colorClass" x-text="piece.glyph"></span>
-          </template>
+      <!-- Main layout: History left, Board center -->
+      <div class="game-widget__layout">
+        <!-- Move history (vertical column) -->
+        <div class="history-widget history-widget--vertical">
+          <div class="history-widget__header">
+            <span class="history-widget__title">History</span>
+            <span class="history-widget__count" x-text="moveHistory.length"></span>
+          </div>
+          <div class="history-widget__list">
+            <template x-if="moveHistory.length === 0">
+              <span class="history-widget__empty">No moves</span>
+            </template>
+            <template x-for="(move, index) in moveHistory" :key="index">
+              <div class="history-widget__move" :class="'history-widget__move--' + move.colorClass">
+                <span x-text="formatMove(move)"></span>
+              </div>
+            </template>
+          </div>
         </div>
-      </div>
 
-      <!-- Board -->
-      <div class="board-widget" @click="handleBoardClick($event)">
-        <svg viewBox="-20 -20 440 440" class="board-widget__svg" :key="renderKey">
-          <!-- File labels (a-h) at bottom -->
-          <g class="board-widget__labels">
-            <text x="25" y="415" class="board-widget__label">a</text>
-            <text x="75" y="415" class="board-widget__label">b</text>
-            <text x="125" y="415" class="board-widget__label">c</text>
-            <text x="175" y="415" class="board-widget__label">d</text>
-            <text x="225" y="415" class="board-widget__label">e</text>
-            <text x="275" y="415" class="board-widget__label">f</text>
-            <text x="325" y="415" class="board-widget__label">g</text>
-            <text x="375" y="415" class="board-widget__label">h</text>
-          </g>
-          <!-- Rank labels (1-8) on left -->
-          <g class="board-widget__labels">
-            <text x="-10" y="378" class="board-widget__label">1</text>
-            <text x="-10" y="328" class="board-widget__label">2</text>
-            <text x="-10" y="278" class="board-widget__label">3</text>
-            <text x="-10" y="228" class="board-widget__label">4</text>
-            <text x="-10" y="178" class="board-widget__label">5</text>
-            <text x="-10" y="128" class="board-widget__label">6</text>
-            <text x="-10" y="78" class="board-widget__label">7</text>
-            <text x="-10" y="28" class="board-widget__label">8</text>
-          </g>
-          <g x-html="renderSquares()"></g>
-          <g x-html="renderLegalMoves()"></g>
-          <g x-html="renderPieces()"></g>
-        </svg>
-      </div>
+        <!-- Board area -->
+        <div class="game-widget__board-area">
+          <!-- Air team captures (Blue + Black) -->
+          <div class="captures-widget captures-widget--air">
+            <div class="captures-widget__label">Air</div>
+            <div class="captures-widget__pieces">
+              <template x-for="piece in captures.Air" :key="piece.code">
+                <span class="captures-widget__piece" :class="'captures-widget__piece--' + piece.colorClass" x-text="piece.glyph"></span>
+              </template>
+            </div>
+          </div>
 
-      <!-- Earth team captures (Red + Yellow) -->
-      <div class="captures-widget captures-widget--earth">
-        <div class="captures-widget__label">Earth</div>
-        <div class="captures-widget__pieces">
-          <template x-for="piece in captures.Earth" :key="piece.code">
-            <span class="captures-widget__piece" :class="'captures-widget__piece--' + piece.colorClass" x-text="piece.glyph"></span>
-          </template>
+          <!-- Board -->
+          <div class="board-widget" @click="handleBoardClick($event)">
+            <svg viewBox="-20 -20 440 440" class="board-widget__svg" :key="renderKey">
+              <!-- File labels (a-h) at bottom -->
+              <g class="board-widget__labels">
+                <text x="25" y="415" class="board-widget__label">a</text>
+                <text x="75" y="415" class="board-widget__label">b</text>
+                <text x="125" y="415" class="board-widget__label">c</text>
+                <text x="175" y="415" class="board-widget__label">d</text>
+                <text x="225" y="415" class="board-widget__label">e</text>
+                <text x="275" y="415" class="board-widget__label">f</text>
+                <text x="325" y="415" class="board-widget__label">g</text>
+                <text x="375" y="415" class="board-widget__label">h</text>
+              </g>
+              <!-- Rank labels (1-8) on left -->
+              <g class="board-widget__labels">
+                <text x="-10" y="378" class="board-widget__label">1</text>
+                <text x="-10" y="328" class="board-widget__label">2</text>
+                <text x="-10" y="278" class="board-widget__label">3</text>
+                <text x="-10" y="228" class="board-widget__label">4</text>
+                <text x="-10" y="178" class="board-widget__label">5</text>
+                <text x="-10" y="128" class="board-widget__label">6</text>
+                <text x="-10" y="78" class="board-widget__label">7</text>
+                <text x="-10" y="28" class="board-widget__label">8</text>
+              </g>
+              <g x-html="renderSquares()"></g>
+              <g x-html="renderLegalMoves()"></g>
+              <g x-html="renderPieces()"></g>
+            </svg>
+          </div>
+
+          <!-- Earth team captures (Red + Yellow) -->
+          <div class="captures-widget captures-widget--earth">
+            <div class="captures-widget__label">Earth</div>
+            <div class="captures-widget__pieces">
+              <template x-for="piece in captures.Earth" :key="piece.code">
+                <span class="captures-widget__piece" :class="'captures-widget__piece--' + piece.colorClass" x-text="piece.glyph"></span>
+              </template>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -99,24 +123,6 @@
 
         <!-- New Game button -->
         <button class="game-widget__btn" @click="resetGame()">New Game</button>
-      </div>
-
-      <!-- Move history (compact) -->
-      <div class="history-widget history-widget--compact">
-        <div class="history-widget__header">
-          <span class="history-widget__title">History</span>
-          <span class="history-widget__count" x-text="moveHistory.length"></span>
-        </div>
-        <div class="history-widget__list">
-          <template x-if="moveHistory.length === 0">
-            <span class="history-widget__empty">No moves</span>
-          </template>
-          <template x-for="(move, index) in moveHistory" :key="index">
-            <span class="history-widget__move" :class="'history-widget__move--' + move.colorClass">
-              <span x-text="formatMove(move)"></span>
-            </span>
-          </template>
-        </div>
       </div>
 
       <!-- Feedback message -->

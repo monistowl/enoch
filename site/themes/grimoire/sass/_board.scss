@@ -782,4 +782,70 @@
     font-style: italic;
     font-size: $text-xs;
   }
+
+  // Vertical layout variant
+  &--vertical {
+    margin-top: 0;
+    min-width: 80px;
+    max-width: 100px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    max-height: 400px;
+
+    .history-widget__header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: $space-1;
+      flex-shrink: 0;
+    }
+
+    .history-widget__list {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .history-widget__move {
+      display: block;
+      padding: 2px 4px;
+      border-radius: 3px;
+      flex-shrink: 0;
+
+      &::after {
+        content: '';
+      }
+
+      &:nth-child(odd) {
+        background: rgba(255, 255, 255, 0.03);
+      }
+    }
+
+    @media (max-width: 700px) {
+      display: none; // Hide on mobile
+    }
+  }
+}
+
+// Game widget layout with history on left
+.game-widget__layout {
+  display: flex;
+  gap: $space-4;
+  align-items: stretch;
+  justify-content: center;
+  width: 100%;
+
+  @media (max-width: 700px) {
+    flex-direction: column;
+    align-items: center;
+  }
+}
+
+.game-widget__board-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $space-2;
 }
