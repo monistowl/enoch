@@ -1,5 +1,5 @@
-use crate::engine::board::{ArmyState, Board, DEFAULT_PROMOTION_ZONES};
-use crate::engine::types::{Army, Piece, PieceKind, PlayerId, Square, ARMY_COUNT};
+use crate::engine::board::{diagonal_system_for_square, ArmyState, Board, DEFAULT_PROMOTION_ZONES};
+use crate::engine::types::{Army, DiagonalSystem, Piece, PieceKind, PlayerId, Square, ARMY_COUNT};
 
 #[derive(Debug, Clone)]
 pub struct ArraySpec {
@@ -19,17 +19,53 @@ impl ArraySpec {
     }
 
     fn expand_placements(&self) -> Vec<(Army, Piece, u64)> {
+        // First pass: collect major pieces by column to determine pawn patrons
+        let mut major_pieces_by_column: std::collections::HashMap<(Army, u8), PieceKind> =
+            std::collections::HashMap::new();
+
+        for &(army, kind, bitboard) in self.placements {
+            if kind != PieceKind::Pawn {
+                let mut mask = bitboard;
+                while mask != 0 {
+                    let square = mask.trailing_zeros() as Square;
+                    let file = square % 8;
+                    // Store the major piece for this army+column
+                    major_pieces_by_column.insert((army, file as u8), kind);
+                    mask &= mask - 1;
+                }
+            }
+        }
+
+        // Second pass: create pieces with patron and diagonal metadata
         let mut pieces = Vec::new();
         for &(army, kind, bitboard) in self.placements {
             let mut mask = bitboard;
             while mask != 0 {
                 let square = mask.trailing_zeros() as Square;
+                let file = square % 8;
+
+                // Determine pawn patron based on the major piece in the same column
+                let pawn_type = if kind == PieceKind::Pawn {
+                    major_pieces_by_column.get(&(army, file as u8)).copied()
+                } else {
+                    None
+                };
+
+                // Determine diagonal system for queens and bishops based on starting square
+                let diagonal_system = match kind {
+                    PieceKind::Queen | PieceKind::Bishop => {
+                        Some(diagonal_system_for_square(square))
+                    }
+                    _ => None,
+                };
+
                 pieces.push((
                     army,
                     Piece {
                         army,
                         kind,
-                        pawn_type: None,
+                        pawn_type,
+                        diagonal_system,
                     },
                     1u64 << square,
                 ));

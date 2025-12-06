@@ -131,9 +131,20 @@ impl Default for PlayerId {
     }
 }
 
+/// Diagonal system for queens and bishops (Aries vs Cancer lattices).
+/// Determines which pieces can capture each other across diagonal networks.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum DiagonalSystem {
+    Aries,
+    Cancer,
+}
+
 #[derive(Copy, Clone, Eq, PartialEq, Debug, Serialize, Deserialize)]
 pub struct Piece {
     pub army: Army,
     pub kind: PieceKind,
-    pub pawn_type: Option<PieceKind>, // for “pawn of X” if you want to distinguish
+    /// Patron piece type for pawns - determines what they promote to.
+    pub pawn_type: Option<PieceKind>,
+    /// Diagonal system for queens and bishops - restricts captures.
+    pub diagonal_system: Option<DiagonalSystem>,
 }

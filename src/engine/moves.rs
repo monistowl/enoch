@@ -1,9 +1,49 @@
 use crate::engine::board::{
-    diagonal_system, Board, MASK_FILE_A, MASK_FILE_B, MASK_FILE_G, MASK_FILE_H,
+    diagonal_system_for_square, Board, MASK_FILE_A, MASK_FILE_B, MASK_FILE_G, MASK_FILE_H,
 };
 use crate::engine::piece_kind::ParsedMove;
-use crate::engine::types::{Army, PieceKind, Square};
+use crate::engine::types::{Army, DiagonalSystem, Piece, PieceKind, Square};
 use crate::precompute_moves;
+
+/// Check if a piece can capture another piece based on Enochian chess rules.
+/// Returns true if the capture is allowed, false if restricted.
+///
+/// Rules:
+/// - Queens cannot capture enemy queens
+/// - Bishops cannot capture enemy bishops
+/// - Queens can only capture bishops on the same diagonal system
+/// - Bishops can only capture queens on the same diagonal system
+pub fn can_capture_piece(attacker: &Piece, target: &Piece) -> bool {
+    match (attacker.kind, target.kind) {
+        // Queens cannot capture queens
+        (PieceKind::Queen, PieceKind::Queen) => false,
+
+        // Bishops cannot capture bishops
+        (PieceKind::Bishop, PieceKind::Bishop) => false,
+
+        // Queen capturing bishop: must be same diagonal system
+        (PieceKind::Queen, PieceKind::Bishop) => {
+            match (attacker.diagonal_system, target.diagonal_system) {
+                (Some(a), Some(t)) => a == t,
+                // If either piece doesn't have a diagonal system set, allow capture
+                // (backwards compatibility / test scenarios)
+                _ => true,
+            }
+        }
+
+        // Bishop capturing queen: must be same diagonal system
+        (PieceKind::Bishop, PieceKind::Queen) => {
+            match (attacker.diagonal_system, target.diagonal_system) {
+                (Some(a), Some(t)) => a == t,
+                _ => true,
+            }
+        }
+
+        // All other captures are allowed
+        _ => true,
+    }
+}
+
 /// move generation related, only generate pseudo-legal moves which ensure that
 /// moves are within bounds, exclude friendly pieces and exclude blocked pieces
 
@@ -303,9 +343,16 @@ pub fn compute_bishops_moves(board: &Board, army: Army) -> u64 {
     while bishops != 0 {
         let index = bishops.trailing_zeros() as Square;
         bishops &= bishops - 1;
-        let diag_system = diagonal_system(index);
         let file = (index % 8) as i8;
         let rank = (index / 8) as i8;
+
+        // Get the attacking bishop's piece data for capture restriction checks
+        let attacker = board.get_piece(index).cloned().unwrap_or(Piece {
+            army,
+            kind: PieceKind::Bishop,
+            pawn_type: None,
+            diagonal_system: Some(diagonal_system_for_square(index)),
+        });
 
         for &(dx, dy) in &VECTORS {
             let mut search_file = file;
@@ -329,22 +376,18 @@ pub fn compute_bishops_moves(board: &Board, army: Army) -> u64 {
                     break;
                 }
 
-                if let Some((target_army, target_kind)) = board.piece_at(dest) {
+                if let Some((target_army, _)) = board.piece_at(dest) {
                     if target_army == army {
                         break;
                     }
-                    match target_kind {
-                        PieceKind::Bishop => {
-                            break;
-                        }
-                        PieceKind::Queen => {
-                            if diagonal_system(dest) == diag_system {
-                                moves |= dest_mask;
-                            }
-                        }
-                        _ => {
+                    // Check capture restrictions using piece metadata
+                    if let Some(target) = board.get_piece(dest) {
+                        if can_capture_piece(&attacker, target) {
                             moves |= dest_mask;
                         }
+                    } else {
+                        // Fallback if no piece_map entry (shouldn't happen)
+                        moves |= dest_mask;
                     }
                     break;
                 } else {
@@ -379,8 +422,15 @@ pub fn compute_queens_moves(board: &Board, army: Army) -> u64 {
 
     while queens != 0 {
         let index = queens.trailing_zeros() as u8;
-        let diag_system = diagonal_system(index);
         let leaps = QUEEN_LEAPS[index as usize];
+
+        // Get the attacking queen's piece data for capture restriction checks
+        let attacker = board.get_piece(index).cloned().unwrap_or(Piece {
+            army,
+            kind: PieceKind::Queen,
+            pawn_type: None,
+            diagonal_system: Some(diagonal_system_for_square(index)),
+        });
 
         let mut targets = leaps;
         while targets != 0 {
@@ -399,21 +449,19 @@ pub fn compute_queens_moves(board: &Board, army: Army) -> u64 {
 
             match board.piece_at(dest) {
                 None => moves |= dest_mask,
-                Some((target_army, target_kind)) => {
+                Some((target_army, _)) => {
                     if target_army == army {
                         continue;
                     }
 
-                    match target_kind {
-                        PieceKind::Queen => continue,
-                        PieceKind::Bishop => {
-                            if diagonal_system(dest) == diag_system {
-                                moves |= dest_mask;
-                            }
-                        }
-                        _ => {
+                    // Check capture restrictions using piece metadata
+                    if let Some(target) = board.get_piece(dest) {
+                        if can_capture_piece(&attacker, target) {
                             moves |= dest_mask;
                         }
+                    } else {
+                        // Fallback if no piece_map entry (shouldn't happen)
+                        moves |= dest_mask;
                     }
                 }
             }

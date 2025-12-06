@@ -1,6 +1,7 @@
 use crate::engine::types::{
-    Army, Piece, PieceKind, PlayerId, Square, Team, ARMY_COUNT, PIECE_KIND_COUNT, TEAM_COUNT,
+    Army, DiagonalSystem, Piece, PieceKind, PlayerId, Square, Team, ARMY_COUNT, PIECE_KIND_COUNT, TEAM_COUNT,
 };
+use std::collections::HashMap;
 
 #[derive(Debug, Clone, Copy)]
 pub struct ArmyState {
@@ -28,7 +29,7 @@ pub struct OverlayPiece {
     pub kind: PieceKind,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct Board {
     pub by_army_kind: [[u64; PIECE_KIND_COUNT]; ARMY_COUNT],
     pub occupancy_by_army: [u64; ARMY_COUNT],
@@ -41,6 +42,8 @@ pub struct Board {
     /// Indexed by [army][throne_index], where throne_index is 0 or 1.
     /// A king on its own throne can share the square with one allied piece.
     pub throne_overlay: [[Option<OverlayPiece>; 2]; ARMY_COUNT],
+    /// Per-square piece metadata (patron for pawns, diagonal system for queens/bishops).
+    pub piece_map: HashMap<Square, Piece>,
 }
 
 impl Board {
@@ -58,8 +61,18 @@ impl Board {
         promotion_zones: [u64; ARMY_COUNT],
     ) -> Board {
         let mut by_army_kind = [[0u64; PIECE_KIND_COUNT]; ARMY_COUNT];
+        let mut piece_map = HashMap::new();
+
         for (army, piece, bitboard) in initial_placements {
             by_army_kind[army.index()][piece.kind.index()] |= *bitboard;
+
+            // Populate piece_map for each square in the bitboard
+            let mut bits = *bitboard;
+            while bits != 0 {
+                let sq = bits.trailing_zeros() as Square;
+                piece_map.insert(sq, *piece);
+                bits &= bits - 1; // clear lowest set bit
+            }
         }
 
         let occupancy_by_army = compute_occupancy_by_army(&by_army_kind);
@@ -75,6 +88,7 @@ impl Board {
             armies: army_states,
             promotion_zones,
             throne_overlay: [[None; 2]; ARMY_COUNT],
+            piece_map,
         }
     }
 
@@ -88,6 +102,11 @@ impl Board {
             }
         }
         None
+    }
+
+    /// Get full piece metadata (patron, diagonal system) for a piece at a square.
+    pub fn get_piece(&self, square: Square) -> Option<&Piece> {
+        self.piece_map.get(&square)
     }
 }
 
@@ -124,6 +143,7 @@ impl Board {
                 self.by_army_kind[army.index()][kind.index()] &= !bit;
             }
         }
+        self.piece_map.remove(&square);
         self.refresh_occupancy();
     }
 
@@ -134,18 +154,37 @@ impl Board {
         self.free = !self.all_occupancy;
     }
 
+    /// Place a piece on a square. If you need to preserve patron/diagonal metadata,
+    /// use `place_piece_with_metadata` instead.
     pub fn place_piece(&mut self, army: Army, kind: PieceKind, square: Square) {
         let mask = 1u64 << square;
         self.by_army_kind[army.index()][kind.index()] |= mask;
+        self.piece_map.insert(square, Piece {
+            army,
+            kind,
+            pawn_type: None,
+            diagonal_system: None,
+        });
+        self.refresh_occupancy();
+    }
+
+    /// Place a piece with full metadata (patron, diagonal system).
+    pub fn place_piece_with_metadata(&mut self, square: Square, piece: Piece) {
+        let mask = 1u64 << square;
+        self.by_army_kind[piece.army.index()][piece.kind.index()] |= mask;
+        self.piece_map.insert(square, piece);
         self.refresh_occupancy();
     }
 
     pub fn remove_piece(&mut self, army: Army, kind: PieceKind, square: Square) {
         let mask = 1u64 << square;
         self.by_army_kind[army.index()][kind.index()] &= !mask;
+        self.piece_map.remove(&square);
         self.refresh_occupancy();
     }
 
+    /// Demote a piece to a pawn (for privileged pawn promotion demotion rule).
+    /// The demoted pawn becomes a "pawn of [kind]" - its patron is set to the demoted type.
     pub fn demote_piece_to_pawn(&mut self, army: Army, kind: PieceKind) -> Option<Square> {
         if kind == PieceKind::Pawn {
             return None;
@@ -158,15 +197,31 @@ impl Board {
         let bit = 1u64 << square;
         self.by_army_kind[army.index()][kind.index()] &= !bit;
         self.by_army_kind[army.index()][PieceKind::Pawn.index()] |= bit;
+
+        // Update piece_map: the demoted piece becomes a pawn with patron = original kind
+        self.piece_map.insert(square, Piece {
+            army,
+            kind: PieceKind::Pawn,
+            pawn_type: Some(kind), // patron is what it was demoted from
+            diagonal_system: None,
+        });
+
         self.refresh_occupancy();
         Some(square)
     }
 
+    /// Move a piece from one square to another, preserving its metadata.
     pub fn move_piece(&mut self, army: Army, kind: PieceKind, from: Square, to: Square) {
         let from_mask = 1u64 << from;
         let to_mask = 1u64 << to;
         self.by_army_kind[army.index()][kind.index()] &= !from_mask;
         self.by_army_kind[army.index()][kind.index()] |= to_mask;
+
+        // Preserve piece metadata when moving
+        if let Some(piece) = self.piece_map.remove(&from) {
+            self.piece_map.insert(to, piece);
+        }
+
         self.refresh_occupancy();
     }
 
@@ -312,6 +367,7 @@ impl Default for Board {
                     army: Army::Blue,
                     kind: PieceKind::King,
                     pawn_type: None,
+                    diagonal_system: None,
                 },
                 1 << coord(4, 0),
             ),
@@ -321,6 +377,7 @@ impl Default for Board {
                     army: Army::Red,
                     kind: PieceKind::King,
                     pawn_type: None,
+                    diagonal_system: None,
                 },
                 1 << coord(4, 7),
             ),
@@ -330,6 +387,7 @@ impl Default for Board {
                     army: Army::Black,
                     kind: PieceKind::King,
                     pawn_type: None,
+                    diagonal_system: None,
                 },
                 1 << coord(0, 4),
             ),
@@ -339,6 +397,7 @@ impl Default for Board {
                     army: Army::Yellow,
                     kind: PieceKind::King,
                     pawn_type: None,
+                    diagonal_system: None,
                 },
                 1 << coord(7, 4),
             ),
@@ -399,13 +458,8 @@ fn compute_occupancy_by_team(occupancy_by_army: &[u64; ARMY_COUNT]) -> [u64; TEA
 pub const ARIES_DIAGONALS: u64 = 0x55AA55AA55AA55AA;
 pub const CANCER_DIAGONALS: u64 = 0xAA55AA55AA55AA55;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum DiagonalSystem {
-    Aries,
-    Cancer,
-}
-
-pub fn diagonal_system(square: Square) -> DiagonalSystem {
+/// Determine the diagonal system (Aries or Cancer) for a given square.
+pub fn diagonal_system_for_square(square: Square) -> DiagonalSystem {
     if (ARIES_DIAGONALS >> square) & 1 != 0 {
         DiagonalSystem::Aries
     } else {

@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use crate::engine::types::{Army, PieceKind, PlayerId, Square, Piece, ARMY_COUNT};
+use crate::engine::types::{Army, DiagonalSystem, PieceKind, PlayerId, Square, Piece, ARMY_COUNT};
 use crate::engine::game::{Game, GameConfig, Mode};
 use crate::engine::board::{Board, ArmyState, OverlayPiece, DEFAULT_PROMOTION_ZONES};
 
@@ -39,6 +39,12 @@ pub struct PiecePlacement {
     pub square: Square,
     pub army: Army,
     pub kind: PieceKind,
+    /// Patron piece type for pawns (determines promotion target)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub patron: Option<PieceKind>,
+    /// Diagonal system for queens and bishops (Aries or Cancer)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub diagonal_system: Option<DiagonalSystem>,
 }
 
 impl EnochFen {
@@ -46,10 +52,14 @@ impl EnochFen {
         let mut pieces = Vec::new();
         for sq in 0..64 {
             if let Some((army, kind)) = game.board.piece_at(sq) {
+                // Get full piece metadata from piece_map
+                let piece_data = game.board.get_piece(sq);
                 pieces.push(PiecePlacement {
                     square: sq,
                     army,
                     kind,
+                    patron: piece_data.and_then(|p| p.pawn_type),
+                    diagonal_system: piece_data.and_then(|p| p.diagonal_system),
                 });
             }
         }
@@ -107,7 +117,8 @@ impl EnochFen {
                 Piece {
                     army: p.army,
                     kind: p.kind,
-                    pawn_type: None,
+                    pawn_type: p.patron,
+                    diagonal_system: p.diagonal_system,
                 },
                 1u64 << p.square,
             ));

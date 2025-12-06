@@ -382,22 +382,46 @@ impl Game {
             return false;
         }
 
+        // Determine the promotion target
         let target_kind = if self.is_privileged_pawn(army) {
+            // Privileged pawns can choose any major piece
             target
         } else {
-            PieceKind::Queen
+            // Normal pawns promote to their patron piece
+            // Get patron from piece_map, fall back to Queen if no patron specified
+            self.board
+                .get_piece(pawn_square)
+                .and_then(|p| p.pawn_type)
+                .unwrap_or(PieceKind::Queen)
         };
 
         if target_kind == PieceKind::Pawn || target_kind == PieceKind::King {
             return false;
         }
 
+        // If the target piece type already exists, demote it to a pawn
         if self.board.by_army_kind[army.index()][target_kind.index()] != 0 {
             self.board.demote_piece_to_pawn(army, target_kind);
         }
 
+        // Remove the pawn and add the promoted piece
         self.board.by_army_kind[army.index()][PieceKind::Pawn.index()] &= !pawn_mask;
         self.board.by_army_kind[army.index()][target_kind.index()] |= pawn_mask;
+
+        // Update piece_map with the promoted piece (preserving diagonal system if applicable)
+        let diagonal_system = match target_kind {
+            PieceKind::Queen | PieceKind::Bishop => {
+                Some(crate::engine::board::diagonal_system_for_square(pawn_square))
+            }
+            _ => None,
+        };
+        self.board.piece_map.insert(pawn_square, crate::engine::types::Piece {
+            army,
+            kind: target_kind,
+            pawn_type: None,
+            diagonal_system,
+        });
+
         self.board.refresh_occupancy();
         true
     }

@@ -1,7 +1,8 @@
 use enoch::engine::{
-    board::{Board, OverlayPiece},
+    board::{Board, OverlayPiece, diagonal_system_for_square},
     game::{Game, GameConfig},
-    types::{Army, Piece, PieceKind, Square},
+    moves::can_capture_piece,
+    types::{Army, DiagonalSystem, Piece, PieceKind, Square},
 };
 
 fn square(file: char, rank: u8) -> Square {
@@ -22,9 +23,9 @@ fn build_game_with_pieces(placements: &[(Army, Piece, u64)]) -> Game {
 #[test]
 fn check_forces_king_move() {
     let placements = &[
-        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None }, bit(square('e', 1))),
-        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Pawn, pawn_type: None }, bit(square('d', 2))),
-        (Army::Red, Piece { army: Army::Red, kind: PieceKind::Queen, pawn_type: None }, bit(square('e', 3))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('e', 1))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Pawn, pawn_type: None, diagonal_system: None }, bit(square('d', 2))),
+        (Army::Red, Piece { army: Army::Red, kind: PieceKind::Queen, pawn_type: None, diagonal_system: None }, bit(square('e', 3))),
     ];
 
     let mut game = build_game_with_pieces(placements);
@@ -40,7 +41,7 @@ fn check_forces_king_move() {
 
 #[test]
 fn capture_king_freezes_army() {
-    let placements = &[(Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None }, bit(square('e', 1)))];
+    let placements = &[(Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('e', 1)))];
     let mut game = build_game_with_pieces(placements);
     game.capture_king(Army::Blue);
     assert!(game.army_is_frozen(Army::Blue));
@@ -50,9 +51,9 @@ fn capture_king_freezes_army() {
 #[test]
 fn privileged_pawn_recognition() {
     let placements = &[
-        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None }, bit(square('e', 1))),
-        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Queen, pawn_type: None }, bit(square('d', 1))),
-        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Pawn, pawn_type: None }, bit(square('a', 2))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('e', 1))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Queen, pawn_type: None, diagonal_system: None }, bit(square('d', 1))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Pawn, pawn_type: None, diagonal_system: None }, bit(square('a', 2))),
     ];
     let game = build_game_with_pieces(placements);
     assert!(game.is_privileged_pawn(Army::Blue));
@@ -61,9 +62,9 @@ fn privileged_pawn_recognition() {
 #[test]
 fn privileged_pawn_demotes_existing_piece_on_promotion() {
     let placements = &[
-        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None }, bit(square('e', 1))),
-        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Queen, pawn_type: None }, bit(square('d', 1))),
-        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Pawn, pawn_type: None }, bit(square('e', 7))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('e', 1))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Queen, pawn_type: None, diagonal_system: None }, bit(square('d', 1))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Pawn, pawn_type: None, diagonal_system: None }, bit(square('e', 7))),
     ];
     let mut game = build_game_with_pieces(placements);
     let result = game.apply_move(
@@ -86,13 +87,13 @@ fn privileged_pawn_demotes_existing_piece_on_promotion() {
 #[test]
 fn test_king_moves_in_stalemate_setup() {
     let placements = &[
-        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None }, bit(square('e', 1))),
-        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Rook, pawn_type: None }, bit(square('d', 1))),
-        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Rook, pawn_type: None }, bit(square('f', 1))),
-        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Rook, pawn_type: None }, bit(square('e', 2))),
-        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Pawn, pawn_type: None }, bit(square('d', 2))),
-        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Pawn, pawn_type: None }, bit(square('f', 2))),
-        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Pawn, pawn_type: None }, bit(square('e', 3))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('e', 1))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Rook, pawn_type: None, diagonal_system: None }, bit(square('d', 1))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Rook, pawn_type: None, diagonal_system: None }, bit(square('f', 1))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Rook, pawn_type: None, diagonal_system: None }, bit(square('e', 2))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Pawn, pawn_type: None, diagonal_system: None }, bit(square('d', 2))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Pawn, pawn_type: None, diagonal_system: None }, bit(square('f', 2))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Pawn, pawn_type: None, diagonal_system: None }, bit(square('e', 3))),
     ];
     let game = build_game_with_pieces(placements);
     let king_moves = enoch::engine::moves::compute_king_moves(&game.board, Army::Blue);
@@ -110,9 +111,9 @@ fn stalemate_detected_when_no_moves_exist() {
     // Red rook at a2 controls rank 2 (h2 is attacked)
     // h1 is not attacked (neither rook targets it)
     let placements = &[
-        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None }, bit(square('h', 1))),
-        (Army::Red, Piece { army: Army::Red, kind: PieceKind::Rook, pawn_type: None }, bit(square('g', 3))),
-        (Army::Red, Piece { army: Army::Red, kind: PieceKind::Rook, pawn_type: None }, bit(square('a', 2))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('h', 1))),
+        (Army::Red, Piece { army: Army::Red, kind: PieceKind::Rook, pawn_type: None, diagonal_system: None }, bit(square('g', 3))),
+        (Army::Red, Piece { army: Army::Red, kind: PieceKind::Rook, pawn_type: None, diagonal_system: None }, bit(square('a', 2))),
     ];
     let game = build_game_with_pieces(placements);
 
@@ -126,10 +127,10 @@ fn stalemate_detected_when_no_moves_exist() {
 
     // Revised test: Blue king boxed in by own pieces with no other pieces that can move
     let boxed_placements = &[
-        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None }, bit(square('a', 1))),
-        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Knight, pawn_type: None }, bit(square('a', 2))),
-        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Knight, pawn_type: None }, bit(square('b', 1))),
-        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Knight, pawn_type: None }, bit(square('b', 2))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('a', 1))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Knight, pawn_type: None, diagonal_system: None }, bit(square('a', 2))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Knight, pawn_type: None, diagonal_system: None }, bit(square('b', 1))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Knight, pawn_type: None, diagonal_system: None }, bit(square('b', 2))),
     ];
     let boxed_game = build_game_with_pieces(boxed_placements);
 
@@ -142,8 +143,8 @@ fn stalemate_detected_when_no_moves_exist() {
 #[test]
 fn prisoner_exchange_restores_kings() {
     let placements = &[
-        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None }, bit(square('e', 1))),
-        (Army::Red, Piece { army: Army::Red, kind: PieceKind::King, pawn_type: None }, bit(square('e', 8))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('e', 1))),
+        (Army::Red, Piece { army: Army::Red, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('e', 8))),
     ];
     let mut game = build_game_with_pieces(placements);
     game.capture_king(Army::Blue);
@@ -170,13 +171,13 @@ fn allows_non_king_move_when_king_stuck_in_check() {
     // Note: The e2 square must NOT have a Blue piece, or it would block the check already!
     // We use knights at d1, f1, d2, f2 and leave e2 empty for the blocking move.
     let placements = &[
-        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None }, bit(square('e', 1))),
-        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Knight, pawn_type: None }, bit(square('d', 1))),
-        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Knight, pawn_type: None }, bit(square('f', 1))),
-        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Knight, pawn_type: None }, bit(square('d', 2))),
-        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Knight, pawn_type: None }, bit(square('f', 2))),
-        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Rook, pawn_type: None }, bit(square('h', 2))),
-        (Army::Red, Piece { army: Army::Red, kind: PieceKind::Rook, pawn_type: None }, bit(square('e', 8))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('e', 1))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Knight, pawn_type: None, diagonal_system: None }, bit(square('d', 1))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Knight, pawn_type: None, diagonal_system: None }, bit(square('f', 1))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Knight, pawn_type: None, diagonal_system: None }, bit(square('d', 2))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Knight, pawn_type: None, diagonal_system: None }, bit(square('f', 2))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Rook, pawn_type: None, diagonal_system: None }, bit(square('h', 2))),
+        (Army::Red, Piece { army: Army::Red, kind: PieceKind::Rook, pawn_type: None, diagonal_system: None }, bit(square('e', 8))),
     ];
     let mut game = build_game_with_pieces(placements);
 
@@ -203,8 +204,8 @@ fn allows_non_king_move_when_king_stuck_in_check() {
 #[test]
 fn apply_move_rejects_opponent_move() {
     let placements = &[
-        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None }, bit(square('e', 1))),
-        (Army::Red, Piece { army: Army::Red, kind: PieceKind::Rook, pawn_type: None }, bit(square('e', 8))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('e', 1))),
+        (Army::Red, Piece { army: Army::Red, kind: PieceKind::Rook, pawn_type: None, diagonal_system: None }, bit(square('e', 8))),
     ];
     let mut game = build_game_with_pieces(placements);
     let result = game.apply_move(Army::Red, square('e', 8), square('e', 7), None);
@@ -214,8 +215,8 @@ fn apply_move_rejects_opponent_move() {
 #[test]
 fn promotion_targets_default_to_queen() {
     let placements = &[
-        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None }, bit(square('e', 1))),
-        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Pawn, pawn_type: None }, bit(square('e', 7))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('e', 1))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Pawn, pawn_type: None, diagonal_system: None }, bit(square('e', 7))),
     ];
     let game = build_game_with_pieces(placements);
     let targets = game.promotion_targets(Army::Blue);
@@ -225,9 +226,9 @@ fn promotion_targets_default_to_queen() {
 #[test]
 fn promotion_targets_privileged_pawn_returns_all_majors() {
     let placements = &[
-        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None }, bit(square('e', 1))),
-        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Queen, pawn_type: None }, bit(square('d', 1))),
-        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Pawn, pawn_type: None }, bit(square('e', 7))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('e', 1))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Queen, pawn_type: None, diagonal_system: None }, bit(square('d', 1))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Pawn, pawn_type: None, diagonal_system: None }, bit(square('e', 7))),
     ];
     let game = build_game_with_pieces(placements);
     let targets = game.promotion_targets(Army::Blue);
@@ -245,8 +246,8 @@ fn promotion_targets_privileged_pawn_returns_all_majors() {
 #[test]
 fn exchange_prisoners_requires_both_kings_missing() {
     let placements = &[
-        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None }, bit(square('e', 1))),
-        (Army::Red, Piece { army: Army::Red, kind: PieceKind::King, pawn_type: None }, bit(square('e', 8))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('e', 1))),
+        (Army::Red, Piece { army: Army::Red, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('e', 8))),
     ];
     let mut game = build_game_with_pieces(placements);
     game.capture_king(Army::Blue);
@@ -257,8 +258,8 @@ fn exchange_prisoners_requires_both_kings_missing() {
 #[test]
 fn draw_detected_when_both_kings_bare() {
     let placements = &[
-        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None }, bit(square('e', 1))),
-        (Army::Red, Piece { army: Army::Red, kind: PieceKind::King, pawn_type: None }, bit(square('e', 8))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('e', 1))),
+        (Army::Red, Piece { army: Army::Red, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('e', 8))),
     ];
     let mut game = build_game_with_pieces(placements);
     game.capture_king(Army::Blue);
@@ -269,8 +270,8 @@ fn draw_detected_when_both_kings_bare() {
 #[test]
 fn apply_move_rejects_moving_into_own_piece() {
     let placements = &[
-        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None }, bit(square('e', 1))),
-        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Pawn, pawn_type: None }, bit(square('e', 2))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('e', 1))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Pawn, pawn_type: None, diagonal_system: None }, bit(square('e', 2))),
     ];
     let mut game = build_game_with_pieces(placements);
     let err = game.apply_move(Army::Blue, square('e', 1), square('e', 2), None);
@@ -295,9 +296,9 @@ fn default_array_has_all_army_kings() {
 fn stalemate_clears_after_any_move() {
     // Setup: Blue king boxed in by own pieces (true pseudo-legal stalemate)
     let placements = &[
-        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None }, bit(square('a', 1))),
-        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Rook, pawn_type: None }, bit(square('a', 2))),
-        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Rook, pawn_type: None }, bit(square('b', 1))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('a', 1))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Rook, pawn_type: None, diagonal_system: None }, bit(square('a', 2))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Rook, pawn_type: None, diagonal_system: None }, bit(square('b', 1))),
         // c1, c2, b2 empty - rooks at a2 and b1 can move
     ];
     let mut game = build_game_with_pieces(placements);
@@ -312,7 +313,7 @@ fn stalemate_clears_after_any_move() {
 
     // Test with only a king - no other pieces
     let lone_king_placements = &[
-        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None }, bit(square('e', 4))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('e', 4))),
     ];
     let mut lone_game = build_game_with_pieces(lone_king_placements);
     lone_game.update_stalemate_status(Army::Blue);
@@ -330,8 +331,8 @@ fn stalemate_clears_after_any_move() {
 fn throne_overlay_allows_allied_piece_to_share_throne() {
     // Blue king on d1 (Blue's throne), Blue rook on c1 that can slide to d1
     let placements = &[
-        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None }, bit(square('d', 1))),
-        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Rook, pawn_type: None }, bit(square('c', 1))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('d', 1))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Rook, pawn_type: None, diagonal_system: None }, bit(square('c', 1))),
     ];
     let mut game = build_game_with_pieces(placements);
 
@@ -353,8 +354,8 @@ fn throne_overlay_allows_teammate_to_share_throne() {
     // Blue king on d1 (Blue's throne), Black knight nearby
     // Team Air = Blue + Black
     let placements = &[
-        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None }, bit(square('d', 1))),
-        (Army::Black, Piece { army: Army::Black, kind: PieceKind::Knight, pawn_type: None }, bit(square('c', 3))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('d', 1))),
+        (Army::Black, Piece { army: Army::Black, kind: PieceKind::Knight, pawn_type: None, diagonal_system: None }, bit(square('c', 3))),
     ];
     let mut game = build_game_with_pieces(placements);
 
@@ -375,7 +376,7 @@ fn throne_overlay_allows_teammate_to_share_throne() {
 fn throne_overlay_restores_piece_when_king_leaves() {
     // Setup: Blue king on d1, rook already in overlay
     let placements = &[
-        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None }, bit(square('d', 1))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('d', 1))),
     ];
     let mut game = build_game_with_pieces(placements);
 
@@ -399,8 +400,8 @@ fn throne_overlay_restores_piece_when_king_leaves() {
 fn throne_overlay_both_captured_when_king_taken() {
     // Setup: Blue king on d1 with rook in overlay, Red queen can capture
     let placements = &[
-        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None }, bit(square('d', 1))),
-        (Army::Red, Piece { army: Army::Red, kind: PieceKind::Queen, pawn_type: None }, bit(square('d', 3))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('d', 1))),
+        (Army::Red, Piece { army: Army::Red, kind: PieceKind::Queen, pawn_type: None, diagonal_system: None }, bit(square('d', 3))),
     ];
     let mut game = build_game_with_pieces(placements);
 
@@ -431,8 +432,8 @@ fn throne_overlay_both_captured_when_king_taken() {
 fn throne_overlay_rejects_second_piece() {
     // Setup: Blue king on d1 with rook already in overlay
     let placements = &[
-        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None }, bit(square('d', 1))),
-        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Bishop, pawn_type: None }, bit(square('c', 2))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('d', 1))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Bishop, pawn_type: None, diagonal_system: None }, bit(square('c', 2))),
     ];
     let mut game = build_game_with_pieces(placements);
 
@@ -449,8 +450,8 @@ fn throne_overlay_rejects_second_piece() {
 fn throne_overlay_rejects_enemy_piece() {
     // Blue king on d1, Red rook tries to move there
     let placements = &[
-        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None }, bit(square('d', 1))),
-        (Army::Red, Piece { army: Army::Red, kind: PieceKind::Rook, pawn_type: None }, bit(square('d', 3))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('d', 1))),
+        (Army::Red, Piece { army: Army::Red, kind: PieceKind::Rook, pawn_type: None, diagonal_system: None }, bit(square('d', 3))),
     ];
     let mut game = build_game_with_pieces(placements);
 
@@ -469,12 +470,202 @@ fn throne_overlay_requires_own_throne() {
     // Blue king on e8 (Red's throne area, not Blue's throne)
     // Blue's thrones are d1 and e1
     let placements = &[
-        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None }, bit(square('e', 2))),
-        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Rook, pawn_type: None }, bit(square('d', 2))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('e', 2))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Rook, pawn_type: None, diagonal_system: None }, bit(square('d', 2))),
     ];
     let mut game = build_game_with_pieces(placements);
 
     // Rook tries to move to e2 where king is (but not a throne)
     let result = game.apply_move(Army::Blue, square('d', 2), square('e', 2), None);
     assert!(result.is_err(), "Should reject overlay when king not on throne");
+}
+
+// ============================================================================
+// Patron Piece System Tests
+// ============================================================================
+
+/// Test that a pawn with a patron promotes to its patron piece.
+#[test]
+fn pawn_promotes_to_patron_piece() {
+    // Blue pawn with Rook patron on rank 7, about to promote
+    let placements = &[
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('e', 1))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Pawn, pawn_type: Some(PieceKind::Rook), diagonal_system: None }, bit(square('a', 7))),
+    ];
+    let mut game = build_game_with_pieces(placements);
+
+    // Move pawn to promotion zone (rank 8)
+    let result = game.apply_move(Army::Blue, square('a', 7), square('a', 8), None);
+    assert!(result.is_ok(), "Pawn should be able to promote");
+
+    // Check that the pawn promoted to a Rook (its patron)
+    let promoted_piece = game.board.piece_at(square('a', 8));
+    assert_eq!(promoted_piece, Some((Army::Blue, PieceKind::Rook)), "Pawn should promote to patron Rook");
+}
+
+/// Test that a pawn without a patron defaults to Queen promotion.
+#[test]
+fn pawn_without_patron_promotes_to_queen() {
+    // Blue pawn with no patron on rank 7
+    let placements = &[
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::King, pawn_type: None, diagonal_system: None }, bit(square('e', 1))),
+        (Army::Blue, Piece { army: Army::Blue, kind: PieceKind::Pawn, pawn_type: None, diagonal_system: None }, bit(square('b', 7))),
+    ];
+    let mut game = build_game_with_pieces(placements);
+
+    // Move pawn to promotion zone
+    let result = game.apply_move(Army::Blue, square('b', 7), square('b', 8), None);
+    assert!(result.is_ok(), "Pawn should be able to promote");
+
+    // Check that the pawn promoted to a Queen (default)
+    let promoted_piece = game.board.piece_at(square('b', 8));
+    assert_eq!(promoted_piece, Some((Army::Blue, PieceKind::Queen)), "Pawn without patron should promote to Queen");
+}
+
+// ============================================================================
+// Diagonal System Capture Restriction Tests
+// ============================================================================
+
+/// Test that queens cannot capture other queens.
+#[test]
+fn queen_cannot_capture_queen() {
+    let attacker = Piece {
+        army: Army::Blue,
+        kind: PieceKind::Queen,
+        pawn_type: None,
+        diagonal_system: Some(DiagonalSystem::Aries),
+    };
+    let target = Piece {
+        army: Army::Red,
+        kind: PieceKind::Queen,
+        pawn_type: None,
+        diagonal_system: Some(DiagonalSystem::Aries),
+    };
+    assert!(!can_capture_piece(&attacker, &target), "Queen should not be able to capture queen");
+}
+
+/// Test that bishops cannot capture other bishops.
+#[test]
+fn bishop_cannot_capture_bishop() {
+    let attacker = Piece {
+        army: Army::Blue,
+        kind: PieceKind::Bishop,
+        pawn_type: None,
+        diagonal_system: Some(DiagonalSystem::Cancer),
+    };
+    let target = Piece {
+        army: Army::Red,
+        kind: PieceKind::Bishop,
+        pawn_type: None,
+        diagonal_system: Some(DiagonalSystem::Cancer),
+    };
+    assert!(!can_capture_piece(&attacker, &target), "Bishop should not be able to capture bishop");
+}
+
+/// Test that queen can capture bishop on same diagonal system.
+#[test]
+fn queen_captures_bishop_same_diagonal() {
+    let attacker = Piece {
+        army: Army::Blue,
+        kind: PieceKind::Queen,
+        pawn_type: None,
+        diagonal_system: Some(DiagonalSystem::Aries),
+    };
+    let target = Piece {
+        army: Army::Red,
+        kind: PieceKind::Bishop,
+        pawn_type: None,
+        diagonal_system: Some(DiagonalSystem::Aries),
+    };
+    assert!(can_capture_piece(&attacker, &target), "Queen should capture bishop on same diagonal");
+}
+
+/// Test that queen cannot capture bishop on different diagonal system.
+#[test]
+fn queen_cannot_capture_bishop_different_diagonal() {
+    let attacker = Piece {
+        army: Army::Blue,
+        kind: PieceKind::Queen,
+        pawn_type: None,
+        diagonal_system: Some(DiagonalSystem::Aries),
+    };
+    let target = Piece {
+        army: Army::Red,
+        kind: PieceKind::Bishop,
+        pawn_type: None,
+        diagonal_system: Some(DiagonalSystem::Cancer),
+    };
+    assert!(!can_capture_piece(&attacker, &target), "Queen should not capture bishop on different diagonal");
+}
+
+/// Test that bishop can capture queen on same diagonal system.
+#[test]
+fn bishop_captures_queen_same_diagonal() {
+    let attacker = Piece {
+        army: Army::Blue,
+        kind: PieceKind::Bishop,
+        pawn_type: None,
+        diagonal_system: Some(DiagonalSystem::Cancer),
+    };
+    let target = Piece {
+        army: Army::Red,
+        kind: PieceKind::Queen,
+        pawn_type: None,
+        diagonal_system: Some(DiagonalSystem::Cancer),
+    };
+    assert!(can_capture_piece(&attacker, &target), "Bishop should capture queen on same diagonal");
+}
+
+/// Test that bishop cannot capture queen on different diagonal system.
+#[test]
+fn bishop_cannot_capture_queen_different_diagonal() {
+    let attacker = Piece {
+        army: Army::Blue,
+        kind: PieceKind::Bishop,
+        pawn_type: None,
+        diagonal_system: Some(DiagonalSystem::Cancer),
+    };
+    let target = Piece {
+        army: Army::Red,
+        kind: PieceKind::Queen,
+        pawn_type: None,
+        diagonal_system: Some(DiagonalSystem::Aries),
+    };
+    assert!(!can_capture_piece(&attacker, &target), "Bishop should not capture queen on different diagonal");
+}
+
+/// Test that other piece captures are not restricted.
+#[test]
+fn rook_captures_queen_allowed() {
+    let attacker = Piece {
+        army: Army::Blue,
+        kind: PieceKind::Rook,
+        pawn_type: None,
+        diagonal_system: None,
+    };
+    let target = Piece {
+        army: Army::Red,
+        kind: PieceKind::Queen,
+        pawn_type: None,
+        diagonal_system: Some(DiagonalSystem::Aries),
+    };
+    assert!(can_capture_piece(&attacker, &target), "Rook should be able to capture queen");
+}
+
+/// Test that knight can capture bishop (no restrictions).
+#[test]
+fn knight_captures_bishop_allowed() {
+    let attacker = Piece {
+        army: Army::Blue,
+        kind: PieceKind::Knight,
+        pawn_type: None,
+        diagonal_system: None,
+    };
+    let target = Piece {
+        army: Army::Red,
+        kind: PieceKind::Bishop,
+        pawn_type: None,
+        diagonal_system: Some(DiagonalSystem::Cancer),
+    };
+    assert!(can_capture_piece(&attacker, &target), "Knight should be able to capture bishop");
 }
