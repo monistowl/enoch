@@ -46,6 +46,14 @@ async function initEnochWasm() {
 }
 
 /**
+ * Map army name to single-char code (Blue=B, Black=K, Red=R, Yellow=Y)
+ */
+function armyCode(armyName) {
+  const codes = { Blue: 'B', Black: 'K', Red: 'R', Yellow: 'Y' };
+  return codes[armyName] || armyName[0];
+}
+
+/**
  * WASM-powered game component for Alpine.js
  * Uses the Rust engine for move validation and game logic
  */
@@ -124,7 +132,7 @@ function enochWasmGame() {
         if (sq.piece) {
           this.position[sq.index] = {
             code: sq.piece.code,
-            army: sq.piece.army[0], // First char: B, K, R, Y
+            army: armyCode(sq.piece.army), // B, K, R, Y (Black uses K to avoid collision with Blue)
             armyName: sq.piece.army,
             type: sq.piece.kind[0], // First char: K, Q, R, B, N, P
             glyph: sq.piece.glyph,
@@ -136,7 +144,7 @@ function enochWasmGame() {
 
       // Get game state
       const gameState = this.wasmGame.getGameState();
-      this.turn = gameState.current_army[0]; // First char
+      this.turn = armyCode(gameState.current_army); // B, K, R, Y
       this.frozen = {
         B: gameState.frozen.blue,
         K: gameState.frozen.black,

@@ -1,101 +1,494 @@
-{% extends "base.html" %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ config.title | default(value="Enochian Chess") }}</title>
 
-{% block title %}{{ section.title | default(value=config.title) }}{% endblock %}
+    <!-- SEO and Social Meta Tags -->
+    {% if config.extra.author %}
+    <meta name="author" content="{{ config.extra.author }}">
+    {% endif %}
+    <meta name="description" content="{{ config.description | default(value='A four-army chess variant from the Victorian occult tradition') }}">
 
-{% block content %}
-<section class="hero">
-    <h1 class="hero__title">Enochian Chess</h1>
-    <p class="hero__subtitle">A four-army chess variant from the Victorian occult tradition</p>
-    <p class="hero__tagline">
-        Where Air battles Earth, and kings can fall. Master the elemental forces
-        on a board unlike any other.
-    </p>
+    <!-- Favicon and icons -->
+    {% if config.extra.favicon %}
+    <link rel="icon" type="image/x-icon" href="{{ config.extra.favicon | safe }}">
+    {% endif %}
 
-    <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
-        <a href="{{ get_url(path="quick-start") }}" class="btn btn--primary">Learn in 5 Minutes</a>
-        <a href="{{ get_url(path="rules") }}" class="btn btn--secondary">Full Rules</a>
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="{{ get_url(path='style.css') | safe }}">
+
+    <!-- Alpine.js -->
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    <!-- WASM Base URL for module loader -->
+    <script>
+        window.ENOCH_BASE_URL = '{{ get_url(path="/") | safe }}';
+    </script>
+
+    <!-- Game Component JS -->
+    <script src="{{ get_url(path='js/enoch-wasm.js') | safe }}"></script>
+
+    <style>
+        /* OPA Full-screen Layout */
+        :root {
+            --opa-header-height: 48px;
+            --opa-nav-width: 280px;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .opa-container {
+            display: flex;
+            flex-direction: column;
+            height: 100dvh;
+            width: 100vw;
+            overflow: hidden;
+            background: var(--bg-color);
+            color: var(--text-color);
+        }
+
+        /* Header Bar */
+        .opa-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: var(--opa-header-height);
+            padding: 0 0.75rem;
+            background: var(--sidebar-bg);
+            border-bottom: 1px solid var(--border-color);
+            flex-shrink: 0;
+            z-index: 100;
+        }
+
+        .opa-header-left,
+        .opa-header-right {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .opa-title {
+            font-family: var(--heading-font);
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--heading-color);
+            margin: 0;
+        }
+
+        .opa-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            border: none;
+            background: transparent;
+            color: var(--text-color);
+            font-size: 1.5rem;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+
+        .opa-btn:hover {
+            background: var(--hover-bg);
+        }
+
+        /* Main Game Area */
+        .opa-main {
+            flex: 1;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.5rem;
+        }
+
+        /* Game widget adjustments for full-screen */
+        .opa-main .game-widget {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+            max-height: 100%;
+            width: 100%;
+        }
+
+        .opa-main .game-widget__content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+            max-height: 100%;
+            width: 100%;
+        }
+
+        .opa-main .board-widget {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            max-width: min(85vw, calc(100dvh - var(--opa-header-height) - 180px));
+            max-height: min(85vw, calc(100dvh - var(--opa-header-height) - 180px));
+            width: 100%;
+            aspect-ratio: 1;
+        }
+
+        .opa-main .board-widget__svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .opa-main .captures-widget {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.85rem;
+        }
+
+        .opa-main .game-widget__controls {
+            padding: 0.5rem;
+            gap: 0.5rem;
+        }
+
+        .opa-main .history-widget {
+            max-width: 300px;
+            max-height: 80px;
+            overflow-y: auto;
+        }
+
+        .opa-main .history-widget--compact {
+            max-height: 60px;
+        }
+
+        /* Slide-out Navigation */
+        .opa-nav-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 200;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+        }
+
+        .opa-nav-overlay.open {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .opa-nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: var(--opa-nav-width);
+            max-width: 85vw;
+            height: 100%;
+            background: var(--sidebar-bg);
+            border-right: 1px solid var(--border-color);
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+            z-index: 201;
+            overflow-y: auto;
+            padding: 1rem;
+        }
+
+        .opa-nav.open {
+            transform: translateX(0);
+        }
+
+        .opa-nav-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .opa-nav-title {
+            font-family: var(--heading-font);
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--accent-color);
+            margin: 0;
+        }
+
+        .opa-nav-close {
+            font-size: 1.75rem;
+            line-height: 1;
+        }
+
+        .opa-nav-links {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .opa-nav-links li {
+            margin-bottom: 0.25rem;
+        }
+
+        .opa-nav-links a {
+            display: block;
+            padding: 0.75rem 1rem;
+            color: var(--text-color);
+            text-decoration: none;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+
+        .opa-nav-links a:hover {
+            background: var(--hover-bg);
+            color: var(--accent-color);
+        }
+
+        /* Help Modal */
+        .opa-modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 300;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+            padding: 1rem;
+        }
+
+        .opa-modal-overlay.open {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .opa-modal {
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            max-width: 600px;
+            max-height: 85vh;
+            width: 100%;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transform: scale(0.95);
+            transition: transform 0.3s;
+        }
+
+        .opa-modal-overlay.open .opa-modal {
+            transform: scale(1);
+        }
+
+        .opa-modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid var(--border-color);
+            background: var(--sidebar-bg);
+        }
+
+        .opa-modal-title {
+            font-family: var(--heading-font);
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin: 0;
+            color: var(--heading-color);
+        }
+
+        .opa-modal-body {
+            padding: 1.25rem;
+            overflow-y: auto;
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        .opa-modal-body h3 {
+            font-family: var(--heading-font);
+            font-size: 1.1rem;
+            margin: 1.25rem 0 0.5rem 0;
+            color: var(--accent-color);
+        }
+
+        .opa-modal-body h3:first-child {
+            margin-top: 0;
+        }
+
+        .opa-modal-body ul {
+            margin: 0.5rem 0;
+            padding-left: 1.25rem;
+        }
+
+        .opa-modal-body li {
+            margin-bottom: 0.25rem;
+        }
+
+        .opa-modal-body strong {
+            color: var(--heading-color);
+        }
+
+        .opa-modal-body kbd {
+            background: var(--code-bg, #2d2d2d);
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+
+        .team-fire { color: #e74c3c; }
+        .team-earth { color: #27ae60; }
+        .army-blue { color: #3498db; }
+        .army-black { color: #95a5a6; }
+        .army-red { color: #e74c3c; }
+        .army-yellow { color: #f1c40f; }
+
+        /* Responsive adjustments */
+        @media (max-width: 600px) {
+            .opa-title {
+                font-size: 1rem;
+            }
+
+            .opa-btn {
+                width: 36px;
+                height: 36px;
+                font-size: 1.25rem;
+            }
+
+            .opa-main {
+                padding: 0.25rem;
+            }
+
+            .opa-main .board-widget {
+                max-width: min(95vw, calc(100dvh - var(--opa-header-height) - 160px));
+                max-height: min(95vw, calc(100dvh - var(--opa-header-height) - 160px));
+            }
+        }
+    </style>
+</head>
+<body x-data="{ navOpen: false, helpOpen: false }" @keydown.escape.window="navOpen = false; helpOpen = false">
+    <div class="opa-container">
+        <!-- Header Bar -->
+        <header class="opa-header">
+            <div class="opa-header-left">
+                <button class="opa-btn" @click="navOpen = true" aria-label="Open menu">☰</button>
+                <h1 class="opa-title">Enochian Chess</h1>
+            </div>
+            <div class="opa-header-right">
+                <button class="opa-btn theme-toggle" aria-label="Toggle theme" onclick="toggleTheme()">☽</button>
+                <button class="opa-btn" @click="helpOpen = true" aria-label="Help">?</button>
+            </div>
+        </header>
+
+        <!-- Main Game Area -->
+        <main class="opa-main">
+            {% include "partials/live_game.html" %}
+        </main>
     </div>
-</section>
 
-<hr>
+    <!-- Navigation Overlay -->
+    <div class="opa-nav-overlay" :class="{ 'open': navOpen }" @click="navOpen = false"></div>
 
-<h2>The Four Armies</h2>
+    <!-- Navigation Panel -->
+    <nav class="opa-nav" :class="{ 'open': navOpen }">
+        <div class="opa-nav-header">
+            <h2 class="opa-nav-title">Menu</h2>
+            <button class="opa-btn opa-nav-close" @click="navOpen = false" aria-label="Close menu">x</button>
+        </div>
+        <ul class="opa-nav-links">
+            <li><a href="{{ get_url(path='/') | safe }}" @click="navOpen = false">Play Game</a></li>
+            <li><a href="{{ get_url(path='rules') | safe }}" @click="navOpen = false">Full Rules</a></li>
+            <li><a href="{{ get_url(path='history') | safe }}" @click="navOpen = false">History</a></li>
+            <li><a href="{{ get_url(path='about') | safe }}" @click="navOpen = false">About</a></li>
+        </ul>
+    </nav>
 
-<p>
-    Enochian Chess is played by four players in two teams. <strong>Team Air</strong>
-    (Blue and Black) faces <strong>Team Earth</strong> (Red and Yellow) across an 8&times;8 board.
-    Unlike standard chess, kings can be <em>captured</em>&mdash;and when they fall,
-    their entire army freezes in place.
-</p>
+    <!-- Help Modal -->
+    <div class="opa-modal-overlay" :class="{ 'open': helpOpen }" @click.self="helpOpen = false">
+        <div class="opa-modal">
+            <div class="opa-modal-header">
+                <h2 class="opa-modal-title">Quick Rules</h2>
+                <button class="opa-btn" @click="helpOpen = false" aria-label="Close">x</button>
+            </div>
+            <div class="opa-modal-body">
+                <h3>Teams</h3>
+                <ul>
+                    <li><strong class="team-fire">Fire:</strong> <span class="army-blue">Blue</span> + <span class="army-yellow">Yellow</span></li>
+                    <li><strong class="team-earth">Earth:</strong> <span class="army-black">Black</span> + <span class="army-red">Red</span></li>
+                </ul>
 
-<!-- Interactive Board Demo -->
-<script>
-  window.homeDemo = {
-    mode: "demo",
-    autoPlay: true,
-    playSpeed: 2000,
-    initialPosition: {
-      b1: "BR", c1: "BN", d1: "BB", e1: "BK", f1: "BQ", g1: "BB",
-      b8: "KR", c8: "KN", d8: "KB", e8: "KK", f8: "KQ", g8: "KB",
-      h2: "RR", h3: "RN", h4: "RB", h5: "RK", h6: "RQ", h7: "RB",
-      a2: "YR", a3: "YN", a4: "YB", a5: "YK", a6: "YQ", a7: "YB"
-    },
-    steps: [
-      { narrative: "Blue opens by advancing the Bishop" },
-      { move: ["d1", "d3"], narrative: "Blue Bishop to d3" },
-      { move: ["h4", "f4"], narrative: "Red Bishop strikes across the board" },
-      { move: ["d8", "d6"], narrative: "Black Bishop mirrors Blue" },
-      { move: ["a4", "c4"], narrative: "Yellow Bishop enters the fray" },
-      { move: ["d3", "f5"], narrative: "Blue Bishop threatens Red" },
-      { move: ["f4", "d2"], narrative: "Red retreats to safety" }
-    ]
-  };
-</script>
-{% set demo_scenario = "window.homeDemo" %}
-{% include "partials/board.html" %}
-<p class="board-preview__caption" style="text-align: center; margin-top: -1rem; margin-bottom: 2rem;">
-    Click to pause &middot; Four armies clash on a single board
-</p>
+                <h3>Turn Order</h3>
+                <p><span class="army-blue">Blue</span> then <span class="army-black">Black</span> then <span class="army-red">Red</span> then <span class="army-yellow">Yellow</span>, repeat</p>
 
-<div class="card-grid">
-    <a href="{{ get_url(path="quick-start") }}" class="card card--air">
-        <div class="card__icon">⚡</div>
-        <h3 class="card__title">Quick Start</h3>
-        <p class="card__description">
-            Learn the basics in 5 minutes. Enough to start playing immediately.
-        </p>
-    </a>
+                <h3>Victory</h3>
+                <p>Checkmate <strong>both</strong> enemy kings to win for your team.</p>
 
-    <a href="{{ get_url(path="rules") }}" class="card card--fire">
-        <div class="card__icon">📜</div>
-        <h3 class="card__title">Full Rules</h3>
-        <p class="card__description">
-            The complete rulebook: diagonal networks, frozen armies, throne mechanics, and more.
-        </p>
-    </a>
+                <h3>Pieces</h3>
+                <ul>
+                    <li><strong>King</strong> - Moves 1 square any direction</li>
+                    <li><strong>Queen</strong> - Rook + Bishop combined</li>
+                    <li><strong>Rook</strong> - Straight lines (ranks/files)</li>
+                    <li><strong>Bishop</strong> - Diagonal lines</li>
+                    <li><strong>Knight</strong> - L-shape, jumps pieces</li>
+                    <li><strong>Pawn</strong> - Forward 1, captures diagonally</li>
+                </ul>
 
-    <a href="{{ get_url(path="rules/pieces") }}" class="card card--earth">
-        <div class="card__icon">♛</div>
-        <h3 class="card__title">The Pieces</h3>
-        <p class="card__description">
-            Each piece has unique movement and capture rules. Learn what makes the Queen so unusual.
-        </p>
-    </a>
-</div>
+                <h3>Special Rules</h3>
+                <ul>
+                    <li><strong>Frozen Army:</strong> When a king is checkmated, that army freezes</li>
+                    <li><strong>Throne Overlay:</strong> Pieces can sit on allied king thrones</li>
+                    <li><strong>No Castling</strong> and <strong>No En Passant</strong></li>
+                </ul>
 
-<hr>
+                <h3>How to Play</h3>
+                <ul>
+                    <li>Click a piece to see legal moves</li>
+                    <li>Green dots = moves, Red dots = captures</li>
+                    <li>Click a destination to move</li>
+                    <li>Press <kbd>?</kbd> anytime for this help</li>
+                </ul>
+            </div>
+        </div>
+    </div>
 
-<h2>Origins</h2>
+    <!-- Theme Script -->
+    <script>
+        function toggleTheme() {
+            const html = document.documentElement;
+            const currentTheme = html.getAttribute('data-theme') || 'dark';
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
 
-<p>
-    Enochian Chess emerged from the Hermetic Order of the Golden Dawn in the late 19th century.
-    Documented by S.L. MacGregor Mathers and later expanded by Chris Zalewski, it was designed
-    as both a game of strategy and a tool for divination.
-</p>
+            // Update button icon
+            const btn = document.querySelector('.theme-toggle');
+            btn.textContent = newTheme === 'dark' ? '☽' : '☀';
+        }
 
-<p>
-    Today, it stands as one of the most intricate chess variants ever devised&mdash;a game where
-    four armies clash, alliances matter, and fallen kings leave frozen soldiers behind.
-</p>
+        // Apply saved theme on load
+        (function() {
+            const saved = localStorage.getItem('theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', saved);
+            document.addEventListener('DOMContentLoaded', () => {
+                const btn = document.querySelector('.theme-toggle');
+                if (btn) btn.textContent = saved === 'dark' ? '☽' : '☀';
+            });
+        })();
 
-{% endblock %}
+        // Keyboard shortcut for help
+        document.addEventListener('keydown', (e) => {
+            if (e.key === '?' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                // Prevent if typing in input
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+                Alpine.store('helpOpen', true);
+            }
+        });
+    </script>
+</body>
+</html>
