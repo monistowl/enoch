@@ -1,3 +1,4 @@
+edit: hello, one guy who starred this repo! it ain't ready for prime time yet, but stay tuned
 # Enoch
 
 > A modern, terminal-based engine for Enochian Chess (4-player variant).
